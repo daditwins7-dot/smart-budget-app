@@ -6,6 +6,7 @@ export const defaultState = {
   estimatedTaxPercent: 18,
   initialCashFlow: 1200,
   currentCashFlow: 1850,
+  lastActualUpdate: "",
   desiredFinalCashFlow: 900,
   initialSavings: 4200,
   currentSavings: 4200,

@@ -908,8 +908,46 @@ th {
 
 .transaction-form {
   display: grid;
-  grid-template-columns: 150px 1.5fr 130px 170px 160px 1fr auto;
+  grid-template-columns: 150px 170px 1.5fr 130px 160px 1fr auto;
   gap: 10px;
+}
+
+.transaction-panel h2 {
+  margin-bottom: 16px;
+}
+
+.actual-balance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.actual-balance-grid small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.last-update input {
+  font-weight: 700;
+}
+
+.last-update.stale input {
+  background: #fff2f0;
+  border-color: #f3b5ae;
+  color: var(--danger);
+}
+
+.last-update.stale small {
+  color: var(--danger);
+}
+
+.last-update.current input {
+  background: #effaf3;
+  border-color: #abdec2;
+  color: var(--ok);
 }
 
 .card-list {
@@ -1010,6 +1048,7 @@ th {
 
   .metric-grid,
   .form-grid,
+  .actual-balance-grid,
   .card-list {
     grid-template-columns: 1fr;
   }

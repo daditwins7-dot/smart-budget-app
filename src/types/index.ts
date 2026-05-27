@@ -37,6 +37,7 @@ export interface BudgetState {
   estimatedTaxPercent: number;
   initialCashFlow: number;
   currentCashFlow: number;
+  lastActualUpdate: string;
   desiredFinalCashFlow: number;
   initialSavings: number;
   currentSavings: number;

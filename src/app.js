@@ -300,19 +300,36 @@ function inlineNumber(field, type = "amount") {
 }
 
 function transactions() {
+  const today = localDateValue();
+  const lastUpdated = state.lastActualUpdate || "";
+  const updateCurrent = lastUpdated === today;
   return `
-    <section class="panel">
+    <section class="panel transaction-panel">
       <h2>Record actual movement</h2>
+      <section class="actual-balance-grid">
+        <label>Cash Flow
+          <input type="number" step="0.01" data-actual-balance="currentCashFlow" value="${state.currentCashFlow}" />
+          <small>Current Cash Flow Balance Plus Cash in Hand</small>
+        </label>
+        <label>Saving
+          <input type="number" step="0.01" data-actual-balance="currentSavings" value="${state.currentSavings}" />
+          <small>Current Total Savings Account Balance</small>
+        </label>
+        <label class="last-update ${updateCurrent ? "current" : "stale"}">Last Update Date
+          <input type="date" value="${lastUpdated}" readonly aria-label="Last Update Date" />
+          <small>${updateCurrent ? "Balances updated today" : "Update balances for today"}</small>
+        </label>
+      </section>
       <form id="tx-form" class="transaction-form">
-        <input name="date" type="date" value="${new Date().toISOString().slice(0, 10)}" />
-        <select name="conceptId">${state.expenses.map((line) => `<option value="${line.id}">${line.concept}</option>`).join("")}</select>
-        <input name="amount" type="number" step="0.01" placeholder="Amount" required />
-        <select name="type">
+        <input name="date" type="date" value="${today}" />
+        <select name="type" id="tx-type">
           <option value="expense">Expense</option>
           <option value="income">Income</option>
           <option value="saving">Saving</option>
           <option value="creditCardPayment">Credit card payment</option>
         </select>
+        <select name="conceptId" id="tx-concept">${transactionConceptOptions("expense")}</select>
+        <input name="amount" type="number" step="0.01" placeholder="Amount" required />
         <select name="paymentMethod">
           <option value="cash">Cash</option>
           <option value="creditCard">Credit card</option>
@@ -323,6 +340,36 @@ function transactions() {
     </section>
     <section class="card-list">${state.transactions.map(txCard).join("") || `<p class="muted">No actual movements yet.</p>`}</section>
   `;
+}
+
+function localDateValue(date = new Date()) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function transactionConceptOptions(type) {
+  const options =
+    type === "income"
+      ? [
+          ["net-income", "Net Income"],
+          ["other-deposits", "Other Deposits"],
+        ]
+      : type === "saving"
+        ? [["savings-account", "Saving"]]
+        : type === "creditCardPayment"
+          ? [["cards", "Credit Cards All Payments"]]
+          : state.expenses.map((line) => [line.id, line.concept]);
+  return options.map(([id, label]) => `<option value="${id}">${label}</option>`).join("");
+}
+
+function showCurrentActualUpdate() {
+  const indicator = document.querySelector(".last-update");
+  if (!indicator) return;
+  indicator.classList.remove("stale");
+  indicator.classList.add("current");
+  indicator.querySelector("input").value = state.lastActualUpdate;
+  indicator.querySelector("small").textContent = "Balances updated today";
 }
 
 function projections() {
@@ -416,7 +463,12 @@ function bars(items) {
 }
 
 function txCard(tx) {
-  const concept = state.expenses.find((line) => line.id === tx.conceptId)?.concept || "Income";
+  const fixedConcepts = {
+    "net-income": "Net Income",
+    "other-deposits": "Other Deposits",
+    "savings-account": "Saving",
+  };
+  const concept = fixedConcepts[tx.conceptId] || state.expenses.find((line) => line.id === tx.conceptId)?.concept || "Movement";
   return `<article class="tx-card"><strong>${concept}</strong><span>${tx.date}</span><b>${money(tx.amount)}</b><small>${tx.type} · ${tx.paymentMethod}</small></article>`;
 }
 
@@ -432,6 +484,17 @@ function bindEvents() {
       const field = input.dataset.field;
       state[field] = input.type === "checkbox" ? input.checked : input.type === "number" ? Number(input.value) : input.value;
       saveState(state);
+      render();
+    });
+  });
+  document.querySelectorAll("[data-actual-balance]").forEach((input) => {
+    input.addEventListener("input", () => {
+      state[input.dataset.actualBalance] = Number(input.value);
+      state.lastActualUpdate = localDateValue();
+      saveState(state);
+      showCurrentActualUpdate();
+    });
+    input.addEventListener("change", () => {
       render();
     });
   });
@@ -475,10 +538,14 @@ function bindEvents() {
       render();
     });
   });
+  document.querySelector("#tx-type")?.addEventListener("change", (event) => {
+    document.querySelector("#tx-concept").innerHTML = transactionConceptOptions(event.target.value);
+  });
   document.querySelector("#tx-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.target).entries());
     state.transactions.unshift({ id: crypto.randomUUID(), ...data, amount: Number(data.amount) });
+    state.lastActualUpdate = localDateValue();
     saveState(state);
     render();
   });
