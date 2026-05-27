@@ -153,7 +153,6 @@ function signalDot(status) {
 }
 
 function budgetSetup(p) {
-  const overdraft = Math.max(0, p.creditCardActual - p.creditCardPlanned);
   return `
     <section class="budget-sheet">
       <header class="budget-title">
@@ -207,12 +206,25 @@ function budgetSetup(p) {
       </section>
       <section class="budget-section ending-section">
         <table class="budget-simple summary-inputs">
-          <thead><tr><th>Concept</th><th>Amount</th><th title="Deposit Day / Overdraft">Day / OD</th></tr></thead>
+          <thead><tr><th>Concept</th><th>Amount</th><th>Deposit Day</th></tr></thead>
           <tbody>
             <tr><td><strong>Savings</strong> Planned Saving</td><td>${inlineNumber("budgetedSavings")}</td><td>${inlineNumber("savingsDepositDay", "day")}</td></tr>
-            <tr><td><strong>Credit Cards</strong></td><td>${inlineNumber("plannedCreditCardSpending")}</td><td class="${overdraft > 0 ? "danger" : ""}">${money(overdraft)}</td></tr>
           </tbody>
         </table>
+      </section>
+      <section class="budget-section credit-card-budget-section">
+        <table class="credit-card-budget">
+          <thead><tr><th></th><th>Budget</th><th>Overdraft</th><th>Total</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="detail-name">Credit Cards</span></td>
+              <td>${inlineNumber("plannedCreditCardSpending")}</td>
+              <td class="${p.creditCardOverdraft > 0 ? "danger" : "ok"}">${money(p.creditCardOverdraft)}</td>
+              <td class="credit-card-total">${money(p.creditCardTotal)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="budget-note">Overdraft is calculated when controlled expenses exceed available income before credit cards.</p>
       </section>
       <footer class="budget-footer">
         <label class="toggle"><input type="checkbox" data-field="crisisMode" ${state.crisisMode ? "checked" : ""}/> Crisis mode</label>

@@ -65,6 +65,8 @@ export interface BudgetProjection {
   expectedEndCashFlow: number;
   projectedSavings: number;
   creditCardPlanned: number;
+  creditCardOverdraft: number;
+  creditCardTotal: number;
   creditCardActual: number;
   creditCardPaymentsActual: number;
   projectedCardCoverage: number;

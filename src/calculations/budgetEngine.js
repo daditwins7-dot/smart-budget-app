@@ -31,18 +31,19 @@ export function calculateProjection(state, today = new Date()) {
   const initialCashFlow = numeric(state.initialCashFlow);
   const desiredFinalCashFlow = numeric(state.desiredFinalCashFlow);
   const plannedCreditCardSpending = numeric(state.plannedCreditCardSpending);
+  const controlledExpenses = committedDebts + householdExpenses + extraordinaryExpenses;
 
   const resources = initialCashFlow + regularIncome + irregularIncome;
-  const miscellaneousRaw =
+  const availableBeforeCreditCards =
     initialCashFlow +
     regularIncome +
     irregularIncome -
-    committedDebts -
-    householdExpenses -
-    extraordinaryExpenses -
-    budgetedSavings +
-    plannedCreditCardSpending -
+    budgetedSavings -
     desiredFinalCashFlow;
+  const creditCardOverdraft = Math.max(0, controlledExpenses - availableBeforeCreditCards);
+  const creditCardTotal = plannedCreditCardSpending + creditCardOverdraft;
+  const budgetAvailableForExpenses = availableBeforeCreditCards + creditCardTotal;
+  const miscellaneousRaw = budgetAvailableForExpenses - controlledExpenses;
   const miscellaneous = miscellaneousRaw;
 
   const actualIncome = actualTotal(state, "income");
@@ -61,13 +62,6 @@ export function calculateProjection(state, today = new Date()) {
   const trackedCurrentCash =
     initialCashFlow + actualIncome - actualCashExpenses - actualSavings - actualCardPayments;
   const reviewCashVariance = numeric(state.currentCashFlow) - trackedCurrentCash;
-  const budgetAvailableForExpenses =
-    initialCashFlow +
-    regularIncome +
-    irregularIncome -
-    budgetedSavings -
-    desiredFinalCashFlow +
-    plannedCreditCardSpending;
   const projectedAvailableForExpenses =
     initialCashFlow +
     projectedIncome -
@@ -116,6 +110,8 @@ export function calculateProjection(state, today = new Date()) {
     expectedEndCashFlow,
     projectedSavings,
     creditCardPlanned: plannedCreditCardSpending,
+    creditCardOverdraft,
+    creditCardTotal,
     creditCardActual: actualCardSpending,
     creditCardPaymentsActual: actualCardPayments,
     projectedCardCoverage,
@@ -181,13 +177,12 @@ export function dashboardModel(state, today = new Date()) {
         : lowerIsBetter(projection.miscellaneousProjected, projection.miscellaneous),
     },
   ];
-  const creditCardOverdraft = Math.max(0, projection.creditCardActual - projection.creditCardPlanned);
   const creditCardStructure = {
     label: "Credit Cards",
     budget: projection.creditCardPlanned,
-    overdraft: creditCardOverdraft,
-    total: projection.creditCardPlanned + creditCardOverdraft,
-    evaluation: creditCardOverdraft > 0 ? status("problem") : status("good"),
+    overdraft: projection.creditCardOverdraft,
+    total: projection.creditCardTotal,
+    evaluation: projection.creditCardOverdraft > 0 ? status("problem") : status("good"),
   };
 
   return {

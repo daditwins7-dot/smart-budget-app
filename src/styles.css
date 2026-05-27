@@ -662,26 +662,6 @@ h2 {
   width: 7%;
 }
 
-.fixed-refs th:first-child {
-  width: 37%;
-}
-
-.fixed-refs th:nth-child(2) {
-  width: 24%;
-}
-
-.fixed-refs th:nth-child(3) {
-  width: 17%;
-}
-
-.fixed-refs th:nth-child(4) {
-  width: 15%;
-}
-
-.fixed-refs th:last-child {
-  width: 7%;
-}
-
 .budget-expenses .icon {
   height: 27px;
   line-height: 1;
@@ -708,6 +688,48 @@ h2 {
   display: inline-block;
   margin-right: 8px;
   text-transform: uppercase;
+}
+
+.credit-card-budget-section {
+  border-top: 1px solid var(--line);
+  padding-top: 9px;
+}
+
+.credit-card-budget {
+  table-layout: fixed;
+}
+
+.credit-card-budget th:first-child,
+.credit-card-budget td:first-child {
+  width: 40%;
+}
+
+.credit-card-budget th:not(:first-child),
+.credit-card-budget td:not(:first-child) {
+  text-align: right;
+  width: 20%;
+}
+
+.credit-card-budget td {
+  font-weight: 700;
+  height: 38px;
+  padding: 4px 7px;
+}
+
+.credit-card-budget .inline-field {
+  justify-content: end;
+  max-width: none;
+}
+
+.credit-card-budget .inline-field input {
+  max-width: 126px;
+  text-align: right;
+}
+
+.credit-card-total {
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 800;
 }
 
 .budget-footer {
@@ -1094,10 +1116,6 @@ th {
     grid-template-columns: 54px 1fr 76px;
   }
 
-  .budget-expenses.fixed-refs tr {
-    grid-template-columns: 110px 1fr 76px;
-  }
-
   .budget-expenses td {
     border: 0;
     display: block;
@@ -1181,6 +1199,26 @@ th {
     align-items: start;
     flex-direction: column;
     gap: 9px;
+  }
+
+  .credit-card-budget th:first-child,
+  .credit-card-budget td:first-child {
+    width: 34%;
+  }
+
+  .credit-card-budget th:not(:first-child),
+  .credit-card-budget td:not(:first-child) {
+    font-size: 11px;
+    width: 22%;
+  }
+
+  .credit-card-budget td {
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+
+  .credit-card-budget .inline-field input {
+    max-width: 82px;
   }
 
   .period-data {
