@@ -335,7 +335,7 @@ function transactions() {
         <input name="comment" placeholder="Comment" />
         <button class="primary">Add</button>
       </form>
-      <p class="transaction-rules">Only budgeted expense concepts are available for tracking. Miscellaneous is calculated by the system and is not recorded here. Credit card expenses and payments are accumulated totals; identify individual card activity in Comment. Savings are not recorded as transactions because bank balances define increases or reductions; when savings are used for payments, reduce the savings balance and increase payments or cash flow as applicable.</p>
+      <p class="transaction-rules">Only budgeted expense concepts are available for tracking. Miscellaneous is calculated by the system and is not recorded here. Payment Method is required for accurate cash flow and credit card balances; select Cash or Credit card correctly for each expense. Credit card expenses and payments are accumulated totals; identify individual card activity in Comment. Savings are not recorded as transactions because bank balances define increases or reductions; when savings are used for payments, reduce the savings balance and increase payments or cash flow as applicable.</p>
     </section>
     <section class="card-list">${state.transactions.map(txCard).join("") || `<p class="muted">No actual movements yet.</p>`}</section>
   `;
