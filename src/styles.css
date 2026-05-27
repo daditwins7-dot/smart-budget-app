@@ -976,17 +976,30 @@ th {
 }
 
 .projection-balance-table {
+  display: block;
   table-layout: fixed;
+}
+
+.projection-balance-table thead,
+.projection-balance-table tbody,
+.projection-balance-table tr {
+  display: block;
+}
+
+.projection-balance-table tr {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(160px, 1.5fr) repeat(3, minmax(86px, 1fr));
 }
 
 .projection-balance-table th:first-child,
 .projection-balance-table td:first-child {
-  width: 34%;
+  width: auto;
 }
 
 .projection-balance-table th:not(:first-child),
 .projection-balance-table td:not(:first-child) {
-  width: 22%;
+  width: auto;
 }
 
 .payment-timing-card {
@@ -1022,31 +1035,30 @@ th {
 }
 
 .payment-timing-row.future {
-  grid-template-columns: 1fr 108px;
+  grid-template-columns: 1fr;
 }
 
-.payment-timing-row.future label,
-.payment-timing-row.future small {
-  grid-column: 1 / 2;
+.payment-timing-fields {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 88px 1fr auto;
 }
 
-.payment-timing-row.future strong {
-  grid-column: 2 / 3;
-  grid-row: 1 / 4;
+.payment-timing-fields label,
+.payment-timing-fields small {
+  display: grid;
+  gap: 5px;
+}
+
+.payment-timing-fields strong {
   justify-self: end;
+  padding-bottom: 7px;
 }
 
 .payment-timing-row input {
-  margin-left: 6px;
   padding: 6px 7px;
   width: 54px;
-}
-
-.payment-timing-card p {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.4;
-  margin: 10px 0 0;
 }
 
 .projection-balance-table strong,
