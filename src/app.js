@@ -386,16 +386,17 @@ function projections() {
         <span>Group</span><span>Budget</span><span>Actual</span><span>Projected</span><span>Remaining</span><span>% Paid</span><span>Evaluation</span>
       </div>
       ${model.rows.map(projectionExpandableRow).join("")}
+      ${projectionStandardRow(model.miscellaneousRow)}
     </section>
     <section class="panel projection-panel">
-      <h2>Calculated Balances</h2>
+      <h2>Credit Cards</h2>
       <div class="table-wrap">
         <table class="projection-special-table">
           <thead><tr><th>Concept</th><th>Payments</th><th>Expenses</th><th>Difference</th><th>Evaluation</th></tr></thead>
-          <tbody>${model.specialRows.map(projectionSpecialRow).join("")}</tbody>
+          <tbody>${projectionSpecialRow(model.creditCardRow)}</tbody>
         </table>
       </div>
-      <p class="muted projection-note projection-calculated-note">Miscellaneous is calculated by the system. Credit Cards compares recorded payments against expenses paid by credit card.</p>
+      <p class="muted projection-note projection-calculated-note">Credit Cards compares recorded payments against expenses paid by credit card.</p>
       <footer class="signal-guide projection-signals">
         <h2>Evaluation</h2>
         <p>${signalDot("problem")} Problem</p>
@@ -422,6 +423,12 @@ function projectionExpandableRow(row) {
       </table>
     </div>
   </details>`;
+}
+
+function projectionStandardRow(row) {
+  return `<div class="projection-grid projection-standard-row status-${row.evaluation.key}">
+    <strong>${row.label}</strong><span>${money(row.budget)}</span><span>${money(row.actual)}</span><span>${money(row.projected)}</span><span>${money(row.remaining)}</span><span>${pct(row.paid)}</span><span>${evaluationResult(row.evaluation)}</span>
+  </div>`;
 }
 
 function projectionDetailRow(row) {

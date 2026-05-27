@@ -252,7 +252,6 @@ export function projectionAnalysisModel(state) {
     .filter((tx) => tx.type === "expense" && tx.paymentMethod === "creditCard" && tx.conceptId !== "cards")
     .reduce((total, tx) => total + numeric(tx.amount), 0);
   const cardDifference = cardPayments - cardExpenses;
-  const miscellaneousDifference = projection.miscellaneous - projection.miscellaneousProjected;
   return {
     balanceRows: [
       {
@@ -271,25 +270,25 @@ export function projectionAnalysisModel(state) {
       },
     ],
     rows: projectionRows(state),
-    specialRows: [
-      {
-        label: "Miscellaneous",
-        payments: projection.miscellaneous,
-        expenses: projection.miscellaneousProjected,
-        difference: miscellaneousDifference,
-        evaluation:
-          projection.miscellaneousProjected < 0
-            ? status("problem")
-            : lowerIsBetter(projection.miscellaneousProjected, projection.miscellaneous),
-      },
-      {
-        label: "Credit Cards",
-        payments: cardPayments,
-        expenses: cardExpenses,
-        difference: cardDifference,
-        evaluation: cardDifference < 0 ? status("problem") : status("good"),
-      },
-    ],
+    miscellaneousRow: {
+      label: "Miscellaneous",
+      budget: projection.miscellaneous,
+      actual: 0,
+      projected: projection.miscellaneousProjected,
+      remaining: Math.max(0, projection.miscellaneous),
+      paid: 0,
+      evaluation:
+        projection.miscellaneousProjected < 0
+          ? status("problem")
+          : lowerIsBetter(projection.miscellaneousProjected, projection.miscellaneous),
+    },
+    creditCardRow: {
+      label: "Credit Cards",
+      payments: cardPayments,
+      expenses: cardExpenses,
+      difference: cardDifference,
+      evaluation: cardDifference < 0 ? status("problem") : status("good"),
+    },
   };
 }
 

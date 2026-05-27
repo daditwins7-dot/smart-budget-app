@@ -1023,6 +1023,23 @@ th {
   background: #fffaf0;
 }
 
+.projection-standard-row {
+  border-bottom: 1px solid var(--line);
+  font-weight: 500;
+}
+
+.projection-standard-row strong {
+  font-weight: 800;
+}
+
+.projection-standard-row.status-problem {
+  background: #fff8f7;
+}
+
+.projection-standard-row.status-watch {
+  background: #fffaf0;
+}
+
 .projection-detail-wrap {
   background: #f7f9fb;
   padding: 0 12px 12px 30px;
