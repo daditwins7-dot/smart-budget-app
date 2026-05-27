@@ -959,6 +959,93 @@ th {
   padding-top: 12px;
 }
 
+.projection-panel h2 {
+  margin-bottom: 12px;
+}
+
+.projection-note {
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.projection-balance-table strong,
+.projection-special-table strong {
+  font-weight: 800;
+}
+
+.projection-grid {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(160px, 1.5fr) repeat(5, minmax(86px, 1fr)) minmax(115px, 1fr);
+  padding: 10px;
+}
+
+.projection-grid-header {
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.projection-group {
+  border-bottom: 1px solid var(--line);
+}
+
+.projection-group summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.projection-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.projection-group summary strong::before {
+  color: var(--accent);
+  content: "+";
+  display: inline-block;
+  font-size: 16px;
+  margin-right: 10px;
+  width: 10px;
+}
+
+.projection-group[open] summary strong::before {
+  content: "-";
+}
+
+.projection-group.status-problem summary {
+  background: #fff8f7;
+}
+
+.projection-group.status-watch summary {
+  background: #fffaf0;
+}
+
+.projection-detail-wrap {
+  background: #f7f9fb;
+  padding: 0 12px 12px 30px;
+}
+
+.projection-detail-table td,
+.projection-detail-table th {
+  font-size: 12px;
+  padding: 8px;
+}
+
+.projection-detail-table td:first-child {
+  font-weight: 700;
+}
+
+.projection-special-table td:nth-child(4) {
+  font-weight: 800;
+}
+
+.projection-signals {
+  margin-top: 16px;
+}
+
 .card-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1064,6 +1151,23 @@ th {
 
   .transaction-form {
     grid-template-columns: 1fr;
+  }
+
+  .projection-grid {
+    gap: 5px;
+    grid-template-columns: minmax(100px, 1.4fr) repeat(3, minmax(66px, 1fr));
+    padding: 8px 3px;
+  }
+
+  .projection-grid span:nth-child(5),
+  .projection-grid span:nth-child(6),
+  .projection-grid span:nth-child(7) {
+    display: none;
+  }
+
+  .projection-detail-wrap {
+    overflow-x: auto;
+    padding: 0 0 10px 12px;
   }
 
   .bars div {

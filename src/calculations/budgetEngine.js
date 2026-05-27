@@ -205,13 +205,26 @@ export function dashboardModel(state, today = new Date()) {
 
 export function projectionRows(state) {
   const groups = [
-    ["Income", null, state.regularIncome + state.irregularIncome],
-    ["Debts", "debts", sum(state.expenses, "debts")],
-    ["Household expenses", "household", sum(state.expenses, "household")],
-    ["Extraordinary expenses", "extraordinary", sum(state.expenses, "extraordinary")],
+    {
+      label: "Income",
+      group: null,
+      details: [
+        { id: "net-income", label: "Net Income", budget: numeric(state.regularIncome) },
+        { id: "other-deposits", label: "Other Deposits", budget: numeric(state.irregularIncome) },
+      ],
+    },
+    { label: "Committed Debts", group: "debts" },
+    { label: "Household Expenses", group: "household" },
+    { label: "Extraordinary Expenses", group: "extraordinary" },
   ];
-  return groups.map(([label, group, budget]) => {
-    const ids = state.expenses.filter((line) => line.group === group).map((line) => line.id);
+  return groups.map(({ label, group, details }) => {
+    const lines =
+      details ||
+      state.expenses
+        .filter((line) => line.group === group)
+        .map((line) => ({ id: line.id, label: line.concept, budget: numeric(line.amount) }));
+    const ids = lines.map((line) => line.id);
+    const budget = lines.reduce((total, line) => total + line.budget, 0);
     const actual =
       group === null
         ? actualTotal(state, "income")
@@ -225,8 +238,76 @@ export function projectionRows(state) {
       projected: Math.max(budget, actual),
       remaining: Math.max(0, budget - actual),
       paid: budget ? actual / budget : 0,
+      evaluation: group === null ? higherIsBetter(actual, budget) : lowerIsBetter(actual, budget),
+      details: lines.map((line) => projectionDetail(state, line, group === null)),
     };
   });
+}
+
+export function projectionAnalysisModel(state) {
+  const projection = calculateProjection(state);
+  const savingsTarget = numeric(state.initialSavings) + numeric(state.budgetedSavings);
+  const cardPayments = paidForConcept(state, "cards");
+  const cardExpenses = state.transactions
+    .filter((tx) => tx.type === "expense" && tx.paymentMethod === "creditCard" && tx.conceptId !== "cards")
+    .reduce((total, tx) => total + numeric(tx.amount), 0);
+  const cardDifference = cardPayments - cardExpenses;
+  const miscellaneousDifference = projection.miscellaneous - projection.miscellaneousProjected;
+  return {
+    balanceRows: [
+      {
+        label: "Cash Flow",
+        initial: numeric(state.initialCashFlow),
+        actual: numeric(state.currentCashFlow),
+        projected: projection.expectedEndCashFlow,
+        evaluation: higherIsBetter(projection.expectedEndCashFlow, numeric(state.desiredFinalCashFlow)),
+      },
+      {
+        label: "Savings",
+        initial: numeric(state.initialSavings),
+        actual: numeric(state.currentSavings),
+        projected: projection.projectedSavings,
+        evaluation: higherIsBetter(projection.projectedSavings, savingsTarget),
+      },
+    ],
+    rows: projectionRows(state),
+    specialRows: [
+      {
+        label: "Miscellaneous",
+        payments: projection.miscellaneous,
+        expenses: projection.miscellaneousProjected,
+        difference: miscellaneousDifference,
+        evaluation:
+          projection.miscellaneousProjected < 0
+            ? status("problem")
+            : lowerIsBetter(projection.miscellaneousProjected, projection.miscellaneous),
+      },
+      {
+        label: "Credit Cards",
+        payments: cardPayments,
+        expenses: cardExpenses,
+        difference: cardDifference,
+        evaluation: cardDifference < 0 ? status("problem") : status("good"),
+      },
+    ],
+  };
+}
+
+function projectionDetail(state, line, income) {
+  const actual = income
+    ? state.transactions
+        .filter((tx) => tx.type === "income" && tx.conceptId === line.id)
+        .reduce((total, tx) => total + numeric(tx.amount), 0)
+    : paidForConcept(state, line.id);
+  return {
+    label: line.label,
+    budget: line.budget,
+    actual,
+    projected: Math.max(line.budget, actual),
+    remaining: Math.max(0, line.budget - actual),
+    paid: line.budget ? actual / line.budget : 0,
+    evaluation: income ? higherIsBetter(actual, line.budget) : lowerIsBetter(actual, line.budget),
+  };
 }
 
 function periodDetails(month, today) {

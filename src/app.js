@@ -1,4 +1,4 @@
-import { dashboardModel, money, pct, projectionRows } from "./calculations/budgetEngine.js";
+import { dashboardModel, money, pct, projectionAnalysisModel } from "./calculations/budgetEngine.js";
 import { loadState, resetState, saveState } from "./data/defaultState.js";
 import { copy } from "./i18n/index.js";
 
@@ -368,19 +368,68 @@ function showCurrentActualUpdate() {
 }
 
 function projections() {
+  const model = projectionAnalysisModel(state);
   return `
-    <section class="panel">
-      <h2>Projection analysis</h2>
+    <section class="panel projection-panel">
+      <h2>Balances</h2>
       <div class="table-wrap">
-        <table>
-          <thead><tr><th>Group</th><th>Budget</th><th>Actual</th><th>Projected</th><th>Remaining</th><th>% paid</th></tr></thead>
-          <tbody>${projectionRows(state)
-            .map((row) => `<tr><td>${row.label}</td><td>${money(row.budget)}</td><td>${money(row.actual)}</td><td>${money(row.projected)}</td><td>${money(row.remaining)}</td><td>${pct(row.paid)}</td></tr>`)
-            .join("")}</tbody>
+        <table class="projection-balance-table">
+          <thead><tr><th>Balance</th><th>Initial</th><th>Actual</th><th>Projected</th><th>Evaluation</th></tr></thead>
+          <tbody>${model.balanceRows.map(projectionBalanceRow).join("")}</tbody>
         </table>
       </div>
     </section>
+    <section class="panel projection-panel">
+      <h2>Income and Expenses</h2>
+      <p class="muted projection-note">Expand a budget group to review each tracked concept.</p>
+      <div class="projection-grid projection-grid-header">
+        <span>Group</span><span>Budget</span><span>Actual</span><span>Projected</span><span>Remaining</span><span>% Paid</span><span>Evaluation</span>
+      </div>
+      ${model.rows.map(projectionExpandableRow).join("")}
+    </section>
+    <section class="panel projection-panel">
+      <h2>Calculated Balances</h2>
+      <div class="table-wrap">
+        <table class="projection-special-table">
+          <thead><tr><th>Concept</th><th>Payments</th><th>Expenses</th><th>Difference</th><th>Evaluation</th></tr></thead>
+          <tbody>${model.specialRows.map(projectionSpecialRow).join("")}</tbody>
+        </table>
+      </div>
+      <p class="muted projection-note projection-calculated-note">Miscellaneous is calculated by the system. Credit Cards compares recorded payments against expenses paid by credit card.</p>
+      <footer class="signal-guide projection-signals">
+        <h2>Evaluation</h2>
+        <p>${signalDot("problem")} Problem</p>
+        <p>${signalDot("watch")} Watch</p>
+        <p>${signalDot("good")} On track</p>
+      </footer>
+    </section>
   `;
+}
+
+function projectionBalanceRow(row) {
+  return `<tr class="status-${row.evaluation.key}"><td><strong>${row.label}</strong></td><td>${money(row.initial)}</td><td>${money(row.actual)}</td><td>${money(row.projected)}</td><td>${evaluationResult(row.evaluation)}</td></tr>`;
+}
+
+function projectionExpandableRow(row) {
+  return `<details class="projection-group status-${row.evaluation.key}">
+    <summary class="projection-grid">
+      <strong>${row.label}</strong><span>${money(row.budget)}</span><span>${money(row.actual)}</span><span>${money(row.projected)}</span><span>${money(row.remaining)}</span><span>${pct(row.paid)}</span><span>${evaluationResult(row.evaluation)}</span>
+    </summary>
+    <div class="projection-detail-wrap">
+      <table class="projection-detail-table">
+        <thead><tr><th>Concept</th><th>Budget</th><th>Actual</th><th>Projected</th><th>Remaining</th><th>% Paid</th><th>Evaluation</th></tr></thead>
+        <tbody>${row.details.map(projectionDetailRow).join("")}</tbody>
+      </table>
+    </div>
+  </details>`;
+}
+
+function projectionDetailRow(row) {
+  return `<tr class="status-${row.evaluation.key}"><td>${row.label}</td><td>${money(row.budget)}</td><td>${money(row.actual)}</td><td>${money(row.projected)}</td><td>${money(row.remaining)}</td><td>${pct(row.paid)}</td><td>${evaluationResult(row.evaluation)}</td></tr>`;
+}
+
+function projectionSpecialRow(row) {
+  return `<tr class="status-${row.evaluation.key}"><td><strong>${row.label}</strong></td><td>${money(row.payments)}</td><td>${money(row.expenses)}</td><td class="${row.difference < 0 ? "danger" : "ok"}">${money(row.difference)}</td><td>${evaluationResult(row.evaluation)}</td></tr>`;
 }
 
 function evaluation(p) {
