@@ -168,7 +168,7 @@ function budgetSetup(p) {
         <table class="budget-simple">
           <thead><tr><th>Concept</th><th>Amount</th><th>% Tax</th></tr></thead>
           <tbody>
-            <tr class="budget-total-row"><td>Total Income</td><td>${money(p.totalIncomeBudget)}</td><td class="calculated-mark">Calculated</td></tr>
+            <tr class="budget-total-row"><td>Available Income</td><td>${money(p.budgetAvailableForExpenses)}</td><td class="calculated-mark">Calculated</td></tr>
             <tr><td>Salary Net Income</td><td>${inlineNumber("regularIncome")}</td><td>${inlineNumber("estimatedTaxPercent", "percent")}</td></tr>
             <tr><td>Other Income</td><td>${inlineNumber("irregularIncome")}</td><td class="calculated-mark">---</td></tr>
           </tbody>
