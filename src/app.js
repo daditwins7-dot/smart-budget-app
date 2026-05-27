@@ -260,13 +260,19 @@ function budgetExpenseTable(group) {
 function referenceControl(line, index, group) {
   if (group === "debts") {
     const description = line.reference === "1" ? "Housing" : line.reference === "2" ? "Credit Cards" : "Other Debts";
-    return `<span class="fixed-reference"><strong>${line.reference}</strong><small>${description}</small></span>`;
+    return `<span class="fixed-reference" title="${description}" aria-label="${line.reference} - ${description}"><strong>${line.reference}</strong></span>`;
   }
   return `<select class="reference-select" data-line="${index}" data-prop="reference" aria-label="Reference for ${line.concept}">
     ${comparativeReferences[group]
-      .map(([value, label]) => `<option value="${value}" ${line.reference === value ? "selected" : ""}>${value} - ${label}</option>`)
+      .map(([value, label]) => `<option value="${value}" data-description="${label}" ${line.reference === value ? "selected" : ""}>${value}</option>`)
       .join("")}
   </select>`;
+}
+
+function toggleReferenceDescriptions(select, expanded) {
+  Array.from(select.options).forEach((option) => {
+    option.textContent = expanded ? `${option.value} - ${option.dataset.description}` : option.value;
+  });
 }
 
 function inlineNumber(field, type = "amount") {
@@ -418,6 +424,11 @@ function bindEvents() {
       saveState(state);
       render();
     });
+  });
+  document.querySelectorAll(".reference-select").forEach((select) => {
+    select.addEventListener("pointerdown", () => toggleReferenceDescriptions(select, true));
+    select.addEventListener("focus", () => toggleReferenceDescriptions(select, true));
+    select.addEventListener("blur", () => toggleReferenceDescriptions(select, false));
   });
   document.querySelectorAll("[data-remove-line]").forEach((button) => {
     button.addEventListener("click", () => {

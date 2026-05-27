@@ -613,18 +613,16 @@ h2 {
 }
 
 .fixed-reference {
-  align-items: baseline;
+  align-items: center;
+  background: #f7fafb;
+  border-radius: 4px;
   display: flex;
-  gap: 7px;
+  height: 28px;
+  justify-content: center;
 }
 
 .fixed-reference strong {
   font-size: 14px;
-}
-
-.fixed-reference small {
-  color: var(--muted);
-  font-size: 11px;
 }
 
 .reference-select {
@@ -645,23 +643,23 @@ h2 {
 }
 
 .selectable-refs th:first-child {
-  width: 31%;
+  width: 42%;
 }
 
 .selectable-refs th:nth-child(2) {
-  width: 39%;
+  width: 12%;
 }
 
 .selectable-refs th:nth-child(3) {
-  width: 14%;
+  width: 22%;
 }
 
 .selectable-refs th:nth-child(4) {
-  width: 11%;
+  width: 17%;
 }
 
 .selectable-refs th:last-child {
-  width: 5%;
+  width: 7%;
 }
 
 .fixed-refs th:first-child {
@@ -1092,9 +1090,8 @@ th {
   .budget-expenses.selectable-refs tr {
     grid-template-areas:
       "concept concept concept"
-      "ref ref ref"
-      "amount due .";
-    grid-template-columns: 1fr 76px 0;
+      "ref amount due";
+    grid-template-columns: 54px 1fr 76px;
   }
 
   .budget-expenses.fixed-refs tr {
@@ -1163,14 +1160,7 @@ th {
   }
 
   .fixed-reference {
-    background: #f7fafb;
-    border-radius: 4px;
     height: 28px;
-    padding: 5px 6px;
-  }
-
-  .fixed-reference small {
-    font-size: 10px;
   }
 
   .budget-expenses .icon {
