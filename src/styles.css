@@ -950,6 +950,15 @@ th {
   color: var(--ok);
 }
 
+.transaction-rules {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 18px 0 0;
+  padding-top: 12px;
+}
+
 .card-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -313,7 +313,7 @@ function transactions() {
         </label>
         <label>Saving
           <input type="number" step="0.01" data-actual-balance="currentSavings" value="${state.currentSavings}" />
-          <small>Current Total Savings Account Balance</small>
+          <small>Current Total Savings Account Balance; savings are tracked by balance only.</small>
         </label>
         <label class="last-update ${updateCurrent ? "current" : "stale"}">Last Update Date
           <input type="date" value="${lastUpdated}" readonly aria-label="Last Update Date" />
@@ -325,7 +325,6 @@ function transactions() {
         <select name="type" id="tx-type">
           <option value="expense">Expense</option>
           <option value="income">Income</option>
-          <option value="saving">Saving</option>
           <option value="creditCardPayment">Credit card payment</option>
         </select>
         <select name="conceptId" id="tx-concept">${transactionConceptOptions("expense")}</select>
@@ -337,6 +336,7 @@ function transactions() {
         <input name="comment" placeholder="Comment" />
         <button class="primary">Add</button>
       </form>
+      <p class="transaction-rules">Only budgeted expense concepts are available for tracking. Miscellaneous is calculated by the system and is not recorded here. Credit card expenses and payments are accumulated totals; identify individual card activity in Comment.</p>
     </section>
     <section class="card-list">${state.transactions.map(txCard).join("") || `<p class="muted">No actual movements yet.</p>`}</section>
   `;
@@ -355,9 +355,7 @@ function transactionConceptOptions(type) {
           ["net-income", "Net Income"],
           ["other-deposits", "Other Deposits"],
         ]
-      : type === "saving"
-        ? [["savings-account", "Saving"]]
-        : type === "creditCardPayment"
+      : type === "creditCardPayment"
           ? [["cards", "Credit Cards All Payments"]]
           : state.expenses.map((line) => [line.id, line.concept]);
   return options.map(([id, label]) => `<option value="${id}">${label}</option>`).join("");
