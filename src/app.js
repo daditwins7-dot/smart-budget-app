@@ -197,12 +197,14 @@ function budgetSetup(p) {
       ${budgetExpenseSection("Household Expenses", "household", "Choose the comparative budget group that describes each monthly expense.")}
       ${budgetExpenseSection("Extraordinary Expenses", "extraordinary", "Unforeseen or scheduled non-monthly expenses use comparative group 13.")}
       <section class="budget-section calculated-section">
-        <h2>Calculated Miscellaneous Balance</h2>
+        <div class="calculated-heading">
+          <h2>Calculated Miscellaneous Balance</h2>
+          <p>Remaining after payments, available for expenses, savings and miscellaneous.</p>
+        </div>
         <table class="budget-simple misc-table">
           <thead><tr><th>Concept</th><th>Amount</th><th>Ref</th></tr></thead>
-          <tbody><tr><td>Automatic Balance Adjustment</td><td class="${p.miscellaneous < 0 ? "danger" : "ok"}">${money(p.miscellaneous)}</td><td>14</td></tr></tbody>
+          <tbody><tr><td>Miscellaneous</td><td class="${p.miscellaneous < 0 ? "danger" : "ok"}">${money(p.miscellaneous)}</td><td>14</td></tr></tbody>
         </table>
-        <p class="budget-note">Keeps available income equal to total expenses in the monthly budget.</p>
       </section>
       <section class="budget-section ending-section">
         <table class="budget-simple summary-inputs">
