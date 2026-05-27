@@ -764,18 +764,6 @@ h2 {
   font-weight: 800;
 }
 
-.budget-footer {
-  align-items: center;
-  border-top: 1px solid var(--line);
-  display: flex;
-  font-size: 13px;
-  font-weight: 700;
-  gap: 28px;
-  justify-content: flex-end;
-  margin-top: 11px;
-  padding-top: 10px;
-}
-
 .metric-grid,
 .form-grid {
   display: grid;
@@ -971,7 +959,7 @@ th {
 .projection-top-grid {
   display: grid;
   gap: 20px;
-  grid-template-columns: minmax(0, 1.75fr) minmax(280px, 0.85fr);
+  grid-template-columns: minmax(0, 4.5fr) minmax(280px, 3fr);
   align-items: start;
 }
 
@@ -1064,6 +1052,29 @@ th {
 .projection-balance-table strong,
 .projection-special-table strong {
   font-weight: 800;
+}
+
+.projection-section-head {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.projection-section-head h2 {
+  margin-bottom: 8px;
+}
+
+.projection-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 16px;
+  justify-content: flex-end;
+  min-width: 260px;
+  padding-top: 2px;
 }
 
 .projection-grid {
@@ -1491,12 +1502,6 @@ th {
 
   .budget-note {
     max-width: 330px;
-  }
-
-  .budget-footer {
-    align-items: start;
-    flex-direction: column;
-    gap: 9px;
   }
 
   .calculated-heading {

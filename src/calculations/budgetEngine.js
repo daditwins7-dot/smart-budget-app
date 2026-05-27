@@ -271,6 +271,7 @@ export function projectionAnalysisModel(state, today = new Date()) {
       },
     ],
     rows: projectionRows(state),
+    budgetBalanceDifference: projection.budgetBalanceDifference,
     miscellaneousRow: {
       label: "Miscellaneous",
       budget: projection.miscellaneous,

@@ -228,10 +228,6 @@ function budgetSetup(p) {
         </table>
         <p class="budget-note">Overdraft is calculated when controlled expenses exceed available income before credit cards.</p>
       </section>
-      <footer class="budget-footer">
-        <label class="toggle"><input type="checkbox" data-field="crisisMode" ${state.crisisMode ? "checked" : ""}/> Crisis mode</label>
-        <span class="${p.budgetBalanceDifference === 0 ? "ok" : "danger"}">Balance check: ${money(p.budgetBalanceDifference)}</span>
-      </footer>
     </section>
   `;
 }
@@ -385,8 +381,16 @@ function projections() {
       </div>
     </section>
     <section class="panel projection-panel">
-      <h2>Income and Expenses</h2>
-      <p class="muted projection-note">Expand a budget group to review each tracked concept.</p>
+      <div class="projection-section-head">
+        <div>
+          <h2>Income and Expenses</h2>
+          <p class="muted projection-note">Expand a budget group to review each tracked concept.</p>
+        </div>
+        <div class="projection-controls">
+          <label class="toggle"><input type="checkbox" data-field="crisisMode" ${state.crisisMode ? "checked" : ""}/> Crisis mode</label>
+          <span class="${model.budgetBalanceDifference === 0 ? "ok" : "danger"}">Balance check: ${money(model.budgetBalanceDifference)}</span>
+        </div>
+      </div>
       <div class="projection-grid projection-grid-header">
         <span>Group</span><span>Budget</span><span>Actual</span><span>Projected</span><span>Remaining</span><span>% Paid</span><span>Evaluation</span>
       </div>
