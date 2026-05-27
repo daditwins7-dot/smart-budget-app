@@ -143,6 +143,571 @@ h2 {
   margin: 4px 0;
 }
 
+.dashboard-workspace {
+  max-width: 1180px;
+}
+
+.dashboard-board {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 16px 10px;
+}
+
+.dashboard-header {
+  align-items: end;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 28px;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  padding-bottom: 8px;
+}
+
+.board-heading {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.dashboard-brand {
+  align-items: center;
+  display: flex;
+  font-size: 19px;
+  font-weight: 800;
+  gap: 10px;
+}
+
+.dashboard-brand span {
+  background: var(--accent);
+  border-radius: 2px;
+  display: block;
+  height: 22px;
+  width: 6px;
+}
+
+.period-data {
+  display: flex;
+  gap: 22px;
+  margin: 0;
+}
+
+.period-data div {
+  display: grid;
+  gap: 2px;
+}
+
+.period-data dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.period-data dd {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.dashboard-table-wrap {
+  overflow-x: auto;
+}
+
+.dashboard-summary {
+  table-layout: fixed;
+}
+
+.dashboard-summary th:first-child {
+  width: 21%;
+}
+
+.dashboard-summary th:nth-child(2),
+.dashboard-summary th:nth-child(3) {
+  width: 29%;
+}
+
+.dashboard-summary th:last-child {
+  width: 21%;
+}
+
+.dashboard-summary td {
+  height: 41px;
+  padding-bottom: 5px;
+  padding-top: 5px;
+}
+
+.concept-name {
+  font-weight: 800;
+}
+
+.dashboard-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+}
+
+.dashboard-values span {
+  display: grid;
+  gap: 1px;
+  min-width: 78px;
+}
+
+.dashboard-values small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.dashboard-values strong {
+  font-size: 14px;
+}
+
+.evaluation {
+  align-items: center;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.evaluation.problem {
+  color: var(--danger);
+}
+
+.evaluation.watch {
+  color: #9a6700;
+}
+
+.evaluation.good {
+  color: var(--ok);
+}
+
+.signal-dot {
+  border-radius: 50%;
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 11px;
+  width: 11px;
+}
+
+.signal-dot.problem {
+  background: #d92d4f;
+}
+
+.signal-dot.watch {
+  background: #f4b942;
+}
+
+.signal-dot.good {
+  background: #29b56f;
+}
+
+.table-section-row td {
+  background: #f5f8fa;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  height: auto;
+  padding: 6px 10px;
+  text-transform: uppercase;
+}
+
+.detail-row td {
+  font-size: 13px;
+  height: 32px;
+  padding-bottom: 4px;
+  padding-top: 4px;
+}
+
+.detail-name {
+  display: inline-block;
+  font-weight: 700;
+  margin-right: 9px;
+}
+
+.detail-name::before {
+  color: var(--muted);
+  content: "\2022";
+  margin-right: 8px;
+}
+
+.credit-card-structure td {
+  border-top: 1px solid #c8d2dc;
+  height: 40px;
+}
+
+.financial-status {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 10px 20px;
+  grid-template-columns: 160px minmax(230px, 430px) 1fr;
+  margin-top: 5px;
+  padding-top: 10px;
+}
+
+.financial-status h2 {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.financial-status h2 span {
+  background: var(--accent);
+  display: block;
+  height: 18px;
+  width: 5px;
+}
+
+.status-scale {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  height: 12px;
+  margin: 0 8px 11px;
+  max-width: 490px;
+  position: relative;
+}
+
+.status-scale i:first-child {
+  background: #29b56f;
+  border-radius: 99px 0 0 99px;
+}
+
+.status-scale i.watch {
+  background: #f4b942;
+}
+
+.status-scale i.problem {
+  background: #d92d4f;
+  border-radius: 0 99px 99px 0;
+}
+
+.status-scale b {
+  border-color: var(--ink) transparent transparent;
+  border-style: solid;
+  border-width: 9px 6px 0;
+  bottom: -13px;
+  display: block;
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.financial-values {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.financial-values p {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+.financial-values strong {
+  color: var(--ink);
+  margin-left: 7px;
+}
+
+.dashboard-alerts {
+  background: #fff7ed;
+  border-left: 3px solid var(--gold);
+  margin-top: 9px;
+  padding: 7px 10px;
+}
+
+.dashboard-alerts p {
+  font-size: 13px;
+  margin: 3px 0;
+}
+
+.group-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.signal-guide {
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 20px;
+  margin-top: 9px;
+  padding-top: 8px;
+}
+
+.signal-guide h2 {
+  font-size: 12px;
+  margin: 0 8px 0 0;
+  text-transform: uppercase;
+}
+
+.signal-guide p {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 8px;
+  margin: 0;
+}
+
+.budget-sheet {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  max-width: 880px;
+  padding: 16px 20px;
+}
+
+.budget-title {
+  align-items: end;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 10px;
+}
+
+.budget-title input {
+  max-width: 170px;
+}
+
+.budget-section {
+  margin-top: 14px;
+}
+
+.budget-section h2 {
+  border-left: 4px solid var(--accent);
+  font-size: 14px;
+  margin: 0 0 4px;
+  padding-left: 8px;
+  text-transform: uppercase;
+}
+
+.budget-simple,
+.budget-expenses {
+  table-layout: fixed;
+}
+
+.budget-simple th:first-child {
+  width: 48%;
+}
+
+.budget-simple th:nth-child(2) {
+  width: 28%;
+}
+
+.budget-simple th:nth-child(3) {
+  width: 24%;
+}
+
+.budget-simple th,
+.budget-expenses th {
+  font-size: 10px;
+  padding: 4px 7px;
+}
+
+.budget-simple td,
+.budget-expenses td {
+  height: 33px;
+  padding: 3px 7px;
+}
+
+.inline-field {
+  align-items: center;
+  display: inline-flex;
+  gap: 5px;
+  max-width: 148px;
+}
+
+.inline-field input,
+.budget-expenses input {
+  border-color: transparent;
+  background: #f7fafb;
+  border-radius: 4px;
+  height: 28px;
+  padding: 4px 7px;
+}
+
+.inline-field input:focus,
+.budget-expenses input:focus {
+  background: #fff;
+  border-color: var(--accent);
+  outline: none;
+}
+
+.field-suffix {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.calculated-mark {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.budget-section-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.budget-section-head h2 {
+  margin-bottom: 0;
+}
+
+.add-concept {
+  font-size: 12px;
+  padding: 5px 9px;
+}
+
+.budget-expenses th:first-child {
+  width: 42%;
+}
+
+.budget-expenses th:nth-child(2) {
+  width: 12%;
+}
+
+.budget-expenses th:nth-child(3) {
+  width: 22%;
+}
+
+.budget-expenses th:nth-child(4) {
+  width: 17%;
+}
+
+.budget-expenses th:last-child {
+  width: 7%;
+}
+
+.budget-expenses .ref-input {
+  text-align: center;
+}
+
+.fixed-reference {
+  align-items: baseline;
+  display: flex;
+  gap: 7px;
+}
+
+.fixed-reference strong {
+  font-size: 14px;
+}
+
+.fixed-reference small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.reference-select {
+  background: #f7fafb;
+  border-color: transparent;
+  border-radius: 4px;
+  font-size: 12px;
+  height: 28px;
+  max-width: 100%;
+  padding: 3px 6px;
+  width: 100%;
+}
+
+.reference-select:focus {
+  background: #fff;
+  border-color: var(--accent);
+  outline: none;
+}
+
+.selectable-refs th:first-child {
+  width: 31%;
+}
+
+.selectable-refs th:nth-child(2) {
+  width: 39%;
+}
+
+.selectable-refs th:nth-child(3) {
+  width: 14%;
+}
+
+.selectable-refs th:nth-child(4) {
+  width: 11%;
+}
+
+.selectable-refs th:last-child {
+  width: 5%;
+}
+
+.fixed-refs th:first-child {
+  width: 37%;
+}
+
+.fixed-refs th:nth-child(2) {
+  width: 24%;
+}
+
+.fixed-refs th:nth-child(3) {
+  width: 17%;
+}
+
+.fixed-refs th:nth-child(4) {
+  width: 15%;
+}
+
+.fixed-refs th:last-child {
+  width: 7%;
+}
+
+.budget-expenses .icon {
+  height: 27px;
+  line-height: 1;
+  width: 27px;
+}
+
+.budget-note {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 4px 7px 0;
+}
+
+.calculated-section td:nth-child(2) {
+  font-weight: 800;
+}
+
+.ending-section {
+  border-top: 1px solid var(--line);
+  margin-top: 14px;
+  padding-top: 9px;
+}
+
+.summary-inputs strong {
+  display: inline-block;
+  margin-right: 8px;
+  text-transform: uppercase;
+}
+
+.budget-footer {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 28px;
+  justify-content: flex-end;
+  margin-top: 11px;
+  padding-top: 10px;
+}
+
 .metric-grid,
 .form-grid {
   display: grid;
@@ -335,13 +900,19 @@ th {
 @media (max-width: 900px) {
   #app {
     display: block;
+    max-width: 100vw;
+    overflow: hidden;
+    width: 100vw;
   }
 
   .shell-nav {
+    max-width: 100%;
+    overflow: hidden;
     position: static;
     height: auto;
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
   }
 
   .brand {
@@ -349,10 +920,20 @@ th {
   }
 
   .workspace {
+    max-width: 100vw;
+    overflow: hidden;
     padding: 18px;
   }
 
+  .nav-button {
+    font-size: 14px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    padding: 10px;
+  }
+
   .topbar,
+  .dashboard-header,
   .formula-panel,
   .section-head {
     align-items: stretch;
@@ -376,5 +957,339 @@ th {
 
   h1 {
     font-size: 28px;
+  }
+
+  .dashboard-board {
+    max-width: 100%;
+    overflow: hidden;
+    padding: 10px;
+  }
+
+  .budget-sheet {
+    max-width: 100%;
+    min-width: 0;
+    padding: 10px;
+    width: 100%;
+  }
+
+  .budget-section,
+  .budget-section .table-wrap,
+  .budget-section-head {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .budget-title {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .budget-section-head {
+    align-items: start;
+    display: block;
+    gap: 8px;
+  }
+
+  .budget-section-head h2 {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .budget-section-head .add-concept {
+    margin: 6px 0 3px;
+  }
+
+  .budget-expenses {
+    min-width: 0;
+    max-width: 100%;
+    width: 330px;
+  }
+
+  .budget-expenses th:first-child {
+    width: 43%;
+  }
+
+  .budget-expenses th:nth-child(2) {
+    width: 12%;
+  }
+
+  .budget-expenses th:nth-child(3) {
+    width: 21%;
+  }
+
+  .budget-expenses th:nth-child(4) {
+    width: 24%;
+  }
+
+  .budget-expenses th:last-child,
+  .budget-expenses td:last-child {
+    display: none;
+  }
+
+  .budget-simple th {
+    font-size: 9px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .budget-simple td {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .budget-simple.summary-inputs th:first-child {
+    width: 48%;
+  }
+
+  .budget-simple.summary-inputs th:nth-child(2) {
+    width: 21%;
+  }
+
+  .budget-simple.summary-inputs th:nth-child(3) {
+    font-size: 8px;
+    overflow-wrap: anywhere;
+    width: 31%;
+  }
+
+  .budget-expenses thead {
+    display: none;
+  }
+
+  .budget-expenses,
+  .budget-expenses tbody {
+    display: block;
+  }
+
+  .budget-expenses tr {
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    gap: 4px 8px;
+    grid-template-areas:
+      "concept concept concept"
+      "ref amount due";
+    grid-template-columns: 54px 1fr 76px;
+    padding: 5px 4px;
+  }
+
+  .budget-expenses.selectable-refs tr {
+    grid-template-areas:
+      "concept concept concept"
+      "ref ref ref"
+      "amount due .";
+    grid-template-columns: 1fr 76px 0;
+  }
+
+  .budget-expenses.fixed-refs tr {
+    grid-template-columns: 110px 1fr 76px;
+  }
+
+  .budget-expenses td {
+    border: 0;
+    display: block;
+    height: auto;
+    padding: 0;
+  }
+
+  .budget-expenses td::before {
+    color: var(--muted);
+    display: block;
+    font-size: 9px;
+    font-weight: 800;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+  }
+
+  .budget-expenses td:first-child {
+    grid-area: concept;
+  }
+
+  .budget-expenses td:first-child::before {
+    content: "Concept";
+  }
+
+  .budget-expenses td:nth-child(2) {
+    grid-area: ref;
+  }
+
+  .budget-expenses td:nth-child(2)::before {
+    content: "Ref";
+  }
+
+  .budget-expenses td:nth-child(3) {
+    grid-area: amount;
+  }
+
+  .budget-expenses td:nth-child(3)::before {
+    content: "Amount";
+  }
+
+  .budget-expenses td:nth-child(4) {
+    grid-area: due;
+  }
+
+  .budget-expenses td:nth-child(4)::before {
+    content: "Due Day";
+  }
+
+  .budget-expenses input {
+    font-size: 12px;
+    max-width: 100%;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .reference-select {
+    font-size: 12px;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .fixed-reference {
+    background: #f7fafb;
+    border-radius: 4px;
+    height: 28px;
+    padding: 5px 6px;
+  }
+
+  .fixed-reference small {
+    font-size: 10px;
+  }
+
+  .budget-expenses .icon {
+    font-size: 15px;
+    height: 23px;
+    width: 23px;
+  }
+
+  .add-concept {
+    white-space: nowrap;
+  }
+
+  .budget-note {
+    max-width: 330px;
+  }
+
+  .budget-footer {
+    align-items: start;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .period-data {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+  }
+
+  .period-data div {
+    min-width: 0;
+  }
+
+  .period-data dt {
+    font-size: 10px;
+    overflow-wrap: anywhere;
+  }
+
+  .period-data dd {
+    font-size: 13px;
+    white-space: normal;
+  }
+
+  .dashboard-summary th:first-child {
+    width: 38%;
+  }
+
+  .dashboard-summary th:nth-child(2),
+  .dashboard-summary th:nth-child(3) {
+    width: 31%;
+  }
+
+  .dashboard-summary th:last-child,
+  .dashboard-summary tr:not(.table-section-row) td:last-child {
+    display: none;
+  }
+
+  .dashboard-summary .table-section-row td {
+    display: table-cell;
+  }
+
+  .dashboard-values {
+    display: grid;
+    gap: 3px;
+  }
+
+  .dashboard-values span {
+    min-width: 0;
+  }
+
+  .dashboard-summary td {
+    font-size: 12px;
+    height: 36px;
+    padding: 4px;
+  }
+
+  .dashboard-summary th {
+    font-size: 10px;
+    padding: 7px 4px;
+  }
+
+  .dashboard-values strong {
+    font-size: 13px;
+  }
+
+  .dashboard-summary tr.status-good td:first-child::before,
+  .dashboard-summary tr.status-watch td:first-child::before,
+  .dashboard-summary tr.status-problem td:first-child::before {
+    border-radius: 50%;
+    content: "";
+    display: inline-block;
+    height: 8px;
+    margin-right: 5px;
+    width: 8px;
+  }
+
+  .dashboard-summary tr.status-good td:first-child::before {
+    background: #29b56f;
+  }
+
+  .dashboard-summary tr.status-watch td:first-child::before {
+    background: #f4b942;
+  }
+
+  .dashboard-summary tr.status-problem td:first-child::before {
+    background: #d92d4f;
+  }
+
+  .detail-row td {
+    height: 29px;
+  }
+
+  .detail-name {
+    margin-right: 4px;
+  }
+
+  .detail-name::before {
+    display: none;
+  }
+
+  .financial-status {
+    display: block;
+  }
+
+  .financial-status h2 {
+    margin-bottom: 10px;
+  }
+
+  .financial-values {
+    gap: 8px 15px;
+  }
+
+  .signal-guide {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 15px;
   }
 }

@@ -1,14 +1,32 @@
-import { calculateProjection, money, pct, projectionRows, sum } from "./calculations/budgetEngine.js";
-import { defaultState, loadState, resetState, saveState } from "./data/defaultState.js";
+import { dashboardModel, money, pct, projectionRows } from "./calculations/budgetEngine.js";
+import { loadState, resetState, saveState } from "./data/defaultState.js";
 import { copy } from "./i18n/index.js";
 
 let state = loadState();
-let page = "budget";
+const initialPage = new URLSearchParams(window.location.search).get("page");
+let page = ["dashboard", "budget", "transactions", "projections", "evaluation", "settings"].includes(initialPage)
+  ? initialPage
+  : "dashboard";
 const app = document.querySelector("#app");
+const comparativeReferences = {
+  household: [
+    ["4", "Food and Regular Home Purchases"],
+    ["5", "General Home Services"],
+    ["6", "Communications, Internet, Telephones and Subscriptions"],
+    ["7", "Auto Gas Transportation and Similar"],
+    ["8", "Personal Expenses and Various"],
+    ["9", "Education General Expense and Fees"],
+    ["10", "Health, Medicines, Fees and Similar"],
+    ["11", "Fun, Entertainment, Restaurant and Other"],
+    ["12", "Other Various Expenses"],
+  ],
+  extraordinary: [["13", "Provision for Unforeseen or Scheduled Expenses"]],
+};
 
 function render() {
   const t = copy[state.language] || copy.en;
-  const projection = calculateProjection(state);
+  const dashboardData = dashboardModel(state);
+  const projection = dashboardData.projection;
   app.innerHTML = `
     <aside class="shell-nav">
       <div class="brand"><span>SMART</span><strong>BUDGET</strong></div>
@@ -19,16 +37,16 @@ function render() {
       ${navButton("evaluation", t.evaluation)}
       ${navButton("settings", t.settings)}
     </aside>
-    <main class="workspace">
-      <header class="topbar">
+    <main class="workspace ${page === "dashboard" ? "dashboard-workspace" : ""}">
+      ${page !== "dashboard" && page !== "budget" ? `<header class="topbar">
         <div>
           <p class="eyebrow">Monthly predictive planning</p>
           <h1>${t[page]}</h1>
         </div>
         <div class="month-chip">${state.month}</div>
-      </header>
-      ${projection.alerts.length ? `<section class="alerts">${projection.alerts.map((a) => `<p>${a}</p>`).join("")}</section>` : ""}
-      ${page === "dashboard" ? dashboard(projection) : ""}
+      </header>` : ""}
+      ${page !== "dashboard" && page !== "budget" && projection.alerts.length ? `<section class="alerts">${projection.alerts.map((a) => `<p>${a}</p>`).join("")}</section>` : ""}
+      ${page === "dashboard" ? dashboard(dashboardData) : ""}
       ${page === "budget" ? budgetSetup(projection) : ""}
       ${page === "transactions" ? transactions() : ""}
       ${page === "projections" ? projections() : ""}
@@ -43,59 +61,208 @@ function navButton(id, label) {
   return `<button class="nav-button ${page === id ? "active" : ""}" data-page="${id}">${label}</button>`;
 }
 
-function dashboard(p) {
+function dashboard(model) {
+  const p = model.projection;
   return `
-    <section class="metric-grid">
-      ${metric("Budgeted income", money(p.totalIncomeBudget), "Projected " + money(p.totalProjectedIncome))}
-      ${metric("Budgeted expenses", money(p.totalExpensesBudget), "Projected " + money(p.totalProjectedExpenses))}
-      ${metric("Current cash flow", money(state.currentCashFlow), "End forecast " + money(p.expectedEndCashFlow))}
-      ${metric("Savings", money(state.currentSavings), "Projected " + money(p.projectedSavings))}
-      ${metric("Credit cards", money(p.creditCardActual), "Planned coverage " + money(p.creditCardPlanned))}
-      ${metric("Debt-to-income", pct(p.debtToIncome), p.debtToIncome <= 0.35 ? "Acceptable" : "Review")}
-    </section>
-    <section class="panel">
-      <h2>Budget vs projected structure</h2>
-      ${bars([
-        ["Debts", p.committedDebts, p.totalExpensesBudget],
-        ["Household", p.householdExpenses, p.totalExpensesBudget],
-        ["Extraordinary", p.extraordinaryExpenses, p.totalExpensesBudget],
-        ["Miscellaneous", Math.max(0, p.miscellaneous), p.totalExpensesBudget],
-      ])}
+    <section class="dashboard-board">
+      <header class="dashboard-header">
+        <div>
+          <p class="board-heading">Dashboard</p>
+          <div class="dashboard-brand"><span aria-hidden="true"></span>SMART BUDGET</div>
+        </div>
+        <dl class="period-data">
+          <div><dt>Month</dt><dd>${model.period.monthLabel}</dd></div>
+          <div><dt>Date</dt><dd>${model.period.dateLabel}</dd></div>
+          <div><dt>Remain Days</dt><dd>${model.period.remainingDays}</dd></div>
+        </dl>
+      </header>
+      <div class="dashboard-table-wrap">
+        <table class="dashboard-summary">
+          <thead><tr><th>Concept</th><th>Budget</th><th>Projected</th><th>Evaluation</th></tr></thead>
+          <tbody>
+            ${model.conceptRows.map(dashboardRow).join("")}
+            <tr class="table-section-row"><td colspan="4">Total Expense Structure</td></tr>
+            ${model.expenseStructureRows.map(expenseStructureRow).join("")}
+            ${creditCardStructureRow(model.creditCardStructure)}
+          </tbody>
+        </table>
+      </div>
+      <section class="financial-status">
+        <h2><span aria-hidden="true"></span> Financial Status</h2>
+        <div class="status-scale" aria-label="Financial health indicator">
+          <i class="good"></i><i class="watch"></i><i class="problem"></i>
+          <b style="left:${model.indicatorPosition}%"></b>
+        </div>
+        <div class="financial-values">
+          <p>DPI: <strong>${Math.round(model.dpi)}%</strong></p>
+          <p>Credit Capacity: <strong>${money(model.creditCapacity)}</strong></p>
+          ${evaluationResult(model.financialStatus)}
+        </div>
+      </section>
+      ${p.alerts.length ? `<section class="dashboard-alerts">${p.alerts.map((alert) => `<p>${alert}</p>`).join("")}</section>` : ""}
+      <footer class="signal-guide">
+        <h2>Signals</h2>
+        <p>${signalDot("problem")} Problem</p>
+        <p>${signalDot("watch")} Watch</p>
+        <p>${signalDot("good")} On track</p>
+      </footer>
     </section>
   `;
 }
 
+function dashboardRow(row) {
+  return `<tr class="status-${row.evaluation.key}">
+    <td class="concept-name">${row.label}</td>
+    <td>${rowValues(row.budget)}</td>
+    <td>${rowValues(row.projected)}</td>
+    <td>${evaluationResult(row.evaluation)}</td>
+  </tr>`;
+}
+
+function expenseStructureRow(row) {
+  return `<tr class="detail-row status-${row.evaluation.key}">
+    <td><span class="detail-name">${row.label}</span></td>
+    <td>${money(row.budget)}</td>
+    <td>${money(row.projected)}</td>
+    <td>${evaluationResult(row.evaluation)}</td>
+  </tr>`;
+}
+
+function creditCardStructureRow(row) {
+  return `<tr class="detail-row credit-card-structure status-${row.evaluation.key}">
+    <td><span class="detail-name">${row.label}</span></td>
+    <td>${rowValues([{ label: "Budget", value: row.budget }])}</td>
+    <td>${rowValues([
+      { label: "Overdraft", value: row.overdraft },
+      { label: "Total", value: row.total },
+    ])}</td>
+    <td>${evaluationResult(row.evaluation)}</td>
+  </tr>`;
+}
+
+function rowValues(values) {
+  return `<div class="dashboard-values">${values.map((item) => `<span><small>${item.label}</small><strong>${money(item.value)}</strong></span>`).join("")}</div>`;
+}
+
+function evaluationResult(evaluation) {
+  return `<span class="evaluation ${evaluation.key}">${signalDot(evaluation.key)}${evaluation.label}</span>`;
+}
+
+function signalDot(status) {
+  return `<i class="signal-dot ${status}" aria-hidden="true"></i>`;
+}
+
 function budgetSetup(p) {
+  const overdraft = Math.max(0, p.creditCardActual - p.creditCardPlanned);
   return `
-    <section class="form-grid">
-      ${numberField("regularIncome", "Regular income")}
-      ${numberField("irregularIncome", "Irregular income")}
-      ${numberField("estimatedTaxPercent", "Estimated tax %")}
-      ${numberField("initialCashFlow", "Initial cash flow")}
-      ${numberField("currentCashFlow", "Current cash flow")}
-      ${numberField("desiredFinalCashFlow", "Desired final cash flow")}
-      ${numberField("initialSavings", "Initial savings")}
-      ${numberField("currentSavings", "Current savings")}
-      ${numberField("budgetedSavings", "Budgeted savings")}
-      ${numberField("savingsDepositDay", "Savings deposit day")}
-      ${numberField("plannedCreditCardSpending", "Planned card spending")}
-    </section>
-    <section class="panel formula-panel">
-      <div>
-        <h2>Automatic miscellaneous</h2>
-        <p>FEI + IR + II - VIV - PTC - GG - GE - AP + GTC - FDF</p>
-      </div>
-      <strong class="${p.miscellaneousRaw < 0 ? "danger" : "ok"}">${money(p.miscellaneous)}</strong>
-      <label class="toggle"><input type="checkbox" data-field="crisisMode" ${state.crisisMode ? "checked" : ""}/> Crisis mode</label>
-    </section>
-    <section class="panel">
-      <div class="section-head">
-        <h2>Controlled expense concepts</h2>
-        <button class="primary" id="add-line">Add concept</button>
-      </div>
-      <div class="table-wrap">${expenseTable()}</div>
+    <section class="budget-sheet">
+      <header class="budget-title">
+        <div>
+          <p class="board-heading">Budget Setup</p>
+          <div class="dashboard-brand"><span aria-hidden="true"></span>SMART BUDGET</div>
+        </div>
+        <input type="month" data-field="month" value="${state.month}" aria-label="Budget month" />
+      </header>
+      <section class="budget-section">
+        <h2>Income</h2>
+        <table class="budget-simple">
+          <thead><tr><th>Concept</th><th>Amount</th><th>% Tax</th></tr></thead>
+          <tbody>
+            <tr><td>Salary Net Income</td><td>${inlineNumber("regularIncome")}</td><td>${inlineNumber("estimatedTaxPercent", "percent")}</td></tr>
+            <tr><td>Other Income</td><td>${inlineNumber("irregularIncome")}</td><td class="calculated-mark">---</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="budget-section">
+        <h2>Balances</h2>
+        <table class="budget-simple">
+          <thead><tr><th>Concept</th><th>Amount</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Cash Flow Initial</td><td>${inlineNumber("initialCashFlow")}</td><td></td></tr>
+            <tr><td>Cash Flow Budget</td><td>${inlineNumber("desiredFinalCashFlow")}</td><td></td></tr>
+            <tr><td>Savings Initial</td><td>${inlineNumber("initialSavings")}</td><td></td></tr>
+          </tbody>
+        </table>
+      </section>
+      ${budgetExpenseSection("Committed Debts", "debts", "Fixed references: Home Rent or Mortgage = 1, Credit Cards = 2, Other Debts = 3.")}
+      ${budgetExpenseSection("Household Expenses", "household", "Choose the comparative budget group that describes each monthly expense.")}
+      ${budgetExpenseSection("Extraordinary Expenses", "extraordinary", "Unforeseen or scheduled non-monthly expenses use comparative group 13.")}
+      <section class="budget-section calculated-section">
+        <h2>Calculated Miscellaneous Balance</h2>
+        <table class="budget-simple misc-table">
+          <thead><tr><th>Concept</th><th>Amount</th><th>Ref</th></tr></thead>
+          <tbody><tr><td>Automatic Balance Adjustment</td><td class="${p.miscellaneous < 0 ? "danger" : "ok"}">${money(p.miscellaneous)}</td><td>14</td></tr></tbody>
+        </table>
+        <p class="budget-note">Keeps available income equal to total expenses in the monthly budget.</p>
+      </section>
+      <section class="budget-section ending-section">
+        <table class="budget-simple summary-inputs">
+          <thead><tr><th>Concept</th><th>Amount</th><th title="Deposit Day / Overdraft">Day / OD</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Savings</strong> Planned Saving</td><td>${inlineNumber("budgetedSavings")}</td><td>${inlineNumber("savingsDepositDay", "day")}</td></tr>
+            <tr><td><strong>Credit Cards</strong></td><td>${inlineNumber("plannedCreditCardSpending")}</td><td class="${overdraft > 0 ? "danger" : ""}">${money(overdraft)}</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <footer class="budget-footer">
+        <label class="toggle"><input type="checkbox" data-field="crisisMode" ${state.crisisMode ? "checked" : ""}/> Crisis mode</label>
+        <span class="${p.budgetBalanceDifference === 0 ? "ok" : "danger"}">Balance check: ${money(p.budgetBalanceDifference)}</span>
+      </footer>
     </section>
   `;
+}
+
+function budgetExpenseSection(title, group, note) {
+  return `
+    <section class="budget-section expense-setup">
+      <div class="budget-section-head">
+        <h2>${title}</h2>
+        ${group === "debts" ? "" : `<button class="secondary add-concept" data-add-group="${group}" type="button">+ Add concept</button>`}
+      </div>
+      <div class="table-wrap">${budgetExpenseTable(group)}</div>
+      <p class="budget-note">${note}</p>
+    </section>
+  `;
+}
+
+function budgetExpenseTable(group) {
+  const rows = state.expenses
+    .map((line, index) => ({ line, index }))
+    .filter(({ line }) => line.group === group);
+  return `
+    <table class="budget-expenses ${group === "debts" ? "fixed-refs" : "selectable-refs"}">
+      <thead><tr><th>Concept</th><th>Ref</th><th>Amount</th><th>Due Day</th><th></th></tr></thead>
+      <tbody>${rows
+        .map(
+          ({ line, index }) => `<tr>
+            <td><input data-line="${index}" data-prop="concept" value="${line.concept}" /></td>
+            <td>${referenceControl(line, index, group)}</td>
+            <td><input type="number" data-line="${index}" data-prop="amount" value="${line.amount}" /></td>
+            <td><input type="number" min="1" max="31" data-line="${index}" data-prop="dueDay" value="${line.dueDay}" /></td>
+            <td>${group === "debts" ? "" : `<button class="icon danger-text" data-remove-line="${index}" title="Remove concept">x</button>`}</td>
+          </tr>`
+        )
+        .join("")}</tbody>
+    </table>
+  `;
+}
+
+function referenceControl(line, index, group) {
+  if (group === "debts") {
+    const description = line.reference === "1" ? "Housing" : line.reference === "2" ? "Credit Cards" : "Other Debts";
+    return `<span class="fixed-reference"><strong>${line.reference}</strong><small>${description}</small></span>`;
+  }
+  return `<select class="reference-select" data-line="${index}" data-prop="reference" aria-label="Reference for ${line.concept}">
+    ${comparativeReferences[group]
+      .map(([value, label]) => `<option value="${value}" ${line.reference === value ? "selected" : ""}>${value} - ${label}</option>`)
+      .join("")}
+  </select>`;
+}
+
+function inlineNumber(field, type = "amount") {
+  const attributes = type === "day" ? `min="1" max="31" step="1"` : `step="0.01"`;
+  const suffix = type === "percent" ? `<span class="field-suffix">%</span>` : "";
+  return `<span class="inline-field ${type}"><input type="number" ${attributes} data-field="${field}" value="${state[field]}" />${suffix}</span>`;
 }
 
 function transactions() {
@@ -249,10 +416,25 @@ function bindEvents() {
       render();
     });
   });
-  document.querySelector("#add-line")?.addEventListener("click", () => {
-    state.expenses.push({ id: crypto.randomUUID(), concept: "New concept", amount: 0, dueDay: 15, group: "household", reference: "2HOEXP" });
-    saveState(state);
-    render();
+  document.querySelectorAll("[data-add-group]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const group = button.dataset.addGroup;
+      const defaults = {
+        debts: { concept: "Other debt", reference: "3" },
+        household: { concept: "Monthly expense", reference: "4" },
+        extraordinary: { concept: "Non-monthly expense", reference: "13" },
+      };
+      state.expenses.push({
+        id: crypto.randomUUID(),
+        concept: defaults[group].concept,
+        amount: 0,
+        dueDay: 15,
+        group,
+        reference: defaults[group].reference,
+      });
+      saveState(state);
+      render();
+    });
   });
   document.querySelector("#tx-form")?.addEventListener("submit", (event) => {
     event.preventDefault();

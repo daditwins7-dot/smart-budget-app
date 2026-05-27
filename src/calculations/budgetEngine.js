@@ -43,7 +43,7 @@ export function calculateProjection(state, today = new Date()) {
     budgetedSavings +
     plannedCreditCardSpending -
     desiredFinalCashFlow;
-  const miscellaneous = miscellaneousRaw < 0 && state.crisisMode ? 0 : miscellaneousRaw;
+  const miscellaneous = miscellaneousRaw;
 
   const actualIncome = actualTotal(state, "income");
   const actualSavings = actualTotal(state, "saving");
@@ -55,23 +55,43 @@ export function calculateProjection(state, today = new Date()) {
     .filter((tx) => tx.type === "expense" && tx.paymentMethod === "creditCard")
     .reduce((total, tx) => total + numeric(tx.amount), 0);
 
-  const remainingDue = state.expenses
-    .filter((line) => isStillDue(line.dueDay, today) && paidForConcept(state, line.id) < numeric(line.amount))
-    .reduce((total, line) => total + Math.max(0, numeric(line.amount) - paidForConcept(state, line.id)), 0);
-
   const projectedIncome = Math.max(regularIncome + irregularIncome, actualIncome);
-  const projectedExpenses =
-    committedDebts + householdExpenses + extraordinaryExpenses + Math.max(0, miscellaneous);
-  const currentCashFlow = numeric(state.currentCashFlow);
-  const expectedEndCashFlow =
-    currentCashFlow +
-    Math.max(0, projectedIncome - actualIncome) -
-    remainingDue -
-    Math.max(0, budgetedSavings - actualSavings) +
-    Math.max(0, plannedCreditCardSpending - actualCardSpending);
+  const projectedSavingsDeposit = Math.max(budgetedSavings, actualSavings);
+  const projectedCardCoverage = Math.max(plannedCreditCardSpending, actualCardSpending);
+  const trackedCurrentCash =
+    initialCashFlow + actualIncome - actualCashExpenses - actualSavings - actualCardPayments;
+  const reviewCashVariance = numeric(state.currentCashFlow) - trackedCurrentCash;
+  const budgetAvailableForExpenses =
+    initialCashFlow +
+    regularIncome +
+    irregularIncome -
+    budgetedSavings -
+    desiredFinalCashFlow +
+    plannedCreditCardSpending;
+  const projectedAvailableForExpenses =
+    initialCashFlow +
+    projectedIncome -
+    projectedSavingsDeposit -
+    desiredFinalCashFlow +
+    projectedCardCoverage +
+    reviewCashVariance;
+  const projectedCommittedDebts = projectedGroupTotal(state, "debts");
+  const projectedHouseholdExpenses = projectedGroupTotal(state, "household");
+  const projectedExtraordinaryExpenses = projectedGroupTotal(state, "extraordinary");
+  const miscellaneousProjected =
+    projectedAvailableForExpenses -
+    projectedCommittedDebts -
+    projectedHouseholdExpenses -
+    projectedExtraordinaryExpenses;
+  const expectedEndCashFlow = desiredFinalCashFlow + Math.min(0, miscellaneousProjected);
   const projectedSavings = Math.max(numeric(state.currentSavings), numeric(state.initialSavings) + budgetedSavings);
   const totalIncomeBudget = regularIncome + irregularIncome;
-  const totalExpensesBudget = committedDebts + householdExpenses + extraordinaryExpenses + Math.max(0, miscellaneous);
+  const totalExpensesBudget = committedDebts + householdExpenses + extraordinaryExpenses + miscellaneous;
+  const totalProjectedExpenses =
+    projectedCommittedDebts +
+    projectedHouseholdExpenses +
+    projectedExtraordinaryExpenses +
+    miscellaneousProjected;
   const debtToIncome = totalIncomeBudget ? committedDebts / totalIncomeBudget : 0;
   const savingsRatio = totalIncomeBudget ? budgetedSavings / totalIncomeBudget : 0;
   const deficitPenalty = miscellaneousRaw < 0 ? 25 : 0;
@@ -83,21 +103,108 @@ export function calculateProjection(state, today = new Date()) {
     resources,
     totalIncomeBudget,
     totalProjectedIncome: projectedIncome,
+    budgetAvailableForExpenses,
+    projectedAvailableForExpenses,
     totalExpensesBudget,
-    totalProjectedExpenses: projectedExpenses,
+    totalProjectedExpenses,
     committedDebts,
     householdExpenses,
     extraordinaryExpenses,
     miscellaneousRaw,
     miscellaneous,
+    miscellaneousProjected,
     expectedEndCashFlow,
     projectedSavings,
     creditCardPlanned: plannedCreditCardSpending,
     creditCardActual: actualCardSpending,
     creditCardPaymentsActual: actualCardPayments,
+    projectedCardCoverage,
+    reviewCashVariance,
+    budgetBalanceDifference: budgetAvailableForExpenses - totalExpensesBudget,
+    projectedBalanceDifference: projectedAvailableForExpenses - totalProjectedExpenses,
     debtToIncome,
     healthScore,
-    alerts: buildAlerts(state, miscellaneousRaw, projectedSavings, today),
+    alerts: buildAlerts(state, miscellaneousRaw, miscellaneousProjected, projectedSavings, today),
+  };
+}
+
+export function dashboardModel(state, today = new Date()) {
+  const projection = calculateProjection(state, today);
+  const targetSavings = numeric(state.initialSavings) + numeric(state.budgetedSavings);
+  const netIncome = projection.totalIncomeBudget * (1 - numeric(state.estimatedTaxPercent) / 100);
+  const creditCapacity = Math.max(0, netIncome * 0.43 - projection.committedDebts);
+  const dpi = projection.debtToIncome * 100;
+  const period = periodDetails(state.month, today);
+  const conceptRows = [
+    {
+      label: "Income",
+      budget: [{ label: "Budget", value: projection.budgetAvailableForExpenses }],
+      projected: [{ label: "Projected", value: projection.projectedAvailableForExpenses }],
+      evaluation: higherIsBetter(projection.projectedAvailableForExpenses, projection.budgetAvailableForExpenses),
+    },
+    {
+      label: "Expenses",
+      budget: [{ label: "Budget", value: projection.totalExpensesBudget }],
+      projected: [{ label: "Projected", value: projection.totalProjectedExpenses }],
+      evaluation: lowerIsBetter(projection.totalProjectedExpenses, projection.totalExpensesBudget),
+    },
+    {
+      label: "Cash Flow",
+      budget: [{ label: "Initial", value: numeric(state.initialCashFlow) }],
+      projected: [
+        { label: "Actual", value: numeric(state.currentCashFlow) },
+        { label: "End", value: projection.expectedEndCashFlow },
+      ],
+      evaluation: higherIsBetter(projection.expectedEndCashFlow, numeric(state.desiredFinalCashFlow)),
+    },
+    {
+      label: "Savings",
+      budget: [
+        { label: "Initial", value: numeric(state.initialSavings) },
+        { label: "Budget", value: numeric(state.budgetedSavings) },
+      ],
+      projected: [{ label: "Projected", value: projection.projectedSavings }],
+      evaluation: higherIsBetter(projection.projectedSavings, targetSavings),
+    },
+  ];
+  const expenseStructureRows = [
+    expenseStructureRow(state, "Committed Debts", "debts"),
+    expenseStructureRow(state, "Household", "household"),
+    expenseStructureRow(state, "Extraordinary", "extraordinary"),
+    {
+    label: "Miscellaneous",
+    budget: projection.miscellaneous,
+    projected: projection.miscellaneousProjected,
+    evaluation:
+      projection.miscellaneousRaw < 0 || projection.miscellaneousProjected < 0
+        ? status("problem")
+        : lowerIsBetter(projection.miscellaneousProjected, projection.miscellaneous),
+    },
+  ];
+  const creditCardOverdraft = Math.max(0, projection.creditCardActual - projection.creditCardPlanned);
+  const creditCardStructure = {
+    label: "Credit Cards",
+    budget: projection.creditCardPlanned,
+    overdraft: creditCardOverdraft,
+    total: projection.creditCardPlanned + creditCardOverdraft,
+    evaluation: creditCardOverdraft > 0 ? status("problem") : status("good"),
+  };
+
+  return {
+    projection,
+    period,
+    creditCapacity,
+    dpi,
+    indicatorPosition: clamp((projection.debtToIncome / 0.6) * 100, 0, 100),
+    financialStatus:
+      projection.debtToIncome <= 0.35
+        ? status("good")
+        : projection.debtToIncome <= 0.43
+          ? status("watch")
+          : status("problem"),
+    conceptRows,
+    expenseStructureRows,
+    creditCardStructure,
   };
 }
 
@@ -127,10 +234,67 @@ export function projectionRows(state) {
   });
 }
 
+function periodDetails(month, today) {
+  const selectedMonth = new Date(`${month}-01T12:00:00`);
+  const reference = Number.isNaN(selectedMonth.getTime()) ? today : selectedMonth;
+  const year = reference.getFullYear();
+  const monthIndex = reference.getMonth();
+  const totalDays = new Date(year, monthIndex + 1, 0).getDate();
+  const sameMonth = year === today.getFullYear() && monthIndex === today.getMonth();
+  const elapsedDays = sameMonth ? Math.min(today.getDate(), totalDays) : today > reference ? totalDays : 0;
+  return {
+    monthLabel: reference.toLocaleString("en-US", { month: "long", year: "numeric" }),
+    dateLabel: today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    remainingDays: Math.max(0, totalDays - elapsedDays),
+  };
+}
+
 function actualTotal(state, type) {
   return state.transactions
     .filter((tx) => tx.type === type)
     .reduce((total, tx) => total + numeric(tx.amount), 0);
+}
+
+function higherIsBetter(value, target) {
+  if (!target || value >= target) return status("good");
+  if (value >= target * 0.9) return status("watch");
+  return status("problem");
+}
+
+function lowerIsBetter(value, target) {
+  if (!target || value <= target) return status("good");
+  if (value <= target * 1.1) return status("watch");
+  return status("problem");
+}
+
+function expenseStructureRow(state, label, group) {
+  const lines = state.expenses.filter((line) => line.group === group);
+  const budget = sum(lines);
+  const actual = lines.reduce((total, line) => total + paidForConcept(state, line.id), 0);
+  const projected = Math.max(budget, actual);
+  return {
+    label,
+    budget,
+    projected,
+    evaluation: lowerIsBetter(projected, budget),
+  };
+}
+
+function projectedGroupTotal(state, group) {
+  const lines = state.expenses.filter((line) => line.group === group);
+  return lines.reduce((total, line) => {
+    const budget = numeric(line.amount);
+    return total + Math.max(budget, paidForConcept(state, line.id));
+  }, 0);
+}
+
+function status(key) {
+  const labels = {
+    problem: "Problem",
+    watch: "Watch",
+    good: "On track",
+  };
+  return { key, label: labels[key] };
 }
 
 function paidForConcept(state, conceptId) {
@@ -139,13 +303,13 @@ function paidForConcept(state, conceptId) {
     .reduce((total, tx) => total + numeric(tx.amount), 0);
 }
 
-function isStillDue(dueDay, today) {
-  return numeric(dueDay) >= today.getDate();
-}
-
-function buildAlerts(state, miscellaneousRaw, projectedSavings, today) {
+function buildAlerts(state, miscellaneousRaw, miscellaneousProjected, projectedSavings, today) {
   const alerts = [];
   if (miscellaneousRaw < 0) alerts.push("Budget deficit: miscellaneous is negative before adjustment.");
+  if (state.crisisMode && miscellaneousRaw < 0) {
+    alerts.push("Crisis mode: keep the deficit visible until a revised budget is confirmed.");
+  }
+  if (miscellaneousProjected < 0) alerts.push("Projected deficit: current cash balance reduces miscellaneous below zero.");
   if (state.savingsDepositDay < today.getDate() && numeric(state.currentSavings) < projectedSavings) {
     alerts.push("Savings deposit date passed and current savings does not reflect the budgeted deposit.");
   }

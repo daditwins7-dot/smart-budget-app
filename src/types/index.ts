@@ -52,6 +52,8 @@ export interface BudgetProjection {
   resources: number;
   totalIncomeBudget: number;
   totalProjectedIncome: number;
+  budgetAvailableForExpenses: number;
+  projectedAvailableForExpenses: number;
   totalExpensesBudget: number;
   totalProjectedExpenses: number;
   committedDebts: number;
@@ -59,12 +61,19 @@ export interface BudgetProjection {
   extraordinaryExpenses: number;
   miscellaneousRaw: number;
   miscellaneous: number;
+  miscellaneousProjected: number;
   expectedEndCashFlow: number;
   projectedSavings: number;
   creditCardPlanned: number;
   creditCardActual: number;
   creditCardPaymentsActual: number;
+  projectedCardCoverage: number;
+  reviewCashVariance: number;
+  budgetBalanceDifference: number;
+  projectedBalanceDifference: number;
   debtToIncome: number;
   healthScore: number;
   alerts: string[];
 }
+
+export type EvaluationStatus = "good" | "watch" | "problem";
