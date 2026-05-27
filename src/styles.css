@@ -618,7 +618,8 @@ h2 {
   border-radius: 4px;
   display: flex;
   height: 28px;
-  justify-content: center;
+  justify-content: flex-start;
+  padding: 0 7px;
 }
 
 .fixed-reference strong {

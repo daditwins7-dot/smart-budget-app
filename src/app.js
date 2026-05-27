@@ -239,7 +239,7 @@ function budgetExpenseSection(title, group, note) {
     <section class="budget-section expense-setup">
       <div class="budget-section-head">
         <h2>${title}</h2>
-        ${group === "debts" ? "" : `<button class="secondary add-concept" data-add-group="${group}" type="button">+ Add concept</button>`}
+        <button class="secondary add-concept" data-add-group="${group}" type="button">${group === "debts" ? "+ Add Other Debt" : "+ Add concept"}</button>
       </div>
       <div class="table-wrap">${budgetExpenseTable(group)}</div>
       <p class="budget-note">${note}</p>
@@ -261,12 +261,16 @@ function budgetExpenseTable(group) {
             <td>${referenceControl(line, index, group)}</td>
             <td><input type="number" data-line="${index}" data-prop="amount" value="${line.amount}" /></td>
             <td><input type="number" min="1" max="31" data-line="${index}" data-prop="dueDay" value="${line.dueDay}" /></td>
-            <td>${group === "debts" ? "" : `<button class="icon danger-text" data-remove-line="${index}" title="Remove concept">x</button>`}</td>
+            <td>${removableExpenseLine(line, group) ? `<button class="icon danger-text" data-remove-line="${index}" title="Remove concept">x</button>` : ""}</td>
           </tr>`
         )
         .join("")}</tbody>
     </table>
   `;
+}
+
+function removableExpenseLine(line, group) {
+  return group !== "debts" || (line.reference === "3" && line.id !== "other-debts");
 }
 
 function referenceControl(line, index, group) {
