@@ -168,6 +168,7 @@ function budgetSetup(p) {
         <table class="budget-simple">
           <thead><tr><th>Concept</th><th>Amount</th><th>% Tax</th></tr></thead>
           <tbody>
+            <tr class="budget-total-row"><td>Total Income</td><td>${money(p.totalIncomeBudget)}</td><td class="calculated-mark">Calculated</td></tr>
             <tr><td>Salary Net Income</td><td>${inlineNumber("regularIncome")}</td><td>${inlineNumber("estimatedTaxPercent", "percent")}</td></tr>
             <tr><td>Other Income</td><td>${inlineNumber("irregularIncome")}</td><td class="calculated-mark">---</td></tr>
           </tbody>
@@ -181,6 +182,15 @@ function budgetSetup(p) {
             <tr><td>Cash Flow Initial</td><td>${inlineNumber("initialCashFlow")}</td><td></td></tr>
             <tr><td>Cash Flow Budget</td><td>${inlineNumber("desiredFinalCashFlow")}</td><td></td></tr>
             <tr><td>Savings Initial</td><td>${inlineNumber("initialSavings")}</td><td></td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="budget-section total-expenses-section">
+        <h2>Expenses</h2>
+        <table class="budget-simple">
+          <thead><tr><th>Concept</th><th>Amount</th><th></th></tr></thead>
+          <tbody>
+            <tr class="budget-total-row"><td>Total Expenses</td><td>${money(p.totalExpensesBudget)}</td><td class="calculated-mark">Calculated</td></tr>
           </tbody>
         </table>
       </section>

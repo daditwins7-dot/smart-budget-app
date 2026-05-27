@@ -556,6 +556,22 @@ h2 {
   font-weight: 700;
 }
 
+.budget-total-row td {
+  background: #f5f8fa;
+  border-top: 1px solid var(--line);
+  font-weight: 800;
+}
+
+.budget-total-row td:nth-child(2) {
+  color: var(--accent);
+  font-size: 15px;
+}
+
+.total-expenses-section {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
 .budget-section-head {
   align-items: center;
   display: flex;
