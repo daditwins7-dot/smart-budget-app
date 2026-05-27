@@ -13,6 +13,7 @@ export const defaultState = {
   budgetedSavings: 700,
   savingsDepositDay: 15,
   plannedCreditCardSpending: 900,
+  projectionNextDays: 5,
   crisisMode: false,
   expenses: [
     { id: "housing", concept: "Home Rent or Pay Mortgage", amount: 1850, dueDay: 1, group: "debts", reference: "1" },

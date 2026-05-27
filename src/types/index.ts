@@ -44,6 +44,7 @@ export interface BudgetState {
   budgetedSavings: number;
   savingsDepositDay: number;
   plannedCreditCardSpending: number;
+  projectionNextDays: number;
   crisisMode: boolean;
   expenses: BudgetLine[];
   transactions: Transaction[];

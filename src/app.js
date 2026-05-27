@@ -371,12 +371,17 @@ function projections() {
   const model = projectionAnalysisModel(state);
   return `
     <section class="panel projection-panel">
-      <h2>Balances</h2>
-      <div class="table-wrap">
-        <table class="projection-balance-table">
-          <thead><tr><th>Balance</th><th>Initial</th><th>Actual</th><th>Projected</th><th>Evaluation</th></tr></thead>
-          <tbody>${model.balanceRows.map(projectionBalanceRow).join("")}</tbody>
-        </table>
+      <div class="projection-top-grid">
+        <div>
+          <h2>Balances</h2>
+          <div class="table-wrap">
+            <table class="projection-balance-table">
+              <thead><tr><th>Balance</th><th>Initial</th><th>Actual</th><th>Projected</th></tr></thead>
+              <tbody>${model.balanceRows.map(projectionBalanceRow).join("")}</tbody>
+            </table>
+          </div>
+        </div>
+        ${projectionPaymentTiming(model.paymentTiming)}
       </div>
     </section>
     <section class="panel projection-panel">
@@ -408,7 +413,21 @@ function projections() {
 }
 
 function projectionBalanceRow(row) {
-  return `<tr class="status-${row.evaluation.key}"><td><strong>${row.label}</strong></td><td>${money(row.initial)}</td><td>${money(row.actual)}</td><td>${money(row.projected)}</td><td>${evaluationResult(row.evaluation)}</td></tr>`;
+  return `<tr class="status-${row.evaluation.key}"><td><strong>${row.label}</strong></td><td>${money(row.initial)}</td><td>${money(row.actual)}</td><td>${money(row.projected)}</td></tr>`;
+}
+
+function projectionPaymentTiming(timing) {
+  return `<aside class="payment-timing-card">
+    <h2>Payment Timing</h2>
+    <div class="payment-timing-row"><span>Overdue Payments</span><strong>${money(timing.overdueAmount)}</strong></div>
+    <div class="payment-timing-row future">
+      <span>Future Committed Payments</span>
+      <label>Next Days <input type="number" min="0" max="31" step="1" data-field="projectionNextDays" value="${timing.nextDays}" /></label>
+      <small>Date ${timing.futureDate}</small>
+      <strong>${money(timing.futureCommittedAmount)}</strong>
+    </div>
+    <p>Suma del total de pagos atrasados a la fecha actual.</p>
+  </aside>`;
 }
 
 function projectionExpandableRow(row) {

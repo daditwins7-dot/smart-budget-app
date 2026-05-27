@@ -244,14 +244,15 @@ export function projectionRows(state) {
   });
 }
 
-export function projectionAnalysisModel(state) {
-  const projection = calculateProjection(state);
+export function projectionAnalysisModel(state, today = new Date()) {
+  const projection = calculateProjection(state, today);
   const savingsTarget = numeric(state.initialSavings) + numeric(state.budgetedSavings);
   const cardPayments = paidForConcept(state, "cards");
   const cardExpenses = state.transactions
     .filter((tx) => tx.type === "expense" && tx.paymentMethod === "creditCard" && tx.conceptId !== "cards")
     .reduce((total, tx) => total + numeric(tx.amount), 0);
   const cardDifference = cardPayments - cardExpenses;
+  const paymentTiming = paymentTimingSummary(state, today);
   return {
     balanceRows: [
       {
@@ -289,7 +290,52 @@ export function projectionAnalysisModel(state) {
       difference: cardDifference,
       evaluation: cardDifference < 0 ? status("problem") : status("good"),
     },
+    paymentTiming,
   };
+}
+
+function paymentTimingSummary(state, today) {
+  const timing = monthTiming(state.month, today);
+  const nextDays = clamp(Math.round(numeric(state.projectionNextDays)), 0, timing.daysInMonth);
+  const futureDay = Math.min(timing.daysInMonth, timing.currentDay + nextDays);
+  const rows = state.expenses.map((line) => {
+    const budget = numeric(line.amount);
+    const paid = paidForConcept(state, line.id);
+    const unpaid = Math.max(0, budget - paid);
+    const dueDay = Math.round(numeric(line.dueDay));
+    return { dueDay, unpaid };
+  });
+  const overdueAmount = rows
+    .filter((row) => row.dueDay > 0 && row.dueDay < timing.currentDay)
+    .reduce((total, row) => total + row.unpaid, 0);
+  const futureCommittedAmount = rows
+    .filter((row) => row.dueDay > 0 && row.dueDay >= timing.currentDay && row.dueDay <= futureDay)
+    .reduce((total, row) => total + row.unpaid, 0);
+  return {
+    nextDays,
+    overdueAmount,
+    futureCommittedAmount,
+    futureDate: formatMonthDay(timing.year, timing.monthIndex, futureDay),
+  };
+}
+
+function monthTiming(month, today) {
+  const selected = new Date(`${month}-01T12:00:00`);
+  const reference = Number.isNaN(selected.getTime()) ? today : selected;
+  const year = reference.getFullYear();
+  const monthIndex = reference.getMonth();
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const sameMonth = year === today.getFullYear() && monthIndex === today.getMonth();
+  const currentDay = sameMonth ? Math.min(today.getDate(), daysInMonth) : today > reference ? daysInMonth : 1;
+  return { currentDay, daysInMonth, year, monthIndex };
+}
+
+function formatMonthDay(year, monthIndex, day) {
+  return new Date(year, monthIndex, day).toLocaleDateString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+  });
 }
 
 function projectionDetail(state, line, income) {
