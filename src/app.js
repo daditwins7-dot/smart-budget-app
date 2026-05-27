@@ -325,7 +325,6 @@ function transactions() {
         <select name="type" id="tx-type">
           <option value="expense">Expense</option>
           <option value="income">Income</option>
-          <option value="creditCardPayment">Credit card payment</option>
         </select>
         <select name="conceptId" id="tx-concept">${transactionConceptOptions("expense")}</select>
         <input name="amount" type="number" step="0.01" placeholder="Amount" required />
@@ -336,7 +335,7 @@ function transactions() {
         <input name="comment" placeholder="Comment" />
         <button class="primary">Add</button>
       </form>
-      <p class="transaction-rules">Only budgeted expense concepts are available for tracking. Miscellaneous is calculated by the system and is not recorded here. Credit card expenses and payments are accumulated totals; identify individual card activity in Comment.</p>
+      <p class="transaction-rules">Only budgeted expense concepts are available for tracking. Miscellaneous is calculated by the system and is not recorded here. Credit card expenses and payments are accumulated totals; identify individual card activity in Comment. Savings are not recorded as transactions because bank balances define increases or reductions; when savings are used for payments, reduce the savings balance and increase payments or cash flow as applicable.</p>
     </section>
     <section class="card-list">${state.transactions.map(txCard).join("") || `<p class="muted">No actual movements yet.</p>`}</section>
   `;
@@ -355,9 +354,7 @@ function transactionConceptOptions(type) {
           ["net-income", "Net Income"],
           ["other-deposits", "Other Deposits"],
         ]
-      : type === "creditCardPayment"
-          ? [["cards", "Credit Cards All Payments"]]
-          : state.expenses.map((line) => [line.id, line.concept]);
+      : state.expenses.map((line) => [line.id, line.concept]);
   return options.map(([id, label]) => `<option value="${id}">${label}</option>`).join("");
 }
 
