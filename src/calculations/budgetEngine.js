@@ -295,6 +295,55 @@ export function projectionAnalysisModel(state, today = new Date()) {
   };
 }
 
+export function smartModel(state) {
+  const projection = calculateProjection(state);
+  const referenceModel = [
+    { ref: "0", group: "0.- Savings", concept: "Savings", balanced: 0.1, budget: numeric(state.budgetedSavings), projected: projection.projectedSavings - numeric(state.initialSavings) },
+    { ref: "1", group: "1.- Committed Debts", concept: "Mortgage Payment or Home Rent", balanced: 0.15 },
+    { ref: "2", group: "1.- Committed Debts", concept: "Credit Cards", balanced: 0.06 },
+    { ref: "3", group: "1.- Committed Debts", concept: "Auto, Personal, Loans, Commercial Credit and Other", balanced: 0.06 },
+    { ref: "4", group: "2.- Overheads", concept: "Food and Regular Home Purchases", balanced: 0.16 },
+    { ref: "5", group: "2.- Overheads", concept: "General Home Services", balanced: 0.09 },
+    { ref: "6", group: "2.- Overheads", concept: "Communications, Internet, Telephones and Subscriptions", balanced: 0.07 },
+    { ref: "7", group: "2.- Overheads", concept: "Auto Gas Transportation and Similar", balanced: 0.05 },
+    { ref: "8", group: "2.- Overheads", concept: "Personal Expenses and Various", balanced: 0.02 },
+    { ref: "9", group: "2.- Overheads", concept: "Education General Expense and Fees", balanced: 0.02 },
+    { ref: "10", group: "2.- Overheads", concept: "Health, Medicines, Fees and Similar", balanced: 0.03 },
+    { ref: "11", group: "2.- Overheads", concept: "Fun, Entertainment, Restaurant and Other", balanced: 0.02 },
+    { ref: "12", group: "2.- Overheads", concept: "Other Various Expenses", balanced: 0.01 },
+    { ref: "13", group: "3.- Unforeseen Forecasts", concept: "Provision for Unforeseen or Scheduled Expense", balanced: 0.07 },
+    { ref: "14", group: "4.- Miscellaneous Expenses", concept: "Miscellaneous no Register Expenses", balanced: 0.09, budget: projection.miscellaneous, projected: projection.miscellaneousProjected },
+  ];
+  const rows = referenceModel.map((row) => {
+    const budget = row.budget ?? sumReference(state, row.ref, "budget");
+    const projected = row.projected ?? sumReference(state, row.ref, "projected");
+    return { ...row, budget, projected };
+  });
+  const budgetTotal = rows.reduce((total, row) => total + Math.max(0, numeric(row.budget)), 0);
+  const projectedTotal = rows.reduce((total, row) => total + Math.max(0, numeric(row.projected)), 0);
+  return rows.map((row) => {
+    const current = budgetTotal ? Math.max(0, numeric(row.budget)) / budgetTotal : 0;
+    const projected = projectedTotal ? Math.max(0, numeric(row.projected)) / projectedTotal : 0;
+    return {
+      ...row,
+      current,
+      projectedPercent: projected,
+      currentVariance: current - row.balanced,
+      projectedVariance: projected - row.balanced,
+    };
+  });
+}
+
+function sumReference(state, ref, mode) {
+  return state.expenses
+    .filter((line) => (line.reference || "") === ref)
+    .reduce((total, line) => {
+      const budget = numeric(line.amount);
+      const actual = paidForConcept(state, line.id);
+      return total + (mode === "projected" ? Math.max(budget, actual) : budget);
+    }, 0);
+}
+
 function paymentTimingSummary(state, today) {
   const timing = monthTiming(state.month, today);
   const nextDays = clamp(Math.round(numeric(state.projectionNextDays)), 0, timing.daysInMonth);

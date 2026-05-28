@@ -1,10 +1,10 @@
-import { dashboardModel, money, pct, projectionAnalysisModel } from "./calculations/budgetEngine.js";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js";
 import { loadState, resetState, saveState } from "./data/defaultState.js";
 import { copy } from "./i18n/index.js";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
-let page = ["dashboard", "budget", "transactions", "projections", "evaluation", "settings"].includes(initialPage)
+let page = ["dashboard", "budget", "transactions", "projections", "smartModel", "evaluation", "settings"].includes(initialPage)
   ? initialPage
   : "dashboard";
 const app = document.querySelector("#app");
@@ -25,6 +25,7 @@ const comparativeReferences = {
 
 function render() {
   const t = copy[state.language] || copy.en;
+  const currentPageTitle = t[page] || copy.en[page] || "Smart Model";
   const dashboardData = dashboardModel(state);
   const projection = dashboardData.projection;
   app.innerHTML = `
@@ -34,6 +35,7 @@ function render() {
       ${navButton("budget", t.budget)}
       ${navButton("transactions", t.transactions)}
       ${navButton("projections", t.projections)}
+      ${navButton("smartModel", t.smartModel || "Smart Model")}
       ${navButton("evaluation", t.evaluation)}
       ${navButton("settings", t.settings)}
     </aside>
@@ -41,7 +43,7 @@ function render() {
       ${page !== "dashboard" && page !== "budget" ? `<header class="topbar">
         <div>
           <p class="eyebrow">Monthly predictive planning</p>
-          <h1>${t[page]}</h1>
+          <h1>${currentPageTitle}</h1>
         </div>
         <div class="month-chip">${state.month}</div>
       </header>` : ""}
@@ -50,6 +52,7 @@ function render() {
       ${page === "budget" ? budgetSetup(projection) : ""}
       ${page === "transactions" ? transactions() : ""}
       ${page === "projections" ? projections() : ""}
+      ${page === "smartModel" ? smartModelPage() : ""}
       ${page === "evaluation" ? evaluation(projection) : ""}
       ${page === "settings" ? settings() : ""}
     </main>
@@ -461,6 +464,91 @@ function projectionDetailRow(row) {
 
 function projectionSpecialRow(row) {
   return `<tr class="status-${row.evaluation.key}"><td><strong>${row.label}</strong></td><td>${money(row.payments)}</td><td>${money(row.expenses)}</td><td class="${row.difference < 0 ? "danger" : "ok"}">${money(row.difference)}</td><td>${evaluationResult(row.evaluation)}</td></tr>`;
+}
+
+function smartModelPage() {
+  const rows = smartModel(state);
+  return `
+    <section class="panel smart-model-panel">
+      <header class="smart-model-header">
+        <div>
+          <h2>Comparative Budget Balanced Income Distribution Structure</h2>
+          <p class="muted">Based on average family size of 3 people. Refs are linked to the Budget Setup reference groups.</p>
+        </div>
+        <strong>Balanced model: ${pct(rows.reduce((total, row) => total + row.balanced, 0))}</strong>
+      </header>
+      <div class="table-wrap">
+        <table class="smart-model-table">
+          <thead>
+            <tr><th>Groups</th><th>Concepts</th><th>Ref</th><th>Balanced Budget</th><th>Current Budget</th><th>Projected Values</th></tr>
+          </thead>
+          <tbody>${rows.map(smartModelRow).join("")}</tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel smart-chart-panel">
+      <h2>Income Distribution Balanced Budget</h2>
+      <div class="smart-pie-wrap">
+        <div class="smart-pie" style="background:${smartPieGradient(rows)}"></div>
+        <div class="smart-pie-legend">${rows.map((row, index) => `<span><i style="background:${smartColor(index)}"></i>${row.ref}, ${pct(row.balanced)}</span>`).join("")}</div>
+      </div>
+    </section>
+    <section class="panel smart-chart-panel">
+      <h2>Comparison of Income Distribution</h2>
+      <div class="smart-bars">${rows.map(smartBarGroup).join("")}</div>
+      <footer class="smart-legend">
+        <span><i class="balanced"></i>1 Balanced Budget</span>
+        <span><i class="current"></i>2 Current Budget</span>
+        <span><i class="projected"></i>3 Projected Values</span>
+      </footer>
+    </section>
+  `;
+}
+
+function smartModelRow(row) {
+  return `<tr>
+    <td>${row.group}</td>
+    <td>${row.concept}</td>
+    <td>${row.ref}</td>
+    <td>${pct(row.balanced)}</td>
+    <td class="${smartVarianceClass(row.currentVariance)}">${pct(row.current)}</td>
+    <td class="${smartVarianceClass(row.projectedVariance)}">${pct(row.projectedPercent)}</td>
+  </tr>`;
+}
+
+function smartVarianceClass(variance) {
+  const absolute = Math.abs(variance);
+  return absolute > 0.05 ? "smart-risk" : absolute > 0.025 ? "smart-watch" : "smart-ok";
+}
+
+function smartPieGradient(rows) {
+  let start = 0;
+  const stops = rows.map((row, index) => {
+    const end = start + row.balanced * 100;
+    const stop = `${smartColor(index)} ${start}% ${end}%`;
+    start = end;
+    return stop;
+  });
+  return `conic-gradient(${stops.join(", ")})`;
+}
+
+function smartBarGroup(row) {
+  const max = 0.35;
+  return `<div class="smart-bar-group">
+    <span>${row.ref}</span>
+    ${smartBar(row.balanced, max, "balanced")}
+    ${smartBar(row.current, max, "current")}
+    ${smartBar(row.projectedPercent, max, "projected")}
+  </div>`;
+}
+
+function smartBar(value, max, key) {
+  return `<i class="${key}" title="${pct(value)}" style="height:${Math.min(100, (value / max) * 100)}%"></i>`;
+}
+
+function smartColor(index) {
+  const colors = ["#5b9bd5", "#ed7d31", "#a5a5a5", "#ffc000", "#70ad47", "#255e91", "#9e480e", "#636363", "#997300", "#43682b", "#4472c4", "#f4b183", "#bdd7ee", "#ffd966", "#92d050"];
+  return colors[index % colors.length];
 }
 
 function evaluation(p) {
