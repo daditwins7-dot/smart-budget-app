@@ -1077,42 +1077,18 @@ th {
 .projection-top-grid {
   display: grid;
   gap: 20px;
-  grid-template-columns: minmax(0, 4.5fr) minmax(280px, 3fr);
+  grid-template-columns: 1fr;
   align-items: start;
-}
-
-.projection-balance-table {
-  display: block;
-  table-layout: fixed;
-}
-
-.projection-balance-table thead,
-.projection-balance-table tbody,
-.projection-balance-table tr {
-  display: block;
-}
-
-.projection-balance-table tr {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(160px, 1.5fr) repeat(3, minmax(86px, 1fr));
-}
-
-.projection-balance-table th:first-child,
-.projection-balance-table td:first-child {
-  width: auto;
-}
-
-.projection-balance-table th:not(:first-child),
-.projection-balance-table td:not(:first-child) {
-  width: auto;
 }
 
 .payment-timing-card {
   background: #f7f9fb;
   border: 1px solid var(--line);
   border-radius: 8px;
+  justify-self: end;
+  max-width: 420px;
   padding: 14px;
+  width: 100%;
 }
 
 .payment-timing-card h2 {
@@ -1167,7 +1143,6 @@ th {
   width: 54px;
 }
 
-.projection-balance-table strong,
 .projection-special-table strong {
   font-weight: 800;
 }
@@ -1201,6 +1176,11 @@ th {
   gap: 10px;
   grid-template-columns: minmax(190px, 1.45fr) repeat(5, minmax(105px, 0.9fr)) minmax(140px, 1fr);
   padding: 10px;
+}
+
+.projection-top-grid .projection-grid {
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .projection-grid span:not(:first-child) {
@@ -1250,6 +1230,18 @@ th {
 }
 
 .projection-group.status-watch summary {
+  background: #fffaf0;
+}
+
+.projection-available-row {
+  border-bottom: 1px solid var(--line);
+}
+
+.projection-available-row.status-problem {
+  background: #fff8f7;
+}
+
+.projection-available-row.status-watch {
   background: #fffaf0;
 }
 

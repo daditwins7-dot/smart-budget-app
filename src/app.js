@@ -435,13 +435,11 @@ function projections() {
     <section class="panel projection-panel">
       <div class="projection-top-grid">
         <div>
-          <h2>Balances</h2>
-          <div class="table-wrap">
-            <table class="projection-balance-table">
-              <thead><tr><th>Balance</th><th>Initial</th><th>Actual</th><th>Projected</th></tr></thead>
-              <tbody>${model.balanceRows.map(projectionBalanceRow).join("")}</tbody>
-            </table>
+          <h2>Available Income</h2>
+          <div class="projection-grid projection-grid-header">
+            <span>Group</span><span>Budget</span><span>Actual</span><span>Projected</span><span>Remaining</span><span>% Paid</span><span>Evaluation</span>
           </div>
+          ${model.availableIncomeRows.map(projectionAvailableIncomeRow).join("")}
         </div>
         ${projectionPaymentTiming(model.paymentTiming)}
       </div>
@@ -449,7 +447,7 @@ function projections() {
     <section class="panel projection-panel">
       <div class="projection-section-head">
         <div>
-          <h2>Income and Expenses</h2>
+          <h2>Expenses</h2>
           <p class="muted projection-note">Expand a budget group to review each tracked concept.</p>
         </div>
         <div class="projection-controls">
@@ -482,8 +480,10 @@ function projections() {
   `;
 }
 
-function projectionBalanceRow(row) {
-  return `<tr class="status-${row.evaluation.key}"><td><strong>${row.label}</strong></td><td>${money(row.initial)}</td><td>${money(row.actual)}</td><td>${money(row.projected)}</td></tr>`;
+function projectionAvailableIncomeRow(row) {
+  return `<div class="projection-grid projection-available-row status-${row.evaluation.key}">
+    <strong>${row.label}</strong><span>${money(row.budget)}</span><span>${money(row.actual)}</span><span>${money(row.projected)}</span><span>${money(row.remaining)}</span><span>${pct(row.paid)}</span><span>${evaluationResult(row.evaluation)}</span>
+  </div>`;
 }
 
 function projectionPaymentTiming(timing) {

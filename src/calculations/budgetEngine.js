@@ -255,22 +255,7 @@ export function projectionAnalysisModel(state, today = new Date()) {
   const cardDifference = cardPayments - cardExpenses;
   const paymentTiming = paymentTimingSummary(state, today);
   return {
-    balanceRows: [
-      {
-        label: "Cash Flow",
-        initial: numeric(state.initialCashFlow),
-        actual: numeric(state.currentCashFlow),
-        projected: projection.expectedEndCashFlow,
-        evaluation: higherIsBetter(projection.expectedEndCashFlow, numeric(state.desiredFinalCashFlow)),
-      },
-      {
-        label: "Savings",
-        initial: numeric(state.initialSavings),
-        actual: numeric(state.currentSavings),
-        projected: projection.projectedSavings,
-        evaluation: higherIsBetter(projection.projectedSavings, savingsTarget),
-      },
-    ],
+    availableIncomeRows: availableIncomeRows(state, projection),
     rows: projectionRows(state, today),
     budgetBalanceDifference: projection.budgetBalanceDifference,
     miscellaneousRow: {
@@ -293,6 +278,36 @@ export function projectionAnalysisModel(state, today = new Date()) {
       evaluation: cardDifference < 0 ? status("problem") : status("good"),
     },
     paymentTiming,
+  };
+}
+
+function availableIncomeRows(state, projection) {
+  const netIncomeActual = state.transactions
+    .filter((tx) => tx.type === "income" && tx.conceptId === "net-income")
+    .reduce((total, tx) => total + numeric(tx.amount), 0);
+  const otherIncomeActual = state.transactions
+    .filter((tx) => tx.type === "income" && tx.conceptId === "other-deposits")
+    .reduce((total, tx) => total + numeric(tx.amount), 0);
+  const totalSavings = numeric(state.initialSavings) + numeric(state.budgetedSavings);
+  return [
+    incomeProjectionRow("Available Income", projection.budgetAvailableForExpenses, projection.projectedAvailableForExpenses),
+    incomeProjectionRow("Salary Net Income", numeric(state.regularIncome), Math.max(numeric(state.regularIncome), netIncomeActual), netIncomeActual),
+    incomeProjectionRow("Other Income", numeric(state.irregularIncome), Math.max(numeric(state.irregularIncome), otherIncomeActual), otherIncomeActual),
+    incomeProjectionRow("Cash Flow Initial", numeric(state.initialCashFlow), numeric(state.currentCashFlow), numeric(state.currentCashFlow)),
+    incomeProjectionRow("Cash Flow Budget", numeric(state.desiredFinalCashFlow), projection.expectedEndCashFlow, numeric(state.currentCashFlow)),
+    incomeProjectionRow("Total Savings", totalSavings, projection.projectedSavings, numeric(state.currentSavings)),
+  ];
+}
+
+function incomeProjectionRow(label, budget, projected, actual = projected) {
+  return {
+    label,
+    budget,
+    actual,
+    projected,
+    remaining: Math.max(0, budget - actual),
+    paid: budget ? actual / budget : 0,
+    evaluation: higherIsBetter(projected, budget),
   };
 }
 
