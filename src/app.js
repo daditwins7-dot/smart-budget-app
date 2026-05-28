@@ -308,7 +308,10 @@ function transactions() {
     <section class="panel transaction-panel">
       <div class="transaction-heading">
         <h2>Record actual movement</h2>
-        <strong>Filtered Total: ${money(filteredTotal)}</strong>
+        <div class="transaction-heading-actions">
+          <strong>Filtered Total: ${money(filteredTotal)}</strong>
+          <button class="danger-button" type="button" id="clear-month-data">Clear month data</button>
+        </div>
       </div>
       <section class="actual-balance-grid">
         <label>Cash Flow
@@ -358,9 +361,14 @@ function transactions() {
         </select></label>
         <button class="secondary" type="button" id="clear-tx-filters">Clear filters</button>
       </section>
+      <section class="transaction-list-wrap">
+        <table class="transaction-list">
+          <thead><tr><th>Date</th><th>Type</th><th>Concept</th><th>Amount</th><th>Payment</th><th>Comment</th><th>Action</th></tr></thead>
+          <tbody>${transactionRows(visibleTransactions)}</tbody>
+        </table>
+      </section>
       <p class="transaction-rules">Only budgeted expense concepts are available for tracking. Miscellaneous is calculated by the system and is not recorded here. Payment Method is required for accurate cash flow and credit card balances; select Cash or Credit card correctly for each expense. Credit card expenses and payments are accumulated totals; identify individual card activity in Comment. Savings are not recorded as transactions because bank balances define increases or reductions; when savings are used for payments, reduce the savings balance and increase payments or cash flow as applicable.</p>
     </section>
-    <section class="card-list">${visibleTransactions.map(txCard).join("") || `<p class="muted">No actual movements match the current filters.</p>`}</section>
   `;
 }
 
@@ -759,14 +767,30 @@ function bars(items) {
     .join("")}</div>`;
 }
 
-function txCard(tx) {
+function transactionConceptName(tx) {
   const fixedConcepts = {
     "net-income": "Net Income",
     "other-deposits": "Other Deposits",
     "savings-account": "Saving",
   };
-  const concept = fixedConcepts[tx.conceptId] || state.expenses.find((line) => line.id === tx.conceptId)?.concept || "Movement";
-  return `<article class="tx-card"><strong>${concept}</strong><span>${tx.date}</span><b>${money(tx.amount)}</b><small>${tx.type} · ${tx.paymentMethod}</small></article>`;
+  return fixedConcepts[tx.conceptId] || state.expenses.find((line) => line.id === tx.conceptId)?.concept || "Movement";
+}
+
+function transactionRows(transactions) {
+  if (!transactions.length) return `<tr><td colspan="7" class="muted">No actual movements match the current filters.</td></tr>`;
+  return transactions
+    .map(
+      (tx) => `<tr>
+        <td>${tx.date || ""}</td>
+        <td>${tx.type || ""}</td>
+        <td>${transactionConceptName(tx)}</td>
+        <td>${money(tx.amount)}</td>
+        <td>${tx.paymentMethod || ""}</td>
+        <td>${tx.comment || ""}</td>
+        <td><button class="icon danger-text" type="button" data-remove-transaction="${tx.id}" title="Delete transaction">x</button></td>
+      </tr>`,
+    )
+    .join("");
 }
 
 function bindEvents() {
@@ -805,6 +829,28 @@ function bindEvents() {
     });
   });
   document.querySelector("#clear-tx-filters")?.addEventListener("click", () => {
+    state.transactionFilters = {
+      dateFrom: "",
+      dateTo: "",
+      type: "all",
+      conceptId: "all",
+      paymentMethod: "all",
+    };
+    saveState(state);
+    render();
+  });
+  document.querySelectorAll("[data-remove-transaction]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.transactions = state.transactions.filter((tx) => tx.id !== button.dataset.removeTransaction);
+      saveState(state);
+      render();
+    });
+  });
+  document.querySelector("#clear-month-data")?.addEventListener("click", () => {
+    state.transactions = [];
+    state.currentCashFlow = 0;
+    state.currentSavings = 0;
+    state.lastActualUpdate = "";
     state.transactionFilters = {
       dateFrom: "",
       dateTo: "",

@@ -908,12 +908,25 @@ th {
   margin-bottom: 16px;
 }
 
-.transaction-heading strong {
+.transaction-heading-actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.transaction-heading-actions strong {
   background: #eefaf2;
   border: 1px solid #abdec2;
   border-radius: 8px;
   color: var(--ok);
   padding: 10px 14px;
+}
+
+.danger-button {
+  background: #fff2f0;
+  border: 1px solid #f3b5ae;
+  color: var(--danger);
+  font-weight: 800;
 }
 
 .transaction-panel h2 {
@@ -976,6 +989,62 @@ th {
 
 .transaction-filter-panel button {
   align-self: end;
+}
+
+.transaction-list-wrap {
+  border-top: 1px solid var(--line);
+  margin-top: 18px;
+  overflow-x: auto;
+  padding-top: 14px;
+}
+
+.transaction-list {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.transaction-list th,
+.transaction-list td {
+  font-size: 12px;
+  padding: 9px 8px;
+  vertical-align: middle;
+}
+
+.transaction-list th:nth-child(1),
+.transaction-list td:nth-child(1) {
+  width: 13%;
+}
+
+.transaction-list th:nth-child(2),
+.transaction-list td:nth-child(2) {
+  width: 12%;
+}
+
+.transaction-list th:nth-child(3),
+.transaction-list td:nth-child(3) {
+  width: 24%;
+}
+
+.transaction-list th:nth-child(4),
+.transaction-list td:nth-child(4) {
+  text-align: right;
+  width: 12%;
+}
+
+.transaction-list th:nth-child(5),
+.transaction-list td:nth-child(5) {
+  width: 13%;
+}
+
+.transaction-list th:nth-child(6),
+.transaction-list td:nth-child(6) {
+  width: 20%;
+}
+
+.transaction-list th:nth-child(7),
+.transaction-list td:nth-child(7) {
+  text-align: center;
+  width: 6%;
 }
 
 .transaction-rules {
@@ -1680,6 +1749,20 @@ th {
 
   .transaction-form {
     grid-template-columns: 1fr;
+  }
+
+  .transaction-heading,
+  .transaction-heading-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .transaction-filter-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .transaction-list {
+    min-width: 780px;
   }
 
   .projection-top-grid {
