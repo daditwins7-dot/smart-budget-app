@@ -1400,26 +1400,49 @@ th {
   margin-bottom: 0;
 }
 
-.financial-group-table th,
-.financial-group-table td {
-  text-align: right;
+.financial-group-ranges {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
 }
 
-.financial-group-table th:first-child,
-.financial-group-table td:first-child {
-  text-align: left;
+.financial-group-range {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px 18px;
 }
 
-.financial-group-table tr.status-good td {
+.financial-group-range.status-good {
   background: #f2fbf5;
 }
 
-.financial-group-table tr.status-watch td {
+.financial-group-range.status-watch {
   background: #fffaf0;
 }
 
-.financial-group-table tr.status-problem td {
+.financial-group-range.status-problem {
   background: #fff8f7;
+}
+
+.financial-group-range header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.financial-range-small {
+  height: 28px;
+  margin: 0 8px 8px;
+}
+
+.financial-range-small b {
+  border-color: #46720c transparent transparent;
+  border-width: 18px 11px 0;
+  bottom: auto;
+  top: -20px;
 }
 
 .card-list {
