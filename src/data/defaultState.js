@@ -16,6 +16,13 @@ export const defaultState = {
   projectionNextDays: 5,
   smartPieMode: 1,
   crisisMode: false,
+  transactionFilters: {
+    dateFrom: "",
+    dateTo: "",
+    type: "all",
+    conceptId: "all",
+    paymentMethod: "all",
+  },
   expenses: [
     { id: "housing", concept: "Home Rent or Pay Mortgage", amount: 1850, dueDay: 1, group: "debts", reference: "1" },
     { id: "cards", concept: "Credit Cards All Payments", amount: 650, dueDay: 12, group: "debts", reference: "2" },

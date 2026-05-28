@@ -302,9 +302,14 @@ function transactions() {
   const today = localDateValue();
   const lastUpdated = state.lastActualUpdate || "";
   const updateCurrent = lastUpdated === today;
+  const visibleTransactions = filteredTransactions();
+  const filteredTotal = visibleTransactions.reduce((total, tx) => total + Number(tx.amount || 0), 0);
   return `
     <section class="panel transaction-panel">
-      <h2>Record actual movement</h2>
+      <div class="transaction-heading">
+        <h2>Record actual movement</h2>
+        <strong>Filtered Total: ${money(filteredTotal)}</strong>
+      </div>
       <section class="actual-balance-grid">
         <label>Cash Flow
           <input type="number" step="0.01" data-actual-balance="currentCashFlow" value="${state.currentCashFlow}" />
@@ -334,9 +339,28 @@ function transactions() {
         <input name="comment" placeholder="Comment" />
         <button class="primary">Add</button>
       </form>
+      <section class="transaction-filter-panel" aria-label="Transaction filters">
+        <label>From <input type="date" data-transaction-filter="dateFrom" value="${transactionFilterValue("dateFrom")}" /></label>
+        <label>To <input type="date" data-transaction-filter="dateTo" value="${transactionFilterValue("dateTo")}" /></label>
+        <label>Type <select data-transaction-filter="type">
+          ${transactionFilterOption("all", "All", "type")}
+          ${transactionFilterOption("expense", "Expense", "type")}
+          ${transactionFilterOption("income", "Income", "type")}
+        </select></label>
+        <label>Concept <select data-transaction-filter="conceptId">
+          ${transactionFilterOption("all", "All concepts", "conceptId")}
+          ${transactionConceptFilterOptions()}
+        </select></label>
+        <label>Payment <select data-transaction-filter="paymentMethod">
+          ${transactionFilterOption("all", "All methods", "paymentMethod")}
+          ${transactionFilterOption("cash", "Cash", "paymentMethod")}
+          ${transactionFilterOption("creditCard", "Credit card", "paymentMethod")}
+        </select></label>
+        <button class="secondary" type="button" id="clear-tx-filters">Clear filters</button>
+      </section>
       <p class="transaction-rules">Only budgeted expense concepts are available for tracking. Miscellaneous is calculated by the system and is not recorded here. Payment Method is required for accurate cash flow and credit card balances; select Cash or Credit card correctly for each expense. Credit card expenses and payments are accumulated totals; identify individual card activity in Comment. Savings are not recorded as transactions because bank balances define increases or reductions; when savings are used for payments, reduce the savings balance and increase payments or cash flow as applicable.</p>
     </section>
-    <section class="card-list">${state.transactions.map(txCard).join("") || `<p class="muted">No actual movements yet.</p>`}</section>
+    <section class="card-list">${visibleTransactions.map(txCard).join("") || `<p class="muted">No actual movements match the current filters.</p>`}</section>
   `;
 }
 
@@ -355,6 +379,35 @@ function transactionConceptOptions(type) {
         ]
       : state.expenses.map((line) => [line.id, line.concept]);
   return options.map(([id, label]) => `<option value="${id}">${label}</option>`).join("");
+}
+
+function transactionConceptFilterOptions() {
+  const options = [
+    ["net-income", "Net Income"],
+    ["other-deposits", "Other Deposits"],
+    ...state.expenses.map((line) => [line.id, line.concept]),
+  ];
+  return options.map(([id, label]) => transactionFilterOption(id, label, "conceptId")).join("");
+}
+
+function transactionFilterValue(field) {
+  return state.transactionFilters?.[field] || (["type", "conceptId", "paymentMethod"].includes(field) ? "all" : "");
+}
+
+function transactionFilterOption(value, label, field) {
+  return `<option value="${value}" ${transactionFilterValue(field) === value ? "selected" : ""}>${label}</option>`;
+}
+
+function filteredTransactions() {
+  return state.transactions.filter((tx) => {
+    const filters = state.transactionFilters || {};
+    if (filters.dateFrom && tx.date < filters.dateFrom) return false;
+    if (filters.dateTo && tx.date > filters.dateTo) return false;
+    if (filters.type && filters.type !== "all" && tx.type !== filters.type) return false;
+    if (filters.conceptId && filters.conceptId !== "all" && tx.conceptId !== filters.conceptId) return false;
+    if (filters.paymentMethod && filters.paymentMethod !== "all" && tx.paymentMethod !== filters.paymentMethod) return false;
+    return true;
+  });
 }
 
 function showCurrentActualUpdate() {
@@ -733,6 +786,32 @@ function bindEvents() {
   });
   document.querySelector("[data-field='smartPieMode']")?.addEventListener("input", (event) => {
     state.smartPieMode = Number(event.target.value) || 1;
+    saveState(state);
+    render();
+  });
+  document.querySelectorAll("[data-transaction-filter]").forEach((input) => {
+    input.addEventListener("change", () => {
+      state.transactionFilters = {
+        dateFrom: "",
+        dateTo: "",
+        type: "all",
+        conceptId: "all",
+        paymentMethod: "all",
+        ...(state.transactionFilters || {}),
+        [input.dataset.transactionFilter]: input.value,
+      };
+      saveState(state);
+      render();
+    });
+  });
+  document.querySelector("#clear-tx-filters")?.addEventListener("click", () => {
+    state.transactionFilters = {
+      dateFrom: "",
+      dateTo: "",
+      type: "all",
+      conceptId: "all",
+      paymentMethod: "all",
+    };
     saveState(state);
     render();
   });
