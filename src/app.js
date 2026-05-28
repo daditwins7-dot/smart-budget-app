@@ -458,6 +458,7 @@ function projections() {
       <div class="projection-grid projection-grid-header">
         <span>Group</span><span>Budget</span><span>Actual</span><span>Projected</span><span>Remaining</span><span>% Paid</span><span>Evaluation</span>
       </div>
+      ${projectionStandardRow(model.expenseTotalRow)}
       ${model.rows.map(projectionExpandableRow).join("")}
       ${projectionStandardRow(model.miscellaneousRow)}
     </section>
