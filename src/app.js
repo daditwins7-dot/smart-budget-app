@@ -443,9 +443,9 @@ function projectionExpandableRow(row) {
     <summary class="projection-grid">
       <strong>${row.label}</strong><span>${money(row.budget)}</span><span>${money(row.actual)}</span><span>${money(row.projected)}</span><span>${money(row.remaining)}</span><span>${pct(row.paid)}</span><span>${evaluationResult(row.evaluation)}</span>
     </summary>
-    <div class="projection-detail-wrap">
-      <table class="projection-detail-table">
-        <thead><tr><th>Concept</th><th>Budget</th><th>Actual</th><th>Projected</th><th>Remaining</th><th>% Paid</th><th>Evaluation</th></tr></thead>
+      <div class="projection-detail-wrap">
+        <table class="projection-detail-table">
+        <thead><tr><th>Concept</th><th>Budget</th><th>Actual</th><th>Projected</th><th>Remaining</th><th>% Paid</th><th>Due Date</th><th>Evaluation</th></tr></thead>
         <tbody>${row.details.map(projectionDetailRow).join("")}</tbody>
       </table>
     </div>
@@ -459,7 +459,8 @@ function projectionStandardRow(row) {
 }
 
 function projectionDetailRow(row) {
-  return `<tr class="status-${row.evaluation.key}"><td>${row.label}</td><td>${money(row.budget)}</td><td>${money(row.actual)}</td><td>${money(row.projected)}</td><td>${money(row.remaining)}</td><td>${pct(row.paid)}</td><td>${evaluationResult(row.evaluation)}</td></tr>`;
+  const dueDate = row.dueDate ? `<span class="due-date due-${row.dueStatus}">${row.dueDate}</span>` : "";
+  return `<tr class="status-${row.evaluation.key}"><td>${row.label}</td><td>${money(row.budget)}</td><td>${money(row.actual)}</td><td>${money(row.projected)}</td><td>${money(row.remaining)}</td><td>${pct(row.paid)}</td><td>${dueDate}</td><td>${evaluationResult(row.evaluation)}</td></tr>`;
 }
 
 function projectionSpecialRow(row) {

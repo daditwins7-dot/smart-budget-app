@@ -1081,8 +1081,16 @@ th {
   align-items: center;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(160px, 1.5fr) repeat(5, minmax(86px, 1fr)) minmax(115px, 1fr);
+  grid-template-columns: minmax(190px, 1.45fr) repeat(5, minmax(105px, 0.9fr)) minmax(140px, 1fr);
   padding: 10px;
+}
+
+.projection-grid span:not(:first-child) {
+  text-align: right;
+}
+
+.projection-grid span:last-child {
+  text-align: left;
 }
 
 .projection-grid-header {
@@ -1155,8 +1163,56 @@ th {
   padding: 8px;
 }
 
+.projection-detail-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.projection-detail-table th:first-child,
+.projection-detail-table td:first-child {
+  width: 22%;
+}
+
+.projection-detail-table th:not(:first-child),
+.projection-detail-table td:not(:first-child) {
+  text-align: right;
+}
+
+.projection-detail-table th:nth-child(7),
+.projection-detail-table td:nth-child(7),
+.projection-detail-table th:nth-child(8),
+.projection-detail-table td:nth-child(8) {
+  text-align: center;
+}
+
 .projection-detail-table td:first-child {
   font-weight: 700;
+}
+
+.due-date {
+  border-radius: 999px;
+  color: #fff;
+  display: inline-block;
+  font-weight: 800;
+  min-width: 92px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
+.due-paid {
+  background: #2563eb;
+}
+
+.due-future {
+  background: #16a34a;
+}
+
+.due-soon {
+  background: #7c3aed;
+}
+
+.due-overdue {
+  background: #dc2626;
 }
 
 .projection-special-table td:nth-child(4) {

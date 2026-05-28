@@ -203,7 +203,8 @@ export function dashboardModel(state, today = new Date()) {
   };
 }
 
-export function projectionRows(state) {
+export function projectionRows(state, today = new Date()) {
+  const timing = monthTiming(state.month, today);
   const groups = [
     {
       label: "Income",
@@ -222,7 +223,7 @@ export function projectionRows(state) {
       details ||
       state.expenses
         .filter((line) => line.group === group)
-        .map((line) => ({ id: line.id, label: line.concept, budget: numeric(line.amount) }));
+        .map((line) => ({ id: line.id, label: line.concept, budget: numeric(line.amount), dueDay: numeric(line.dueDay) }));
     const ids = lines.map((line) => line.id);
     const budget = lines.reduce((total, line) => total + line.budget, 0);
     const actual =
@@ -239,7 +240,7 @@ export function projectionRows(state) {
       remaining: Math.max(0, budget - actual),
       paid: budget ? actual / budget : 0,
       evaluation: group === null ? higherIsBetter(actual, budget) : lowerIsBetter(actual, budget),
-      details: lines.map((line) => projectionDetail(state, line, group === null)),
+      details: lines.map((line) => projectionDetail(state, line, group === null, timing)),
     };
   });
 }
@@ -270,7 +271,7 @@ export function projectionAnalysisModel(state, today = new Date()) {
         evaluation: higherIsBetter(projection.projectedSavings, savingsTarget),
       },
     ],
-    rows: projectionRows(state),
+    rows: projectionRows(state, today),
     budgetBalanceDifference: projection.budgetBalanceDifference,
     miscellaneousRow: {
       label: "Miscellaneous",
@@ -388,21 +389,32 @@ function formatMonthDay(year, monthIndex, day) {
   });
 }
 
-function projectionDetail(state, line, income) {
+function projectionDetail(state, line, income, timing) {
   const actual = income
     ? state.transactions
         .filter((tx) => tx.type === "income" && tx.conceptId === line.id)
         .reduce((total, tx) => total + numeric(tx.amount), 0)
     : paidForConcept(state, line.id);
+  const paid = line.budget ? actual / line.budget : 0;
   return {
     label: line.label,
     budget: line.budget,
     actual,
     projected: Math.max(line.budget, actual),
     remaining: Math.max(0, line.budget - actual),
-    paid: line.budget ? actual / line.budget : 0,
+    paid,
+    dueDate: income ? "" : formatMonthDay(timing.year, timing.monthIndex, Math.max(1, Math.min(timing.daysInMonth, Math.round(numeric(line.dueDay)) || 1))),
+    dueStatus: income ? "none" : paymentDueStatus(paid, line.dueDay, timing),
     evaluation: income ? higherIsBetter(actual, line.budget) : lowerIsBetter(actual, line.budget),
   };
+}
+
+function paymentDueStatus(paid, dueDay, timing) {
+  if (paid >= 1) return "paid";
+  const daysUntilDue = Math.round(numeric(dueDay)) - timing.currentDay;
+  if (daysUntilDue < 0) return "overdue";
+  if (daysUntilDue < 5) return "soon";
+  return "future";
 }
 
 function periodDetails(month, today) {
