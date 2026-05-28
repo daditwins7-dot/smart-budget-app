@@ -915,11 +915,20 @@ th {
 }
 
 .transaction-heading-actions strong {
-  background: #eefaf2;
-  border: 1px solid #abdec2;
   border-radius: 8px;
-  color: var(--ok);
   padding: 10px 14px;
+}
+
+.transaction-heading-actions .income-total {
+  background: #effaf3;
+  border: 1px solid #abdec2;
+  color: var(--ok);
+}
+
+.transaction-heading-actions .expense-total {
+  background: #fff8f7;
+  border: 1px solid #f3b5ae;
+  color: var(--danger);
 }
 
 .danger-button {

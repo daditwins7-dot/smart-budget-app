@@ -303,13 +303,15 @@ function transactions() {
   const lastUpdated = state.lastActualUpdate || "";
   const updateCurrent = lastUpdated === today;
   const visibleTransactions = filteredTransactions();
-  const filteredTotal = visibleTransactions.reduce((total, tx) => total + Number(tx.amount || 0), 0);
+  const filteredIncomeTotal = visibleTransactions.filter((tx) => tx.type === "income").reduce((total, tx) => total + Number(tx.amount || 0), 0);
+  const filteredExpenseTotal = visibleTransactions.filter((tx) => tx.type === "expense").reduce((total, tx) => total + Number(tx.amount || 0), 0);
   return `
     <section class="panel transaction-panel">
       <div class="transaction-heading">
         <h2>Record actual movement</h2>
         <div class="transaction-heading-actions">
-          <strong>Filtered Total: ${money(filteredTotal)}</strong>
+          <strong class="income-total">Income: ${money(filteredIncomeTotal)}</strong>
+          <strong class="expense-total">Expenses: ${money(filteredExpenseTotal)}</strong>
           <button class="danger-button" type="button" id="clear-month-data">Clear month data</button>
         </div>
       </div>
