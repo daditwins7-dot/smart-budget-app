@@ -552,22 +552,64 @@ function smartColor(index) {
 }
 
 function evaluation(p) {
+  const difficultyScore = Math.min(100, Math.max(0, 100 - p.healthScore));
   return `
     <section class="metric-grid">
       ${metric("Financial health", Math.round(p.healthScore) + "/100", p.healthScore >= 80 ? "Strong" : p.healthScore >= 60 ? "Watch" : "Risk")}
       ${metric("Debt capacity", pct(p.debtToIncome), p.debtToIncome <= 0.35 ? "Within reference" : "Above reference")}
       ${metric("Credit coverage", money(p.creditCardPlanned), "Delays cash outflow")}
     </section>
-    <section class="panel">
-      <h2>Health thermometer</h2>
-      <div class="thermometer"><span style="width:${p.healthScore}%"></span></div>
-      ${bars([
-        ["Savings", state.budgetedSavings, p.totalIncomeBudget],
-        ["Debts", p.committedDebts, p.totalIncomeBudget],
-        ["Expenses", p.totalExpensesBudget, p.totalIncomeBudget],
-      ])}
+    <section class="panel financial-evaluation-panel">
+      <h2>Financial difficulty range</h2>
+      <div class="financial-range" aria-label="Financial difficulty range">
+        <span class="range-good">Low</span>
+        <span class="range-watch">Medium</span>
+        <span class="range-risk">High</span>
+        <b style="left:${difficultyScore}%"><em>${Math.round(difficultyScore)}</em></b>
+      </div>
+      <div class="financial-range-labels"><span>0</span><span>40</span><span>60</span><span>100</span></div>
+      <p class="muted financial-range-note">Difficulty is the inverse of the health score: green is low pressure, yellow is watch, and red is high risk.</p>
+    </section>
+    <section class="panel financial-evaluation-panel">
+      <h2>Group evaluation</h2>
+      <div class="table-wrap">
+        <table class="financial-group-table">
+          <thead><tr><th>Group</th><th>Budget</th><th>Projected</th><th>Share</th><th>Evaluation</th></tr></thead>
+          <tbody>${financialGroupRows(p).map(financialGroupRow).join("")}</tbody>
+        </table>
+      </div>
     </section>
   `;
+}
+
+function financialGroupRows(p) {
+  const groupProjection = (label, group) => {
+    const ids = state.expenses.filter((line) => line.group === group).map((line) => line.id);
+    const budget = state.expenses.filter((line) => line.group === group).reduce((total, line) => total + Number(line.amount || 0), 0);
+    const actual = state.transactions.filter((tx) => tx.type === "expense" && ids.includes(tx.conceptId)).reduce((total, tx) => total + Number(tx.amount || 0), 0);
+    const projected = Math.max(budget, actual);
+    return { label, budget, projected, evaluation: financialLowerIsBetter(projected, budget) };
+  };
+  const savingsTarget = Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0);
+  const rows = [
+    { label: "Savings", budget: Number(state.budgetedSavings || 0), projected: p.projectedSavings - Number(state.initialSavings || 0), evaluation: p.projectedSavings >= savingsTarget ? { key: "good", label: "On track" } : { key: "watch", label: "Watch" } },
+    groupProjection("Committed Debts", "debts"),
+    groupProjection("Household Expenses", "household"),
+    groupProjection("Extraordinary Expenses", "extraordinary"),
+    { label: "Miscellaneous", budget: p.miscellaneous, projected: p.miscellaneousProjected, evaluation: p.miscellaneousProjected < 0 ? { key: "problem", label: "Problem" } : financialLowerIsBetter(p.miscellaneousProjected, p.miscellaneous) },
+    { label: "Credit Cards", budget: p.creditCardPlanned, projected: p.creditCardActual, evaluation: financialLowerIsBetter(p.creditCardActual, p.creditCardPlanned) },
+  ];
+  return rows.map((row) => ({ ...row, share: p.totalIncomeBudget ? row.projected / p.totalIncomeBudget : 0 }));
+}
+
+function financialGroupRow(row) {
+  return `<tr class="status-${row.evaluation.key}"><td><strong>${row.label}</strong></td><td>${money(row.budget)}</td><td>${money(row.projected)}</td><td>${pct(row.share)}</td><td>${evaluationResult(row.evaluation)}</td></tr>`;
+}
+
+function financialLowerIsBetter(value, target) {
+  if (!target || value <= target) return { key: "good", label: "On track" };
+  if (value <= target * 1.1) return { key: "watch", label: "Watch" };
+  return { key: "problem", label: "Problem" };
 }
 
 function settings() {
