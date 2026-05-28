@@ -1229,8 +1229,42 @@ th {
 .smart-chart-panel h2 {
   color: #b45309;
   font-size: 18px;
-  text-align: center;
   text-transform: uppercase;
+}
+
+.smart-chart-panel > h2 {
+  text-align: center;
+}
+
+.smart-chart-header {
+  align-items: start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.smart-chart-header h2 {
+  margin-bottom: 6px;
+}
+
+.smart-chart-header .muted {
+  margin: 0;
+}
+
+.smart-pie-selector {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 8px;
+  text-transform: uppercase;
+}
+
+.smart-pie-selector input {
+  max-width: 76px;
+  text-align: center;
 }
 
 .smart-pie-wrap {

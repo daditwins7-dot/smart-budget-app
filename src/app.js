@@ -468,6 +468,8 @@ function projectionSpecialRow(row) {
 
 function smartModelPage() {
   const rows = smartModel(state);
+  const pieMode = smartPieMode();
+  const pie = smartPieData(rows, pieMode.key);
   return `
     <section class="panel smart-model-panel">
       <header class="smart-model-header">
@@ -487,10 +489,18 @@ function smartModelPage() {
       </div>
     </section>
     <section class="panel smart-chart-panel">
-      <h2>Income Distribution Balanced Budget</h2>
+      <header class="smart-chart-header">
+        <div>
+          <h2>Income Distribution ${pieMode.label}</h2>
+          <p class="muted">Type 1 for Balanced Model, 2 for Current Budget, or 3 for Projection.</p>
+        </div>
+        <label class="smart-pie-selector">Chart
+          <input type="number" min="1" max="3" step="1" data-field="smartPieMode" value="${pieMode.value}" />
+        </label>
+      </header>
       <div class="smart-pie-wrap">
-        <div class="smart-pie" style="background:${smartPieGradient(rows)}"></div>
-        <div class="smart-pie-legend">${rows.map((row, index) => `<span><i style="background:${smartColor(index)}"></i>${row.ref}, ${pct(row.balanced)}</span>`).join("")}</div>
+        <div class="smart-pie" style="background:${smartPieGradient(pie)}"></div>
+        <div class="smart-pie-legend">${pie.map((row, index) => `<span><i style="background:${smartColor(index)}"></i>${row.ref}, ${pct(row.value)}</span>`).join("")}</div>
       </div>
     </section>
     <section class="panel smart-chart-panel">
@@ -521,10 +531,27 @@ function smartVarianceClass(variance) {
   return absolute > 0.05 ? "smart-risk" : absolute > 0.025 ? "smart-watch" : "smart-ok";
 }
 
+function smartPieMode() {
+  const value = Math.min(3, Math.max(1, Math.round(Number(state.smartPieMode) || 1)));
+  const modes = {
+    1: { value, key: "balanced", label: "Balanced Model" },
+    2: { value, key: "current", label: "Current Budget" },
+    3: { value, key: "projectedPercent", label: "Projection" },
+  };
+  return modes[value];
+}
+
+function smartPieData(rows, key) {
+  const values = rows.map((row) => ({ ...row, value: Math.max(0, Number(row[key]) || 0) }));
+  const total = values.reduce((sum, row) => sum + row.value, 0);
+  if (!total) return rows.map((row) => ({ ...row, value: row.balanced, slice: row.balanced }));
+  return values.map((row) => ({ ...row, slice: row.value / total }));
+}
+
 function smartPieGradient(rows) {
   let start = 0;
   const stops = rows.map((row, index) => {
-    const end = start + row.balanced * 100;
+    const end = start + row.slice * 100;
     const stop = `${smartColor(index)} ${start}% ${end}%`;
     start = end;
     return stop;
@@ -702,6 +729,11 @@ function bindEvents() {
       saveState(state);
       render();
     });
+  });
+  document.querySelector("[data-field='smartPieMode']")?.addEventListener("input", (event) => {
+    state.smartPieMode = Number(event.target.value) || 1;
+    saveState(state);
+    render();
   });
   document.querySelectorAll("[data-actual-balance]").forEach((input) => {
     input.addEventListener("input", () => {
