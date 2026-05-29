@@ -1,5 +1,5 @@
 export const defaultState = {
-  dataVersion: 3,
+  dataVersion: 4,
   dataNotice: "",
   month: new Date().toISOString().slice(0, 7),
   language: "en",
@@ -143,4 +143,16 @@ export function reconcileState(state) {
   reconciled.currentCashFlow = normalizedNumber(reconciled.currentCashFlow, defaultState.currentCashFlow);
   reconciled.currentSavings = normalizedNumber(reconciled.currentSavings, defaultState.currentSavings);
   return reconciled;
+}
+
+export function clearActualMonthState(state) {
+  return {
+    ...reconcileState(state),
+    transactions: [],
+    currentCashFlow: normalizedNumber(state.initialCashFlow, defaultState.initialCashFlow),
+    currentSavings: normalizedNumber(state.initialSavings, defaultState.initialSavings),
+    lastActualUpdate: "",
+    dataNotice: "Actual month data was reset. Budget values remain; enter current Cash Flow, current Savings, income deposits, expenses, and credit card activity again.",
+    transactionFilters: structuredClone(defaultState.transactionFilters),
+  };
 }

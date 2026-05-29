@@ -1,5 +1,5 @@
 import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js";
-import { loadState, reconcileState, resetState, saveState } from "./data/defaultState.js";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js";
 import { copy } from "./i18n/index.js";
 
 let state = loadState();
@@ -76,7 +76,8 @@ function dataQualityNotice(model) {
       ${issues.map((issue) => `<p>${issue}</p>`).join("")}
     </div>
     <div class="notice-actions">
-      <button class="secondary" type="button" data-reconcile-data>Synchronize saved data</button>
+      <button class="secondary" type="button" data-reconcile-data>Synchronize and recalculate</button>
+      <button class="secondary" type="button" data-clear-actual-month>Reset actual month data</button>
       <button class="secondary" type="button" data-page="projections">Open Projection Analysis</button>
     </div>
   </section>`;
@@ -99,7 +100,7 @@ function dataQualityIssues(p) {
     issues.push("Expenses are recorded without income transactions. Available income may appear too low until income deposits are entered.");
   }
   if (Math.abs(Number(p.actualBalanceDifference || 0)) > 0.01 || Math.abs(Number(p.projectedBalanceDifference || 0)) > 0.01) {
-    issues.push("Balance check is not zero. Use Synchronize saved data, then review credit card payments, card expenses, savings, and cash flow balances.");
+    issues.push("Balance check is not zero. Use Synchronize and recalculate first; if numbers remain wrong, reset actual month data and re-enter balances and transactions.");
   }
   return issues;
 }
@@ -556,7 +557,8 @@ function balanceCorrectionPanel(p, context) {
         <p>Available Income and Total Expenses must match before using these numbers for decisions.</p>
       </div>
       <div class="notice-actions">
-        <button class="secondary" type="button" data-reconcile-data>Synchronize saved data</button>
+        <button class="secondary" type="button" data-reconcile-data>Synchronize and recalculate</button>
+        <button class="secondary" type="button" data-clear-actual-month>Reset actual month data</button>
         <button class="secondary" type="button" data-page="projections">Open Projection Analysis</button>
       </div>
     </div>
@@ -599,7 +601,7 @@ function balanceCorrectionSteps(items) {
   if (labels.has("Projected")) {
     steps.push("Review Projection Analysis: confirm Last Update Date, remaining days, miscellaneous trend, and whether card spending is increasing or reducing cash flow.");
   }
-  steps.push("Click Synchronize saved data after a system update, then refresh with Ctrl + F5 if the warning remains.");
+  steps.push("Click Synchronize and recalculate after a system update; if the warning remains, reset actual month data and re-enter current balances and transactions.");
   return steps;
 }
 
@@ -1061,25 +1063,21 @@ function bindEvents() {
     });
   });
   document.querySelector("#clear-month-data")?.addEventListener("click", () => {
-    state.transactions = [];
-    state.currentCashFlow = state.initialCashFlow;
-    state.currentSavings = state.initialSavings;
-    state.lastActualUpdate = "";
-    state.dataNotice = "Month data was cleared. Current balances were reset to initial balances; enter updated balances before reviewing projections.";
-    state.transactionFilters = {
-      dateFrom: "",
-      dateTo: "",
-      type: "all",
-      conceptId: "all",
-      paymentMethod: "all",
-    };
+    state = clearActualMonthState(state);
     saveState(state);
     render();
   });
   document.querySelectorAll("[data-reconcile-data]").forEach((button) => {
     button.addEventListener("click", () => {
       state = reconcileState(state);
-      state.dataNotice = "Saved data has been synchronized with the latest calculation model. Review balances and transactions if numbers still differ from Excel.";
+      state.dataNotice = `Saved data synchronized and recalculated on ${new Date().toLocaleString("en-US")}. If numbers still differ, reset actual month data and re-enter balances and transactions.`;
+      saveState(state);
+      render();
+    });
+  });
+  document.querySelectorAll("[data-clear-actual-month]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state = clearActualMonthState(state);
       saveState(state);
       render();
     });
