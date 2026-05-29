@@ -77,8 +77,7 @@ function dataQualityNotice(model) {
     </div>
     <div class="notice-actions">
       <button class="secondary" type="button" data-reconcile-data>Synchronize and recalculate</button>
-      <button class="secondary" type="button" data-clear-actual-month>Reset actual month data</button>
-      <button class="secondary" type="button" data-page="projections">Open Projection Analysis</button>
+      <button class="secondary" type="button" data-clear-actual-month>New month: reset actuals only</button>
     </div>
   </section>`;
 }
@@ -558,8 +557,7 @@ function balanceCorrectionPanel(p, context) {
       </div>
       <div class="notice-actions">
         <button class="secondary" type="button" data-reconcile-data>Synchronize and recalculate</button>
-        <button class="secondary" type="button" data-clear-actual-month>Reset actual month data</button>
-        <button class="secondary" type="button" data-page="projections">Open Projection Analysis</button>
+        <button class="secondary" type="button" data-clear-actual-month>New month: reset actuals only</button>
       </div>
     </div>
     <div class="balance-difference-grid">

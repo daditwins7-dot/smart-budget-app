@@ -432,14 +432,14 @@ h2 {
 }
 
 .data-quality-notice {
-  align-items: center;
+  align-items: stretch;
   background: #fff7ed;
   border: 1px solid #fdba74;
   border-left: 5px solid #f97316;
   border-radius: 10px;
-  display: flex;
-  gap: 16px;
-  justify-content: space-between;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
   margin-bottom: 14px;
   padding: 12px 14px;
 }
@@ -462,7 +462,7 @@ h2 {
   flex: 0 0 auto;
   flex-wrap: wrap;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .data-quality-notice button,
@@ -536,9 +536,9 @@ h2 {
 
 .balance-correction-head {
   align-items: flex-start;
-  display: flex;
-  gap: 14px;
-  justify-content: space-between;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
 }
 
 .balance-correction-head h2 {
