@@ -74,7 +74,7 @@ function dataQualityNotice(model) {
       ${state.dataNotice ? `<p>${state.dataNotice}</p>` : ""}
       ${issues.map((issue) => `<p>${issue}</p>`).join("")}
     </div>
-    <button class="secondary" type="button" id="reconcile-data">Synchronize saved data</button>
+    <button class="secondary" type="button" data-reconcile-data>Synchronize saved data</button>
   </section>`;
 }
 
@@ -139,6 +139,7 @@ function dashboard(model) {
         </div>
       </section>
       ${p.alerts.length ? `<section class="dashboard-alerts">${p.alerts.map((alert) => `<p>${alert}</p>`).join("")}</section>` : ""}
+      ${balanceCorrectionPanel(p, "dashboard")}
       ${actionSuggestionPanel(p, "dashboard")}
       <footer class="signal-guide">
         <h2>Signals</h2>
@@ -481,6 +482,7 @@ function projections() {
         ${projectionPaymentTiming(model.paymentTiming)}
       </div>
     </section>
+    ${balanceCorrectionPanel(model.projection, "projection")}
     <section class="panel projection-panel">
       <div class="projection-section-head">
         <div>
@@ -489,7 +491,7 @@ function projections() {
         </div>
         <div class="projection-controls">
           <label class="toggle"><input type="checkbox" data-field="crisisMode" ${state.crisisMode ? "checked" : ""}/> Crisis mode</label>
-          <span class="${model.budgetBalanceDifference === 0 ? "ok" : "danger"}">Balance check: ${money(model.budgetBalanceDifference)}</span>
+          <span class="${balanceDifferences(model.projection).some((item) => item.outOfBalance) ? "danger" : "ok"}">Balance check: ${money(totalBalanceDifference(model.projection))}</span>
         </div>
       </div>
       <div class="projection-grid projection-grid-header">
@@ -537,6 +539,61 @@ function projectionPaymentTiming(timing) {
       </div>
     </div>
   </aside>`;
+}
+
+function balanceCorrectionPanel(p, context) {
+  const differences = balanceDifferences(p);
+  const outOfBalance = differences.filter((item) => item.outOfBalance);
+  if (!outOfBalance.length) return "";
+  return `<section class="panel balance-correction-panel balance-correction-${context}">
+    <div class="balance-correction-head">
+      <div>
+        <h2>Balance mismatch detected</h2>
+        <p>Available Income and Total Expenses must match before using these numbers for decisions.</p>
+      </div>
+      <button class="secondary" type="button" data-reconcile-data>Synchronize saved data</button>
+    </div>
+    <div class="balance-difference-grid">
+      ${differences.map(balanceDifferenceCard).join("")}
+    </div>
+    <h3>Correction steps</h3>
+    <ol>${balanceCorrectionSteps(outOfBalance).map((step) => `<li>${step}</li>`).join("")}</ol>
+  </section>`;
+}
+
+function balanceDifferences(p) {
+  return [
+    { label: "Budget", difference: Number(p.budgetBalanceDifference || 0) },
+    { label: "Actual", difference: Number(p.actualBalanceDifference || 0) },
+    { label: "Projected", difference: Number(p.projectedBalanceDifference || 0) },
+  ].map((item) => ({ ...item, outOfBalance: Math.abs(item.difference) > 0.01 }));
+}
+
+function totalBalanceDifference(p) {
+  return balanceDifferences(p).reduce((total, item) => total + Math.abs(item.difference), 0);
+}
+
+function balanceDifferenceCard(item) {
+  return `<article class="${item.outOfBalance ? "danger" : "ok"}">
+    <span>${item.label}</span>
+    <strong>${money(item.difference)}</strong>
+  </article>`;
+}
+
+function balanceCorrectionSteps(items) {
+  const labels = new Set(items.map((item) => item.label));
+  const steps = [];
+  if (labels.has("Budget")) {
+    steps.push("Review Budget Setup: income, planned savings, cash flow budget, credit card budget/overdraft, and miscellaneous.");
+  }
+  if (labels.has("Actual")) {
+    steps.push("Review Update Transactions: confirm current Cash Flow, current Savings, all income deposits, card purchases, and credit card payments.");
+  }
+  if (labels.has("Projected")) {
+    steps.push("Review Projection Analysis: confirm Last Update Date, remaining days, miscellaneous trend, and whether card spending is increasing or reducing cash flow.");
+  }
+  steps.push("Click Synchronize saved data after a system update, then refresh with Ctrl + F5 if the warning remains.");
+  return steps;
 }
 
 function projectionExpandableRow(row) {
@@ -1012,11 +1069,13 @@ function bindEvents() {
     saveState(state);
     render();
   });
-  document.querySelector("#reconcile-data")?.addEventListener("click", () => {
-    state = reconcileState(state);
-    state.dataNotice = "Saved data has been synchronized with the latest calculation model. Review balances and transactions if numbers still differ from Excel.";
-    saveState(state);
-    render();
+  document.querySelectorAll("[data-reconcile-data]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state = reconcileState(state);
+      state.dataNotice = "Saved data has been synchronized with the latest calculation model. Review balances and transactions if numbers still differ from Excel.";
+      saveState(state);
+      render();
+    });
   });
   document.querySelectorAll("[data-actual-balance]").forEach((input) => {
     input.addEventListener("input", () => {
