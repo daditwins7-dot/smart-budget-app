@@ -59,10 +59,7 @@ export function calculateProjection(state, today = new Date()) {
 
   const projectedIncome = Math.max(regularIncome + irregularIncome, actualIncome);
   const totalSavingsBudget = numeric(state.initialSavings) + budgetedSavings;
-  const projectedSavings =
-    timing.currentDay > numeric(state.savingsDepositDay)
-      ? numeric(state.currentSavings)
-      : numeric(state.currentSavings) + budgetedSavings;
+  const projectedSavings = Math.max(numeric(state.currentSavings), totalSavingsBudget);
   const trackedCurrentCash =
     initialCashFlow + actualIncome - actualCashExpenses - actualSavings - actualCardPayments;
   const reviewCashVariance = numeric(state.currentCashFlow) - trackedCurrentCash;
@@ -116,7 +113,7 @@ export function calculateProjection(state, today = new Date()) {
     expectedEndCashFlow +
     projectedCardCoverage +
     creditCardOverdraft -
-    budgetedSavings;
+    (timing.currentDay > numeric(state.savingsDepositDay) ? 0 : budgetedSavings);
   const totalIncomeBudget = regularIncome + irregularIncome;
   const totalExpensesBudget = committedDebts + householdExpenses + extraordinaryExpenses + miscellaneous;
   const totalProjectedExpenses =
