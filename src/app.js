@@ -1,5 +1,5 @@
 import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js";
-import { loadState, resetState, saveState } from "./data/defaultState.js";
+import { loadState, reconcileState, resetState, saveState } from "./data/defaultState.js";
 import { copy } from "./i18n/index.js";
 
 let state = loadState();
@@ -47,6 +47,7 @@ function render() {
         </div>
         <div class="month-chip">${state.month}</div>
       </header>` : ""}
+      ${dataQualityNotice(dashboardData)}
       ${page !== "dashboard" && page !== "budget" && projection.alerts.length ? `<section class="alerts">${projection.alerts.map((a) => `<p>${a}</p>`).join("")}</section>` : ""}
       ${page === "dashboard" ? dashboard(dashboardData) : ""}
       ${page === "budget" ? budgetSetup(projection) : ""}
@@ -62,6 +63,41 @@ function render() {
 
 function navButton(id, label) {
   return `<button class="nav-button ${page === id ? "active" : ""}" data-page="${id}">${label}</button>`;
+}
+
+function dataQualityNotice(model) {
+  const issues = dataQualityIssues(model.projection);
+  if (!issues.length && !state.dataNotice) return "";
+  return `<section class="data-quality-notice">
+    <div>
+      <strong>Data check before decisions</strong>
+      ${state.dataNotice ? `<p>${state.dataNotice}</p>` : ""}
+      ${issues.map((issue) => `<p>${issue}</p>`).join("")}
+    </div>
+    <button class="secondary" type="button" id="reconcile-data">Synchronize saved data</button>
+  </section>`;
+}
+
+function dataQualityIssues(p) {
+  const issues = [];
+  const hasTransactions = state.transactions.length > 0;
+  const hasBalances = Number(state.currentCashFlow || 0) !== 0 || Number(state.currentSavings || 0) !== 0;
+  const incomeTransactions = state.transactions.filter((tx) => tx.type === "income").length;
+  const expenseTransactions = state.transactions.filter((tx) => tx.type === "expense").length;
+
+  if (hasBalances && !hasTransactions) {
+    issues.push("Actual balances exist but no transactions are recorded. Projection can look inconsistent until movements are entered or month data is cleared.");
+  }
+  if (hasTransactions && (!state.lastActualUpdate || state.lastActualUpdate !== localDateValue())) {
+    issues.push("Transactions were saved on a different date. Confirm balances in Update Transactions so projected days and cash flow use the latest actual date.");
+  }
+  if (incomeTransactions === 0 && expenseTransactions > 0) {
+    issues.push("Expenses are recorded without income transactions. Available income may appear too low until income deposits are entered.");
+  }
+  if (Math.abs(Number(p.actualBalanceDifference || 0)) > 0.01 || Math.abs(Number(p.projectedBalanceDifference || 0)) > 0.01) {
+    issues.push("Balance check is not zero. Use Synchronize saved data, then review credit card payments, card expenses, savings, and cash flow balances.");
+  }
+  return issues;
 }
 
 function dashboard(model) {
@@ -962,9 +998,10 @@ function bindEvents() {
   });
   document.querySelector("#clear-month-data")?.addEventListener("click", () => {
     state.transactions = [];
-    state.currentCashFlow = 0;
-    state.currentSavings = 0;
+    state.currentCashFlow = state.initialCashFlow;
+    state.currentSavings = state.initialSavings;
     state.lastActualUpdate = "";
+    state.dataNotice = "Month data was cleared. Current balances were reset to initial balances; enter updated balances before reviewing projections.";
     state.transactionFilters = {
       dateFrom: "",
       dateTo: "",
@@ -975,9 +1012,16 @@ function bindEvents() {
     saveState(state);
     render();
   });
+  document.querySelector("#reconcile-data")?.addEventListener("click", () => {
+    state = reconcileState(state);
+    state.dataNotice = "Saved data has been synchronized with the latest calculation model. Review balances and transactions if numbers still differ from Excel.";
+    saveState(state);
+    render();
+  });
   document.querySelectorAll("[data-actual-balance]").forEach((input) => {
     input.addEventListener("input", () => {
       state[input.dataset.actualBalance] = Number(input.value);
+      state.dataNotice = "";
       state.lastActualUpdate = localDateValue();
       saveState(state);
       showCurrentActualUpdate();
@@ -1032,6 +1076,7 @@ function bindEvents() {
   document.querySelector("#tx-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.target).entries());
+    state.dataNotice = "";
     state.transactions.unshift({ id: crypto.randomUUID(), ...data, amount: Number(data.amount) });
     state.lastActualUpdate = localDateValue();
     saveState(state);

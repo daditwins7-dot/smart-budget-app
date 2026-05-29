@@ -1,4 +1,6 @@
 export const defaultState = {
+  dataVersion: 3,
+  dataNotice: "",
   month: new Date().toISOString().slice(0, 7),
   language: "en",
   regularIncome: 6500,
@@ -35,10 +37,19 @@ export const defaultState = {
 };
 
 const key = "smart-budget-app-state";
+const DATA_VERSION = defaultState.dataVersion;
 
 export function loadState() {
   try {
-    const saved = { ...defaultState, ...JSON.parse(localStorage.getItem(key) || "{}") };
+    const stored = JSON.parse(localStorage.getItem(key) || "{}");
+    const saved = { ...structuredClone(defaultState), ...stored };
+    const needsMigration = numericVersion(stored.dataVersion) < DATA_VERSION;
+    saved.dataVersion = DATA_VERSION;
+    saved.transactionFilters = {
+      ...defaultState.transactionFilters,
+      ...(saved.transactionFilters || {}),
+    };
+    saved.transactions = Array.isArray(saved.transactions) ? saved.transactions.map(normalizedTransaction) : [];
     saved.expenses = saved.expenses.map((line) => ({
       ...line,
       concept:
@@ -52,10 +63,39 @@ export function loadState() {
     if (!saved.expenses.some((line) => line.group === "debts" && line.reference === "3")) {
       saved.expenses.splice(2, 0, structuredClone(defaultState.expenses[2]));
     }
+    saved.currentCashFlow = normalizedNumber(saved.currentCashFlow, defaultState.currentCashFlow);
+    saved.currentSavings = normalizedNumber(saved.currentSavings, defaultState.currentSavings);
+    if (needsMigration) {
+      saved.dataNotice =
+        "Your saved browser data was updated to the latest calculation model. Review actual balances and transactions before using projections.";
+      saveState(saved);
+    }
     return saved;
   } catch {
     return structuredClone(defaultState);
   }
+}
+
+function numericVersion(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizedNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizedTransaction(tx) {
+  return {
+    id: tx.id || crypto.randomUUID(),
+    date: tx.date || "",
+    conceptId: tx.conceptId || "",
+    amount: normalizedNumber(tx.amount),
+    type: tx.type || "expense",
+    paymentMethod: tx.paymentMethod || "cash",
+    comment: tx.comment || "",
+  };
 }
 
 function normalizedReference(line) {
@@ -72,10 +112,35 @@ function normalizedReference(line) {
 }
 
 export function saveState(state) {
-  localStorage.setItem(key, JSON.stringify(state));
+  localStorage.setItem(key, JSON.stringify({ ...state, dataVersion: DATA_VERSION }));
 }
 
 export function resetState() {
   localStorage.removeItem(key);
   return structuredClone(defaultState);
+}
+
+export function reconcileState(state) {
+  const reconciled = {
+    ...structuredClone(defaultState),
+    ...state,
+    dataVersion: DATA_VERSION,
+    dataNotice: "",
+    transactionFilters: {
+      ...defaultState.transactionFilters,
+      ...(state.transactionFilters || {}),
+    },
+  };
+  reconciled.transactions = Array.isArray(state.transactions) ? state.transactions.map(normalizedTransaction) : [];
+  reconciled.expenses = Array.isArray(state.expenses)
+    ? state.expenses.map((line) => ({
+        ...line,
+        amount: normalizedNumber(line.amount),
+        dueDay: normalizedNumber(line.dueDay, 15),
+        reference: normalizedReference(line),
+      }))
+    : structuredClone(defaultState.expenses);
+  reconciled.currentCashFlow = normalizedNumber(reconciled.currentCashFlow, defaultState.currentCashFlow);
+  reconciled.currentSavings = normalizedNumber(reconciled.currentSavings, defaultState.currentSavings);
+  return reconciled;
 }
