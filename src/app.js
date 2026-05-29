@@ -98,6 +98,9 @@ function dataQualityIssues(p) {
   if (incomeTransactions === 0 && expenseTransactions > 0) {
     issues.push("Expenses are recorded without income transactions. Available income may appear too low until income deposits are entered.");
   }
+  if (Number(p.miscellaneousActualRaw || 0) < 0) {
+    issues.push("Actual Miscellaneous is negative. This usually means transactions or balances are missing; correct Cash Flow, Savings, income, card purchases, or payments before continuing.");
+  }
   if (Math.abs(Number(p.actualBalanceDifference || 0)) > 0.01 || Math.abs(Number(p.projectedBalanceDifference || 0)) > 0.01) {
     issues.push("Balance check is not zero. Use Synchronize and recalculate first; if numbers remain wrong, reset actual month data and re-enter balances and transactions.");
   }
@@ -594,7 +597,7 @@ function balanceCorrectionSteps(items) {
     steps.push("Review Budget Setup: income, planned savings, cash flow budget, credit card budget/overdraft, and miscellaneous.");
   }
   if (labels.has("Actual")) {
-    steps.push("Review Update Transactions: confirm current Cash Flow, current Savings, all income deposits, card purchases, and credit card payments.");
+    steps.push("Review Update Transactions: confirm current Cash Flow, current Savings, all income deposits, card purchases, credit card payments, and negative Actual Miscellaneous.");
   }
   if (labels.has("Projected")) {
     steps.push("Review Projection Analysis: confirm Last Update Date, remaining days, miscellaneous trend, and whether card spending is increasing or reducing cash flow.");
@@ -789,6 +792,14 @@ function actionSuggestions(p, context) {
   const projectedExpenseGap = p.totalProjectedExpenses - p.totalExpensesBudget;
   const cardGap = p.creditCardActual - p.creditCardPaymentsActual;
   const targetSavings = Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0);
+
+  if (Number(p.miscellaneousActualRaw || 0) < 0) {
+    suggestions.push({
+      level: "problem",
+      title: "Correct missing actual data",
+      text: `Actual miscellaneous is ${money(p.miscellaneousActualRaw)}. Review current Cash Flow, Savings, income deposits, card purchases, and payments before using the projection.`,
+    });
+  }
 
   if (p.expectedEndCashFlow < 0) {
     suggestions.push({

@@ -80,22 +80,21 @@ export function calculateProjection(state, today = new Date()) {
     safeDivide(miscellaneous, timing.daysInMonth) +
     actualCardSpending +
     budgetedSavings;
-  const miscellaneousActual = Math.max(
-    0,
+  const miscellaneousActualRaw =
     initialCashFlow +
-      actualIncome -
-      numeric(state.currentCashFlow) -
-      totalControlledActualExpenses -
-      numeric(state.currentSavings) +
-      totalSavingsBudget +
-      safeDivide(miscellaneous, timing.daysInMonth) +
-      actualCardSpending,
-  );
+    actualIncome -
+    numeric(state.currentCashFlow) -
+    totalControlledActualExpenses -
+    numeric(state.currentSavings) +
+    totalSavingsBudget +
+    safeDivide(miscellaneous, timing.daysInMonth) +
+    actualCardSpending;
+  const miscellaneousActual = miscellaneousActualRaw;
   const projectedControlledExpenses =
     projectedCommittedDebts + projectedHouseholdExpenses + projectedExtraordinaryExpenses;
   const projectedMiscellaneousRunRate =
     timing.remainingDays === 0 ? miscellaneousActual : miscellaneousActual + safeDivide(miscellaneous, timing.daysInMonth) * timing.remainingDays;
-  const miscellaneousProjected = Math.max(0, projectedMiscellaneousRunRate);
+  const miscellaneousProjected = projectedMiscellaneousRunRate;
   const expectedEndCashFlow =
     initialCashFlow +
     projectedIncome -
@@ -144,6 +143,7 @@ export function calculateProjection(state, today = new Date()) {
     extraordinaryExpenses,
     miscellaneousRaw,
     miscellaneous,
+    miscellaneousActualRaw,
     miscellaneousActual,
     miscellaneousProjected,
     expectedEndCashFlow,
@@ -160,7 +160,7 @@ export function calculateProjection(state, today = new Date()) {
     projectedBalanceDifference: projectedAvailableForExpenses - totalProjectedExpenses,
     debtToIncome,
     healthScore,
-    alerts: buildAlerts(state, miscellaneousRaw, miscellaneousProjected, projectedSavings, today),
+    alerts: buildAlerts(state, miscellaneousRaw, miscellaneousActualRaw, miscellaneousProjected, projectedSavings, today),
   };
 }
 
@@ -309,7 +309,7 @@ export function projectionAnalysisModel(state, today = new Date()) {
       remaining: Math.max(0, projection.miscellaneous),
       paid: projection.miscellaneous ? projection.miscellaneousActual / projection.miscellaneous : 0,
       evaluation:
-        projection.miscellaneousProjected < 0
+        projection.miscellaneousActualRaw < 0 || projection.miscellaneousProjected < 0
           ? status("problem")
           : lowerIsBetter(projection.miscellaneousProjected, projection.miscellaneous),
     },
@@ -565,9 +565,12 @@ function paidForConcept(state, conceptId) {
     .reduce((total, tx) => total + numeric(tx.amount), 0);
 }
 
-function buildAlerts(state, miscellaneousRaw, miscellaneousProjected, projectedSavings, today) {
+function buildAlerts(state, miscellaneousRaw, miscellaneousActualRaw, miscellaneousProjected, projectedSavings, today) {
   const alerts = [];
   if (miscellaneousRaw < 0) alerts.push("Budget deficit: miscellaneous is negative before adjustment.");
+  if (miscellaneousActualRaw < 0) {
+    alerts.push("Actual miscellaneous is negative. Review missing transactions or update Cash Flow and Savings balances before making decisions.");
+  }
   if (state.crisisMode && miscellaneousRaw < 0) {
     alerts.push("Crisis mode: keep the deficit visible until a revised budget is confirmed.");
   }
