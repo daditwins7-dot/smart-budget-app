@@ -8,6 +8,7 @@ let page = ["dashboard", "budget", "transactions", "projections", "smartModel", 
   ? initialPage
   : "dashboard";
 const app = document.querySelector("#app");
+const validPages = ["dashboard", "budget", "transactions", "projections", "smartModel", "evaluation", "settings"];
 const comparativeReferences = {
   household: [
     ["4", "Food and Regular Home Purchases"],
@@ -74,7 +75,10 @@ function dataQualityNotice(model) {
       ${state.dataNotice ? `<p>${state.dataNotice}</p>` : ""}
       ${issues.map((issue) => `<p>${issue}</p>`).join("")}
     </div>
-    <button class="secondary" type="button" data-reconcile-data>Synchronize saved data</button>
+    <div class="notice-actions">
+      <button class="secondary" type="button" data-reconcile-data>Synchronize saved data</button>
+      <button class="secondary" type="button" data-page="projections">Open Projection Analysis</button>
+    </div>
   </section>`;
 }
 
@@ -551,7 +555,10 @@ function balanceCorrectionPanel(p, context) {
         <h2>Balance mismatch detected</h2>
         <p>Available Income and Total Expenses must match before using these numbers for decisions.</p>
       </div>
-      <button class="secondary" type="button" data-reconcile-data>Synchronize saved data</button>
+      <div class="notice-actions">
+        <button class="secondary" type="button" data-reconcile-data>Synchronize saved data</button>
+        <button class="secondary" type="button" data-page="projections">Open Projection Analysis</button>
+      </div>
     </div>
     <div class="balance-difference-grid">
       ${differences.map(balanceDifferenceCard).join("")}
@@ -1003,7 +1010,7 @@ function transactionRows(transactions) {
 function bindEvents() {
   document.querySelectorAll("[data-page]").forEach((button) => {
     button.addEventListener("click", () => {
-      page = button.dataset.page;
+      setPage(button.dataset.page);
       render();
     });
   });
@@ -1149,3 +1156,11 @@ function bindEvents() {
 }
 
 render();
+
+function setPage(nextPage) {
+  if (!validPages.includes(nextPage)) return;
+  page = nextPage;
+  const url = new URL(window.location.href);
+  url.searchParams.set("page", nextPage);
+  window.history.replaceState({}, "", url);
+}

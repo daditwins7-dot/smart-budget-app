@@ -457,7 +457,16 @@ h2 {
   margin: 3px 0;
 }
 
-.data-quality-notice button {
+.notice-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.data-quality-notice button,
+.balance-correction-head button {
   flex: 0 0 auto;
 }
 
