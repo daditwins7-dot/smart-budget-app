@@ -291,6 +291,7 @@ export function projectionAnalysisModel(state, today = new Date()) {
   const paymentTiming = paymentTimingSummary(state, today);
   const expenseRows = projectionRows(state, today);
   return {
+    projection,
     availableIncomeRows: availableIncomeRows(state, projection),
     expenseTotalRow: {
       label: "Total Expenses",
