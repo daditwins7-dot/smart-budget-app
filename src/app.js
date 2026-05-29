@@ -103,6 +103,7 @@ function dashboard(model) {
         </div>
       </section>
       ${p.alerts.length ? `<section class="dashboard-alerts">${p.alerts.map((alert) => `<p>${alert}</p>`).join("")}</section>` : ""}
+      ${actionSuggestionPanel(p, "dashboard")}
       <footer class="signal-guide">
         <h2>Signals</h2>
         <p>${signalDot("problem")} Problem</p>
@@ -669,7 +670,117 @@ function evaluation(p) {
         ${financialGroupRows(p).map(financialGroupRow).join("")}
       </div>
     </section>
+    ${actionSuggestionPanel(p, "evaluation")}
   `;
+}
+
+function actionSuggestionPanel(p, context) {
+  const suggestions = actionSuggestions(p, context);
+  const title = context === "dashboard" ? "Results Comments and Suggested Corrections" : "Suggested Corrections";
+  return `<section class="panel action-suggestions action-suggestions-${context}">
+    <h2>${title}</h2>
+    <p class="muted">Review these suggested corrections during the month to adjust values and finish with positive cash flow.</p>
+    <ul>${suggestions.map((item) => `<li class="suggestion-${item.level}"><strong>${item.title}</strong><span>${item.text}</span></li>`).join("")}</ul>
+  </section>`;
+}
+
+function actionSuggestions(p, context) {
+  const suggestions = [];
+  const projectedExpenseGap = p.totalProjectedExpenses - p.totalExpensesBudget;
+  const cardGap = p.creditCardActual - p.creditCardPaymentsActual;
+  const targetSavings = Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0);
+
+  if (p.expectedEndCashFlow < 0) {
+    suggestions.push({
+      level: "problem",
+      title: "Recover cash flow",
+      text: `Projected cash flow is ${money(p.expectedEndCashFlow)}. Reduce discretionary spending first; use savings only for crisis payments that cannot be delayed.`,
+    });
+  } else if (p.expectedEndCashFlow < 300) {
+    suggestions.push({
+      level: "watch",
+      title: "Protect cash flow",
+      text: `Projected cash flow is tight at ${money(p.expectedEndCashFlow)}. Hold new purchases until payments due this month are covered.`,
+    });
+  }
+
+  if (projectedExpenseGap > 0) {
+    suggestions.push({
+      level: "problem",
+      title: "Adjust expenses",
+      text: `Projected expenses are ${money(projectedExpenseGap)} above budget. Lower variable categories or move due dates before increasing miscellaneous.`,
+    });
+  }
+
+  if (p.miscellaneousProjected > p.miscellaneous * 1.1) {
+    suggestions.push({
+      level: "watch",
+      title: "Control miscellaneous",
+      text: `Based on the current spending trend, miscellaneous is projected at ${money(p.miscellaneousProjected)} by month end. Control the daily pace to reduce the final total.`,
+    });
+  }
+
+  if (cardGap > 0) {
+    suggestions.push({
+      level: "watch",
+      title: "Review credit cards",
+      text: `Credit card spending is increasing debt by ${money(cardGap)}. Add a card payment, reduce new card use, or identify the card activity in comments.`,
+    });
+  } else if (p.expectedEndCashFlow < 0 && p.creditCardPlanned > 0) {
+    suggestions.push({
+      level: "watch",
+      title: "Use credit only for cash crisis",
+      text: `Cards can temporarily protect cash flow up to ${money(p.creditCardPlanned)}, but track each card purchase and plan the payment before adding new debt.`,
+    });
+  }
+
+  if (p.creditCardOverdraft > 0) {
+    suggestions.push({
+      level: "problem",
+      title: "Reduce card dependence",
+      text: `The budget needs ${money(p.creditCardOverdraft)} of card coverage. Reduce controlled expenses or add income before relying on credit.`,
+    });
+  }
+
+  if (p.projectedSavings < targetSavings) {
+    suggestions.push({
+      level: "watch",
+      title: "Rebuild savings",
+      text: "Savings are below the planned path. Restore the deposit when cash flow is stable, or temporarily lower the savings budget and rebalance expenses.",
+    });
+  }
+
+  if (p.debtToIncome > 0.43) {
+    suggestions.push({
+      level: "problem",
+      title: "Lower debt pressure",
+      text: "Committed debts are above the recommended range. Consider rescheduling payments, reducing optional debt, or increasing income before adding new expenses.",
+    });
+  } else if (p.debtToIncome > 0.35) {
+    suggestions.push({
+      level: "watch",
+      title: "Watch committed debts",
+      text: "Debt pressure is near the warning range. Avoid adding fixed payments until the monthly projection improves.",
+    });
+  }
+
+  if (!suggestions.length) {
+    suggestions.push({
+      level: "good",
+      title: "Stay on plan",
+      text: "The projection is balanced. Keep updating transactions and balances so the plan can react before cash flow turns negative.",
+    });
+  }
+
+  if (context === "evaluation") {
+    suggestions.push({
+      level: "good",
+      title: "Rebalance with the Smart Model",
+      text: "Use the group ranges above to move money from high-pressure groups into cash flow, savings, or overdue payments.",
+    });
+  }
+
+  return suggestions.slice(0, context === "dashboard" ? 4 : 6);
 }
 
 function financialGroupRows(p) {

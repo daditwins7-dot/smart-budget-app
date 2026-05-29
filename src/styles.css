@@ -431,6 +431,64 @@ h2 {
   margin: 3px 0;
 }
 
+.action-suggestions {
+  margin-top: 12px;
+}
+
+.action-suggestions-dashboard {
+  background: #f8fbff;
+  border-color: #b7d4ee;
+  box-shadow: 0 8px 20px rgba(20, 33, 61, 0.08);
+}
+
+.action-suggestions h2 {
+  color: var(--nav);
+  font-size: 16px;
+  margin: 0 0 6px;
+}
+
+.action-suggestions ul {
+  display: grid;
+  gap: 9px;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.action-suggestions li {
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+}
+
+.action-suggestions li strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.action-suggestions li span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.action-suggestions .suggestion-good {
+  background: #f2fbf5;
+  border-color: #29b56f;
+}
+
+.action-suggestions .suggestion-watch {
+  background: #fffaf0;
+  border-color: #f4b942;
+}
+
+.action-suggestions .suggestion-problem {
+  background: #fff8f7;
+  border-color: #d92d4f;
+}
+
 .group-label {
   color: var(--muted);
   font-size: 11px;

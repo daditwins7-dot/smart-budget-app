@@ -55,14 +55,17 @@ export interface BudgetProjection {
   totalIncomeBudget: number;
   totalProjectedIncome: number;
   budgetAvailableForExpenses: number;
+  actualAvailableForExpenses: number;
   projectedAvailableForExpenses: number;
   totalExpensesBudget: number;
+  totalActualExpenses: number;
   totalProjectedExpenses: number;
   committedDebts: number;
   householdExpenses: number;
   extraordinaryExpenses: number;
   miscellaneousRaw: number;
   miscellaneous: number;
+  miscellaneousActual: number;
   miscellaneousProjected: number;
   expectedEndCashFlow: number;
   projectedSavings: number;
@@ -74,6 +77,7 @@ export interface BudgetProjection {
   projectedCardCoverage: number;
   reviewCashVariance: number;
   budgetBalanceDifference: number;
+  actualBalanceDifference: number;
   projectedBalanceDifference: number;
   debtToIncome: number;
   healthScore: number;
