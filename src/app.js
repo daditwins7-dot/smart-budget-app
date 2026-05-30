@@ -4,11 +4,18 @@ import { copy } from "./i18n/index.js";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
-let page = ["dashboard", "budget", "transactions", "projections", "smartModel", "evaluation", "settings"].includes(initialPage)
+let page = ["dashboard", "budget", "transactions", "projections", "smartModel", "evaluation", "help", "settings"].includes(initialPage)
   ? initialPage
   : "dashboard";
 const app = document.querySelector("#app");
-const validPages = ["dashboard", "budget", "transactions", "projections", "smartModel", "evaluation", "settings"];
+const validPages = ["dashboard", "budget", "transactions", "projections", "smartModel", "evaluation", "help", "settings"];
+let helpMessages = [
+  {
+    role: "assistant",
+    text:
+      "Ask me about this monthly budget: cash flow, savings, cards, miscellaneous, balance mismatch, transactions, projections, or starting a new month.",
+  },
+];
 const comparativeReferences = {
   household: [
     ["4", "Food and Regular Home Purchases"],
@@ -38,6 +45,7 @@ function render() {
       ${navButton("projections", t.projections)}
       ${navButton("smartModel", t.smartModel || "Smart Model")}
       ${navButton("evaluation", t.evaluation)}
+      ${navButton("help", t.help || "Smart Help")}
       ${navButton("settings", t.settings)}
     </aside>
     <main class="workspace ${page === "dashboard" ? "dashboard-workspace" : ""}">
@@ -56,6 +64,7 @@ function render() {
       ${page === "projections" ? projections() : ""}
       ${page === "smartModel" ? smartModelPage() : ""}
       ${page === "evaluation" ? evaluation(projection) : ""}
+      ${page === "help" ? smartHelpPage(projection) : ""}
       ${page === "settings" ? settings() : ""}
     </main>
   `;
@@ -937,6 +946,165 @@ function financialRangeEvaluation(score) {
   return { key: "problem", label: "Problem" };
 }
 
+function smartHelpPage(p) {
+  const quickQuestions = [
+    "Why is Miscellaneous Actual negative?",
+    "Why does Savings Projected not show the deposit?",
+    "What does Balance mismatch mean?",
+    "What should I review if Cash Flow is negative?",
+    "How do credit card purchases affect the budget?",
+    "How do I start a new month?",
+  ];
+  return `
+    <section class="panel help-panel">
+      <div class="help-intro">
+        <div>
+          <p class="eyebrow">Budget support chat</p>
+          <h2>Smart Help</h2>
+          <p class="muted">Ask short questions about this monthly budget. Answers are based only on the values entered in this system.</p>
+        </div>
+        <span class="help-scope">Budget guidance only</span>
+      </div>
+      <div class="help-chat" aria-live="polite">
+        ${helpMessages.map(helpMessageBubble).join("")}
+      </div>
+      <form id="help-form" class="help-form">
+        <input name="question" autocomplete="off" placeholder="Ask about cash flow, savings, cards, miscellaneous, or balance mismatch" />
+        <button type="submit">Ask</button>
+      </form>
+      <div class="help-quick">
+        ${quickQuestions.map((question) => `<button class="secondary" type="button" data-help-question="${escapeHtml(question)}">${question}</button>`).join("")}
+      </div>
+      <p class="help-disclaimer">Smart Help explains this budget and its projections. It does not replace financial, tax, legal, credit, or investment advice.</p>
+    </section>
+    <section class="panel help-current">
+      <h2>Current budget signals</h2>
+      <ul>${smartHelpSignals(p).map((signal) => `<li class="suggestion-${signal.level}"><strong>${signal.title}</strong><span>${signal.text}</span></li>`).join("")}</ul>
+    </section>
+  `;
+}
+
+function helpMessageBubble(message) {
+  return `<article class="help-message help-${message.role}">
+    <span>${message.role === "user" ? "You" : "Smart Help"}</span>
+    <p>${escapeHtml(message.text)}</p>
+  </article>`;
+}
+
+function answerHelpQuestion(question, p) {
+  const normalized = normalizeText(question);
+  const topics = smartHelpTopics(p);
+  const scored = topics
+    .map((topic) => ({
+      ...topic,
+      score: topic.keywords.reduce((total, keyword) => total + (normalized.includes(keyword) ? 1 : 0), 0),
+    }))
+    .sort((a, b) => b.score - a.score);
+  if (scored[0]?.score > 0) return scored[0].answer;
+  return "I did not find an exact match. Try asking about cash flow, savings, credit cards, miscellaneous, balance mismatch, transactions, projection, overdue payments, or new month.";
+}
+
+function smartHelpTopics(p) {
+  const balanceGap = Math.abs(Number(p.actualBalanceDifference || 0)) + Math.abs(Number(p.projectedBalanceDifference || 0));
+  return [
+    {
+      keywords: ["miscellaneous", "miscelaneo", "miscelaneos", "misc", "negative", "negativo"],
+      answer:
+        Number(p.miscellaneousActualRaw || 0) < 0
+          ? `Actual Miscellaneous is ${money(p.miscellaneousActualRaw)}. That usually means missing actual data: update Cash Flow, Savings, income deposits, credit card purchases, or credit card payments before using the projection.`
+          : `Miscellaneous is calculated by the system from the budget and actual activity. It is not entered as a transaction. Projected Miscellaneous is now ${money(p.miscellaneousProjected)}.`,
+    },
+    {
+      keywords: ["saving", "savings", "ahorro", "ahorros", "deposit", "deposito"],
+      answer:
+        p.projectedSavings < Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0)
+          ? `Savings Projected is ${money(p.projectedSavings)} because the deposit date passed and the current Savings balance does not show the planned deposit. Remaining savings is ${money(Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0) - Number(state.currentSavings || 0))}.`
+          : `Savings Projected is ${money(p.projectedSavings)}. Savings are controlled by the balance entered in Update Transactions, not by registering savings as income.`,
+    },
+    {
+      keywords: ["cash", "flow", "flujo", "efectivo", "negative", "negativo"],
+      answer:
+        p.expectedEndCashFlow < 0
+          ? `Projected Cash Flow is ${money(p.expectedEndCashFlow)}. Review missing transactions first; then reduce variable expenses, delay noncritical spending, or use savings only if this budget is in cash crisis.`
+          : `Projected Cash Flow is ${money(p.expectedEndCashFlow)}. Keep updating current Cash Flow and transactions so the projection remains reliable.`,
+    },
+    {
+      keywords: ["balance", "mismatch", "desbalance", "diferencia", "check", "cuadra", "coincide"],
+      answer:
+        balanceGap > 0.01
+          ? `There is a balance mismatch. Available Income and Total Expenses must match in Budget, Actual, and Projection. Use Synchronize and recalculate; if it remains, review balances, income, expenses, cards, and negative Miscellaneous.`
+          : "Balance check is currently aligned. That means Available Income and Total Expenses match based on the values entered.",
+    },
+    {
+      keywords: ["credit", "card", "cards", "tarjeta", "tarjetas", "credito", "payment", "pago"],
+      answer:
+        p.creditCardActual > p.creditCardPaymentsActual
+          ? `Credit card purchases exceed card payments by ${money(p.creditCardActual - p.creditCardPaymentsActual)}. This increases card debt and can change available income, expenses, and cash flow projection.`
+          : `Credit card payments are ${money(p.creditCardPaymentsActual)} and card purchases are ${money(p.creditCardActual)}. Card activity should be entered correctly as card purchases or payments, with details in comments if needed.`,
+    },
+    {
+      keywords: ["transaction", "transactions", "movimiento", "movimientos", "actual", "actuales", "update"],
+      answer:
+        "Update Transactions should include actual income deposits, budgeted expense payments, credit card purchases, and card payments. Savings are not entered as transactions; they are controlled by the Savings balance.",
+    },
+    {
+      keywords: ["projection", "proyeccion", "projected", "forecast", "future", "futuro"],
+      answer: `Projection estimates month-end results from the entered budget, actual transactions, balances, card activity, and remaining days. Current projected expenses are ${money(p.totalProjectedExpenses)} and projected available income is ${money(p.projectedAvailableForExpenses)}.`,
+    },
+    {
+      keywords: ["overdue", "late", "vencido", "vencidos", "future", "futuro", "payments", "pagos"],
+      answer:
+        "Payment Timing separates overdue committed payments from future committed payments. Use it to decide what must be paid first before relying on remaining cash flow.",
+    },
+    {
+      keywords: ["new", "month", "mes", "nuevo", "reset", "borrar", "clear"],
+      answer:
+        "Use New month: reset actuals only when starting a new month. It clears current transactions and actual balances, but it keeps the budget setup so you can enter new month actual data.",
+    },
+    {
+      keywords: ["smart", "model", "modelo", "evaluation", "evaluacion"],
+      answer:
+        "Smart Model compares this budget distribution with a reference model. It helps identify groups that may be too high or too low, but it is only based on this monthly budget data.",
+    },
+  ];
+}
+
+function smartHelpSignals(p) {
+  const signals = [];
+  if (Number(p.miscellaneousActualRaw || 0) < 0) {
+    signals.push({ level: "problem", title: "Missing actual data", text: "Actual Miscellaneous is negative; review balances and transactions before decisions." });
+  }
+  if (Math.abs(Number(p.actualBalanceDifference || 0)) > 0.01 || Math.abs(Number(p.projectedBalanceDifference || 0)) > 0.01) {
+    signals.push({ level: "problem", title: "Balance mismatch", text: "Available Income and Total Expenses do not match yet." });
+  }
+  if (p.expectedEndCashFlow < 0) {
+    signals.push({ level: "problem", title: "Cash flow risk", text: `Projected Cash Flow is ${money(p.expectedEndCashFlow)}.` });
+  }
+  if (p.projectedSavings < Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0)) {
+    signals.push({ level: "watch", title: "Savings not completed", text: "The planned savings deposit is not reflected in the current balance." });
+  }
+  if (!signals.length) {
+    signals.push({ level: "good", title: "No critical help alerts", text: "The main budget checks are aligned with the values entered." });
+  }
+  return signals.slice(0, 4);
+}
+
+function normalizeText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function settings() {
   return `
     <section class="form-grid">
@@ -1155,6 +1323,13 @@ function bindEvents() {
     saveState(state);
     render();
   });
+  document.querySelector("#help-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitHelpQuestion(new FormData(event.target).get("question"));
+  });
+  document.querySelectorAll("[data-help-question]").forEach((button) => {
+    button.addEventListener("click", () => submitHelpQuestion(button.dataset.helpQuestion));
+  });
   document.querySelector("#reset")?.addEventListener("click", () => {
     state = resetState();
     page = "budget";
@@ -1170,4 +1345,16 @@ function setPage(nextPage) {
   const url = new URL(window.location.href);
   url.searchParams.set("page", nextPage);
   window.history.replaceState({}, "", url);
+}
+
+function submitHelpQuestion(value) {
+  const question = String(value || "").trim();
+  if (!question) return;
+  const projection = dashboardModel(state).projection;
+  helpMessages = [
+    ...helpMessages,
+    { role: "user", text: question },
+    { role: "assistant", text: answerHelpQuestion(question, projection) },
+  ].slice(-10);
+  render();
 }

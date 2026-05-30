@@ -6,6 +6,7 @@ export const copy = {
     projections: "Projection Analysis",
     smartModel: "Smart Model",
     evaluation: "Financial Evaluation",
+    help: "Smart Help",
     settings: "Settings",
   },
   es: {
@@ -15,6 +16,7 @@ export const copy = {
     projections: "Proyeccion",
     smartModel: "Modelo Inteligente",
     evaluation: "Evaluacion",
+    help: "Ayuda Inteligente",
     settings: "Ajustes",
   },
 };
