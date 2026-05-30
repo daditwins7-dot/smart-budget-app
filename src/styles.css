@@ -629,6 +629,11 @@ h2 {
   gap: 8px;
 }
 
+.help-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .help-quick button {
   flex: 0 0 auto;
 }

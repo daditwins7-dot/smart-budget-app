@@ -9,13 +9,7 @@ let page = ["dashboard", "budget", "transactions", "projections", "smartModel", 
   : "dashboard";
 const app = document.querySelector("#app");
 const validPages = ["dashboard", "budget", "transactions", "projections", "smartModel", "evaluation", "help", "settings"];
-let helpMessages = [
-  {
-    role: "assistant",
-    text:
-      "Ask me about this monthly budget: cash flow, savings, cards, miscellaneous, balance mismatch, transactions, projections, or starting a new month.",
-  },
-];
+let helpMessages = initialHelpMessages();
 const comparativeReferences = {
   household: [
     ["4", "Food and Regular Home Purchases"],
@@ -30,6 +24,16 @@ const comparativeReferences = {
   ],
   extraordinary: [["13", "Provision for Unforeseen or Scheduled Expenses"]],
 };
+
+function initialHelpMessages() {
+  return [
+    {
+      role: "assistant",
+      text:
+        "Ask me about this monthly budget: cash flow, savings, cards, miscellaneous, balance mismatch, transactions, projections, Ref numbers, priorities, or starting a new month.",
+    },
+  ];
+}
 
 function render() {
   const t = copy[state.language] || copy.en;
@@ -953,6 +957,8 @@ function smartHelpPage(p) {
     "What does Balance mismatch mean?",
     "What should I review if Cash Flow is negative?",
     "How do credit card purchases affect the budget?",
+    "What do I need to focus on?",
+    "What does Ref mean?",
     "How do I start a new month?",
   ];
   return `
@@ -972,6 +978,9 @@ function smartHelpPage(p) {
         <input name="question" autocomplete="off" placeholder="Ask about cash flow, savings, cards, miscellaneous, or balance mismatch" />
         <button type="submit">Ask</button>
       </form>
+      <div class="help-actions">
+        <button class="secondary" type="button" data-clear-help-chat>Clear chat</button>
+      </div>
       <div class="help-quick">
         ${quickQuestions.map((question) => `<button class="secondary" type="button" data-help-question="${escapeHtml(question)}">${question}</button>`).join("")}
       </div>
@@ -993,11 +1002,19 @@ function helpMessageBubble(message) {
 
 function answerHelpQuestion(question, p) {
   const normalized = normalizeText(question);
+  if (/\b(ref|reference|referencia)\b/.test(normalized)) {
+    return smartHelpReferenceAnswer();
+  }
   const topics = smartHelpTopics(p);
   const scored = topics
     .map((topic) => ({
       ...topic,
-      score: topic.keywords.reduce((total, keyword) => total + (normalized.includes(keyword) ? 1 : 0), 0),
+      score: topic.keywords.reduce((total, keyword) => {
+        const normalizedKeyword = normalizeText(keyword);
+        const words = normalizedKeyword.split(" ").filter(Boolean);
+        if (normalized.includes(normalizedKeyword)) return total + Math.max(2, words.length);
+        return total + words.filter((word) => normalized.includes(word)).length;
+      }, 0),
     }))
     .sort((a, b) => b.score - a.score);
   if (scored[0]?.score > 0) return scored[0].answer;
@@ -1007,6 +1024,14 @@ function answerHelpQuestion(question, p) {
 function smartHelpTopics(p) {
   const balanceGap = Math.abs(Number(p.actualBalanceDifference || 0)) + Math.abs(Number(p.projectedBalanceDifference || 0));
   return [
+    {
+      keywords: ["focus", "improve", "priority", "priorities", "review first", "what do i need", "where should i start", "mejorar", "enfocar", "prioridad", "prioridades", "que reviso", "que debo revisar"],
+      answer: smartHelpFocusAnswer(p),
+    },
+    {
+      keywords: ["ref", "reference", "reference number", "number refer", "numero referencia", "referencia", "grupo", "comparative group", "grupo comparativo"],
+      answer: smartHelpReferenceAnswer(),
+    },
     {
       keywords: ["miscellaneous", "miscelaneo", "miscelaneos", "misc", "negative", "negativo"],
       answer:
@@ -1066,7 +1091,39 @@ function smartHelpTopics(p) {
       answer:
         "Smart Model compares this budget distribution with a reference model. It helps identify groups that may be too high or too low, but it is only based on this monthly budget data.",
     },
+    {
+      keywords: ["help", "ayuda", "how", "como", "explain", "explica", "meaning", "significa"],
+      answer:
+        "Ask about one budget topic at a time, for example: cash flow, savings, credit cards, miscellaneous, balance mismatch, projection, transactions, overdue payments, Ref, or new month.",
+    },
   ];
+}
+
+function smartHelpReferenceAnswer() {
+  return "Ref is the comparative budget group number. It links each budget concept to Smart Model groups, so the system can compare your budget distribution with the reference model. In some sections the Ref is fixed, such as Other Debts = 3 and Miscellaneous = 14.";
+}
+
+function smartHelpFocusAnswer(p) {
+  const priorities = [];
+  if (Number(p.miscellaneousActualRaw || 0) < 0) {
+    priorities.push("correct missing actual data because Actual Miscellaneous is negative");
+  }
+  if (Math.abs(Number(p.actualBalanceDifference || 0)) > 0.01 || Math.abs(Number(p.projectedBalanceDifference || 0)) > 0.01) {
+    priorities.push("fix the balance mismatch so Available Income and Total Expenses match");
+  }
+  if (p.expectedEndCashFlow < 0) {
+    priorities.push(`protect Cash Flow because the projection is ${money(p.expectedEndCashFlow)}`);
+  }
+  if (p.projectedSavings < Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0)) {
+    priorities.push("review Savings because the planned deposit is not reflected in the balance");
+  }
+  if (p.creditCardActual > p.creditCardPaymentsActual) {
+    priorities.push("review credit card activity because purchases are higher than payments");
+  }
+  if (!priorities.length) {
+    return "Focus on keeping the budget updated: enter actual income, expenses, card activity, Cash Flow, and Savings. Right now there are no critical alerts in the main checks.";
+  }
+  return `Focus first on: ${priorities.slice(0, 3).join("; ")}. After correcting those, use Synchronize and recalculate to refresh the projection.`;
 }
 
 function smartHelpSignals(p) {
@@ -1329,6 +1386,10 @@ function bindEvents() {
   });
   document.querySelectorAll("[data-help-question]").forEach((button) => {
     button.addEventListener("click", () => submitHelpQuestion(button.dataset.helpQuestion));
+  });
+  document.querySelector("[data-clear-help-chat]")?.addEventListener("click", () => {
+    helpMessages = initialHelpMessages();
+    render();
   });
   document.querySelector("#reset")?.addEventListener("click", () => {
     state = resetState();
