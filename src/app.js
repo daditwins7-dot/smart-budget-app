@@ -29,8 +29,7 @@ function initialHelpMessages() {
   return [
     {
       role: "assistant",
-      text:
-        "Ask me about this monthly budget: cash flow, savings, cards, miscellaneous, balance mismatch, transactions, projections, Ref numbers, priorities, or starting a new month.",
+      text: helpText("initialMessage"),
     },
   ];
 }
@@ -951,43 +950,34 @@ function financialRangeEvaluation(score) {
 }
 
 function smartHelpPage(p) {
-  const quickQuestions = [
-    "Why is Miscellaneous Actual negative?",
-    "Why does Savings Projected not show the deposit?",
-    "What does Balance mismatch mean?",
-    "What should I review if Cash Flow is negative?",
-    "How do credit card purchases affect the budget?",
-    "What do I need to focus on?",
-    "What does Ref mean?",
-    "How do I start a new month?",
-  ];
+  const quickQuestions = helpQuickQuestions();
   return `
     <section class="panel help-panel">
       <div class="help-intro">
         <div>
-          <p class="eyebrow">Budget support chat</p>
+          <p class="eyebrow">${helpText("eyebrow")}</p>
           <h2>Smart Help Chat</h2>
-          <p class="muted">Ask short questions about this monthly budget. Answers are based only on the values entered in this system.</p>
+          <p class="muted">${helpText("intro")}</p>
         </div>
-        <span class="help-scope">Budget guidance only</span>
+        <span class="help-scope">${helpText("scope")}</span>
       </div>
       <div class="help-chat" aria-live="polite">
         ${helpMessages.map(helpMessageBubble).join("")}
       </div>
       <form id="help-form" class="help-form">
-        <input name="question" autocomplete="off" placeholder="Ask about cash flow, savings, cards, miscellaneous, or balance mismatch" />
-        <button type="submit">Ask</button>
+        <input name="question" autocomplete="off" placeholder="${helpText("placeholder")}" />
+        <button type="submit">${helpText("ask")}</button>
       </form>
       <div class="help-actions">
-        <button class="secondary" type="button" data-clear-help-chat>Clear chat</button>
+        <button class="secondary" type="button" data-clear-help-chat>${helpText("clear")}</button>
       </div>
       <div class="help-quick">
         ${quickQuestions.map((question) => `<button class="secondary" type="button" data-help-question="${escapeHtml(question)}">${question}</button>`).join("")}
       </div>
-      <p class="help-disclaimer">Smart Help Chat explains this budget and its projections. It does not replace financial, tax, legal, credit, or investment advice.</p>
+      <p class="help-disclaimer">${helpText("disclaimer")}</p>
     </section>
     <section class="panel help-current">
-      <h2>Current budget signals</h2>
+      <h2>${helpText("signalsTitle")}</h2>
       <ul>${smartHelpSignals(p).map((signal) => `<li class="suggestion-${signal.level}"><strong>${signal.title}</strong><span>${signal.text}</span></li>`).join("")}</ul>
     </section>
   `;
@@ -995,9 +985,73 @@ function smartHelpPage(p) {
 
 function helpMessageBubble(message) {
   return `<article class="help-message help-${message.role}">
-    <span>${message.role === "user" ? "You" : "Smart Help Chat"}</span>
+    <span>${message.role === "user" ? helpText("you") : "Smart Help Chat"}</span>
     <p>${escapeHtml(message.text)}</p>
   </article>`;
+}
+
+function helpLanguage() {
+  return state.language === "es" ? "es" : "en";
+}
+
+function helpText(key) {
+  const labels = {
+    en: {
+      initialMessage:
+        "Ask me about this monthly budget: cash flow, savings, cards, miscellaneous, balance mismatch, transactions, projections, Ref numbers, priorities, or starting a new month.",
+      eyebrow: "Budget support chat",
+      intro: "Ask short questions about this monthly budget. Answers are based only on the values entered in this system.",
+      scope: "Budget guidance only",
+      placeholder: "Ask about cash flow, savings, cards, miscellaneous, or balance mismatch",
+      ask: "Ask",
+      clear: "Clear chat",
+      disclaimer:
+        "Smart Help Chat explains this budget and its projections. It does not replace financial, tax, legal, credit, or investment advice.",
+      signalsTitle: "Current budget signals",
+      you: "You",
+    },
+    es: {
+      initialMessage:
+        "Preguntame sobre este presupuesto mensual: flujo de efectivo, ahorros, tarjetas, miscelaneos, desbalance, transacciones, proyecciones, numeros Ref, prioridades o nuevo mes.",
+      eyebrow: "Chat de apoyo del presupuesto",
+      intro: "Haz preguntas cortas sobre este presupuesto mensual. Las respuestas se basan solo en los valores ingresados en este sistema.",
+      scope: "Solo guia de presupuesto",
+      placeholder: "Pregunta sobre flujo, ahorros, tarjetas, miscelaneos o desbalance",
+      ask: "Preguntar",
+      clear: "Borrar chat",
+      disclaimer:
+        "Smart Help Chat explica este presupuesto y sus proyecciones. No reemplaza asesoria financiera, fiscal, legal, crediticia ni de inversion.",
+      signalsTitle: "Senales actuales del presupuesto",
+      you: "Tu",
+    },
+  };
+  return labels[helpLanguage()][key] || labels.en[key] || "";
+}
+
+function helpQuickQuestions() {
+  const questions = {
+    en: [
+      "Why is Miscellaneous Actual negative?",
+      "Why does Savings Projected not show the deposit?",
+      "What does Balance mismatch mean?",
+      "What should I review if Cash Flow is negative?",
+      "How do credit card purchases affect the budget?",
+      "What do I need to focus on?",
+      "What does Ref mean?",
+      "How do I start a new month?",
+    ],
+    es: [
+      "Por que Miscelaneos Actual esta negativo?",
+      "Por que Ahorros Proyectado no muestra el deposito?",
+      "Que significa desbalance?",
+      "Que reviso si el flujo de efectivo es negativo?",
+      "Como afectan las compras con tarjeta al presupuesto?",
+      "En que debo enfocarme?",
+      "Que significa Ref?",
+      "Como inicio un nuevo mes?",
+    ],
+  };
+  return questions[helpLanguage()];
 }
 
 function answerHelpQuestion(question, p) {
@@ -1018,7 +1072,9 @@ function answerHelpQuestion(question, p) {
     }))
     .sort((a, b) => b.score - a.score);
   if (scored[0]?.score > 0) return scored[0].answer;
-  return "I did not find an exact match. Try asking about cash flow, savings, credit cards, miscellaneous, balance mismatch, transactions, projection, overdue payments, or new month.";
+  return helpLanguage() === "es"
+    ? "No encontre una coincidencia exacta. Intenta preguntar sobre flujo de efectivo, ahorros, tarjetas, miscelaneos, desbalance, transacciones, proyeccion, pagos vencidos, Ref o nuevo mes."
+    : "I did not find an exact match. Try asking about cash flow, savings, credit cards, miscellaneous, balance mismatch, transactions, projection, overdue payments, Ref, or new month.";
 }
 
 function smartHelpTopics(p) {
@@ -1036,114 +1092,230 @@ function smartHelpTopics(p) {
       keywords: ["miscellaneous", "miscelaneo", "miscelaneos", "misc", "negative", "negativo"],
       answer:
         Number(p.miscellaneousActualRaw || 0) < 0
-          ? `Actual Miscellaneous is ${money(p.miscellaneousActualRaw)}. That usually means missing actual data: update Cash Flow, Savings, income deposits, credit card purchases, or credit card payments before using the projection.`
-          : `Miscellaneous is calculated by the system from the budget and actual activity. It is not entered as a transaction. Projected Miscellaneous is now ${money(p.miscellaneousProjected)}.`,
+          ? bilingual(
+              `Actual Miscellaneous is ${money(p.miscellaneousActualRaw)}. That usually means missing actual data: update Cash Flow, Savings, income deposits, credit card purchases, or credit card payments before using the projection.`,
+              `Miscelaneos Actual es ${money(p.miscellaneousActualRaw)}. Normalmente significa que faltan datos actuales: actualiza Flujo de Efectivo, Ahorros, depositos de ingresos, compras con tarjeta o pagos de tarjeta antes de usar la proyeccion.`,
+            )
+          : bilingual(
+              `Miscellaneous is calculated by the system from the budget and actual activity. It is not entered as a transaction. Projected Miscellaneous is now ${money(p.miscellaneousProjected)}.`,
+              `Miscelaneos es calculado por el sistema con base en el presupuesto y la actividad actual. No se registra como transaccion. Miscelaneos Proyectado ahora es ${money(p.miscellaneousProjected)}.`,
+            ),
     },
     {
       keywords: ["saving", "savings", "ahorro", "ahorros", "deposit", "deposito"],
       answer:
         p.projectedSavings < Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0)
-          ? `Savings Projected is ${money(p.projectedSavings)} because the deposit date passed and the current Savings balance does not show the planned deposit. Remaining savings is ${money(Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0) - Number(state.currentSavings || 0))}.`
-          : `Savings Projected is ${money(p.projectedSavings)}. Savings are controlled by the balance entered in Update Transactions, not by registering savings as income.`,
+          ? bilingual(
+              `Savings Projected is ${money(p.projectedSavings)} because the deposit date passed and the current Savings balance does not show the planned deposit. Remaining savings is ${money(Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0) - Number(state.currentSavings || 0))}.`,
+              `Ahorros Proyectado es ${money(p.projectedSavings)} porque la fecha de deposito ya paso y el balance actual de Ahorros no muestra el deposito planeado. Ahorro restante es ${money(Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0) - Number(state.currentSavings || 0))}.`,
+            )
+          : bilingual(
+              `Savings Projected is ${money(p.projectedSavings)}. Savings are controlled by the balance entered in Update Transactions, not by registering savings as income.`,
+              `Ahorros Proyectado es ${money(p.projectedSavings)}. Los ahorros se controlan con el balance ingresado en Update Transactions, no registrando ahorros como ingreso.`,
+            ),
     },
     {
       keywords: ["cash", "flow", "flujo", "efectivo", "negative", "negativo"],
       answer:
         p.expectedEndCashFlow < 0
-          ? `Projected Cash Flow is ${money(p.expectedEndCashFlow)}. Review missing transactions first; then reduce variable expenses, delay noncritical spending, or use savings only if this budget is in cash crisis.`
-          : `Projected Cash Flow is ${money(p.expectedEndCashFlow)}. Keep updating current Cash Flow and transactions so the projection remains reliable.`,
+          ? bilingual(
+              `Projected Cash Flow is ${money(p.expectedEndCashFlow)}. Review missing transactions first; then reduce variable expenses, delay noncritical spending, or use savings only if this budget is in cash crisis.`,
+              `Flujo de Efectivo Proyectado es ${money(p.expectedEndCashFlow)}. Primero revisa transacciones faltantes; despues reduce gastos variables, retrasa gastos no criticos o usa ahorros solo si este presupuesto esta en crisis de efectivo.`,
+            )
+          : bilingual(
+              `Projected Cash Flow is ${money(p.expectedEndCashFlow)}. Keep updating current Cash Flow and transactions so the projection remains reliable.`,
+              `Flujo de Efectivo Proyectado es ${money(p.expectedEndCashFlow)}. Mantiene actualizado el flujo actual y las transacciones para que la proyeccion sea confiable.`,
+            ),
     },
     {
       keywords: ["balance", "mismatch", "desbalance", "diferencia", "check", "cuadra", "coincide"],
       answer:
         balanceGap > 0.01
-          ? `There is a balance mismatch. Available Income and Total Expenses must match in Budget, Actual, and Projection. Use Synchronize and recalculate; if it remains, review balances, income, expenses, cards, and negative Miscellaneous.`
-          : "Balance check is currently aligned. That means Available Income and Total Expenses match based on the values entered.",
+          ? bilingual(
+              "There is a balance mismatch. Available Income and Total Expenses must match in Budget, Actual, and Projection. Use Synchronize and recalculate; if it remains, review balances, income, expenses, cards, and negative Miscellaneous.",
+              "Hay un desbalance. Ingresos Disponibles y Gastos Totales deben coincidir en Presupuesto, Actual y Proyeccion. Usa Synchronize and recalculate; si continua, revisa balances, ingresos, gastos, tarjetas y Miscelaneos negativo.",
+            )
+          : bilingual(
+              "Balance check is currently aligned. That means Available Income and Total Expenses match based on the values entered.",
+              "La revision de balance esta alineada. Eso significa que Ingresos Disponibles y Gastos Totales coinciden con base en los valores ingresados.",
+            ),
     },
     {
       keywords: ["credit", "card", "cards", "tarjeta", "tarjetas", "credito", "payment", "pago"],
       answer:
         p.creditCardActual > p.creditCardPaymentsActual
-          ? `Credit card purchases exceed card payments by ${money(p.creditCardActual - p.creditCardPaymentsActual)}. This increases card debt and can change available income, expenses, and cash flow projection.`
-          : `Credit card payments are ${money(p.creditCardPaymentsActual)} and card purchases are ${money(p.creditCardActual)}. Card activity should be entered correctly as card purchases or payments, with details in comments if needed.`,
+          ? bilingual(
+              `Credit card purchases exceed card payments by ${money(p.creditCardActual - p.creditCardPaymentsActual)}. This increases card debt and can change available income, expenses, and cash flow projection.`,
+              `Las compras con tarjeta exceden los pagos de tarjeta por ${money(p.creditCardActual - p.creditCardPaymentsActual)}. Esto aumenta la deuda de tarjetas y puede cambiar ingresos disponibles, gastos y proyeccion de flujo.`,
+            )
+          : bilingual(
+              `Credit card payments are ${money(p.creditCardPaymentsActual)} and card purchases are ${money(p.creditCardActual)}. Card activity should be entered correctly as card purchases or payments, with details in comments if needed.`,
+              `Los pagos de tarjeta son ${money(p.creditCardPaymentsActual)} y las compras con tarjeta son ${money(p.creditCardActual)}. La actividad de tarjetas debe registrarse correctamente como compras o pagos, usando comentarios si necesitas detalle.`,
+            ),
     },
     {
       keywords: ["transaction", "transactions", "movimiento", "movimientos", "actual", "actuales", "update"],
-      answer:
+      answer: bilingual(
         "Update Transactions should include actual income deposits, budgeted expense payments, credit card purchases, and card payments. Savings are not entered as transactions; they are controlled by the Savings balance.",
+        "Update Transactions debe incluir depositos reales de ingresos, pagos de gastos presupuestados, compras con tarjeta y pagos de tarjeta. Los ahorros no se ingresan como transacciones; se controlan con el balance de Ahorros.",
+      ),
     },
     {
       keywords: ["projection", "proyeccion", "projected", "forecast", "future", "futuro"],
-      answer: `Projection estimates month-end results from the entered budget, actual transactions, balances, card activity, and remaining days. Current projected expenses are ${money(p.totalProjectedExpenses)} and projected available income is ${money(p.projectedAvailableForExpenses)}.`,
+      answer: bilingual(
+        `Projection estimates month-end results from the entered budget, actual transactions, balances, card activity, and remaining days. Current projected expenses are ${money(p.totalProjectedExpenses)} and projected available income is ${money(p.projectedAvailableForExpenses)}.`,
+        `La proyeccion estima el resultado de fin de mes usando el presupuesto ingresado, transacciones actuales, balances, actividad de tarjetas y dias restantes. Los gastos proyectados actuales son ${money(p.totalProjectedExpenses)} y el ingreso disponible proyectado es ${money(p.projectedAvailableForExpenses)}.`,
+      ),
     },
     {
       keywords: ["overdue", "late", "vencido", "vencidos", "future", "futuro", "payments", "pagos"],
-      answer:
+      answer: bilingual(
         "Payment Timing separates overdue committed payments from future committed payments. Use it to decide what must be paid first before relying on remaining cash flow.",
+        "Payment Timing separa pagos comprometidos vencidos de pagos comprometidos futuros. Usalo para decidir que debe pagarse primero antes de confiar en el flujo restante.",
+      ),
     },
     {
       keywords: ["new", "month", "mes", "nuevo", "reset", "borrar", "clear"],
-      answer:
+      answer: bilingual(
         "Use New month: reset actuals only when starting a new month. It clears current transactions and actual balances, but it keeps the budget setup so you can enter new month actual data.",
+        "Usa New month: reset actuals only al iniciar un nuevo mes. Borra transacciones y balances actuales, pero mantiene el presupuesto para que ingreses los datos actuales del nuevo mes.",
+      ),
     },
     {
       keywords: ["smart", "model", "modelo", "evaluation", "evaluacion"],
-      answer:
+      answer: bilingual(
         "Smart Model compares this budget distribution with a reference model. It helps identify groups that may be too high or too low, but it is only based on this monthly budget data.",
+        "Smart Model compara la distribucion de este presupuesto con un modelo de referencia. Ayuda a identificar grupos altos o bajos, pero se basa solo en los datos de este presupuesto mensual.",
+      ),
     },
     {
       keywords: ["help", "ayuda", "how", "como", "explain", "explica", "meaning", "significa"],
-      answer:
+      answer: bilingual(
         "Ask about one budget topic at a time, for example: cash flow, savings, credit cards, miscellaneous, balance mismatch, projection, transactions, overdue payments, Ref, or new month.",
+        "Pregunta sobre un tema del presupuesto a la vez, por ejemplo: flujo de efectivo, ahorros, tarjetas, miscelaneos, desbalance, proyeccion, transacciones, pagos vencidos, Ref o nuevo mes.",
+      ),
     },
   ];
 }
 
 function smartHelpReferenceAnswer() {
-  return "Ref is the comparative budget group number. It links each budget concept to Smart Model groups, so the system can compare your budget distribution with the reference model. In some sections the Ref is fixed, such as Other Debts = 3 and Miscellaneous = 14.";
+  return bilingual(
+    "Ref is the comparative budget group number. It links each budget concept to Smart Model groups, so the system can compare your budget distribution with the reference model. In some sections the Ref is fixed, such as Other Debts = 3 and Miscellaneous = 14.",
+    "Ref es el numero de grupo comparativo del presupuesto. Conecta cada concepto con los grupos de Smart Model para comparar la distribucion del presupuesto con el modelo de referencia. En algunas secciones el Ref es fijo, por ejemplo Other Debts = 3 y Miscellaneous = 14.",
+  );
 }
 
 function smartHelpFocusAnswer(p) {
   const priorities = [];
   if (Number(p.miscellaneousActualRaw || 0) < 0) {
-    priorities.push("correct missing actual data because Actual Miscellaneous is negative");
+    priorities.push(
+      bilingual(
+        "correct missing actual data because Actual Miscellaneous is negative",
+        "corrige datos actuales faltantes porque Miscelaneos Actual esta negativo",
+      ),
+    );
   }
   if (Math.abs(Number(p.actualBalanceDifference || 0)) > 0.01 || Math.abs(Number(p.projectedBalanceDifference || 0)) > 0.01) {
-    priorities.push("fix the balance mismatch so Available Income and Total Expenses match");
+    priorities.push(
+      bilingual(
+        "fix the balance mismatch so Available Income and Total Expenses match",
+        "corrige el desbalance para que Ingresos Disponibles y Gastos Totales coincidan",
+      ),
+    );
   }
   if (p.expectedEndCashFlow < 0) {
-    priorities.push(`protect Cash Flow because the projection is ${money(p.expectedEndCashFlow)}`);
+    priorities.push(
+      bilingual(
+        `protect Cash Flow because the projection is ${money(p.expectedEndCashFlow)}`,
+        `protege el Flujo de Efectivo porque la proyeccion es ${money(p.expectedEndCashFlow)}`,
+      ),
+    );
   }
   if (p.projectedSavings < Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0)) {
-    priorities.push("review Savings because the planned deposit is not reflected in the balance");
+    priorities.push(
+      bilingual(
+        "review Savings because the planned deposit is not reflected in the balance",
+        "revisa Ahorros porque el deposito planeado no aparece reflejado en el balance",
+      ),
+    );
   }
   if (p.creditCardActual > p.creditCardPaymentsActual) {
-    priorities.push("review credit card activity because purchases are higher than payments");
+    priorities.push(
+      bilingual(
+        "review credit card activity because purchases are higher than payments",
+        "revisa tarjetas porque las compras son mayores que los pagos",
+      ),
+    );
   }
   if (!priorities.length) {
-    return "Focus on keeping the budget updated: enter actual income, expenses, card activity, Cash Flow, and Savings. Right now there are no critical alerts in the main checks.";
+    return bilingual(
+      "Focus on keeping the budget updated: enter actual income, expenses, card activity, Cash Flow, and Savings. Right now there are no critical alerts in the main checks.",
+      "Enfocate en mantener actualizado el presupuesto: ingresa ingresos actuales, gastos, actividad de tarjetas, Flujo de Efectivo y Ahorros. Ahora no hay alertas criticas en las revisiones principales.",
+    );
   }
-  return `Focus first on: ${priorities.slice(0, 3).join("; ")}. After correcting those, use Synchronize and recalculate to refresh the projection.`;
+  return bilingual(
+    `Focus first on: ${priorities.slice(0, 3).join("; ")}. After correcting those, use Synchronize and recalculate to refresh the projection.`,
+    `Enfocate primero en: ${priorities.slice(0, 3).join("; ")}. Despues de corregirlo, usa Synchronize and recalculate para actualizar la proyeccion.`,
+  );
 }
 
 function smartHelpSignals(p) {
   const signals = [];
   if (Number(p.miscellaneousActualRaw || 0) < 0) {
-    signals.push({ level: "problem", title: "Missing actual data", text: "Actual Miscellaneous is negative; review balances and transactions before decisions." });
+    signals.push({
+      level: "problem",
+      title: bilingual("Missing actual data", "Faltan datos actuales"),
+      text: bilingual(
+        "Actual Miscellaneous is negative; review balances and transactions before decisions.",
+        "Miscelaneos Actual esta negativo; revisa balances y transacciones antes de tomar decisiones.",
+      ),
+    });
   }
   if (Math.abs(Number(p.actualBalanceDifference || 0)) > 0.01 || Math.abs(Number(p.projectedBalanceDifference || 0)) > 0.01) {
-    signals.push({ level: "problem", title: "Balance mismatch", text: "Available Income and Total Expenses do not match yet." });
+    signals.push({
+      level: "problem",
+      title: bilingual("Balance mismatch", "Desbalance"),
+      text: bilingual(
+        "Available Income and Total Expenses do not match yet.",
+        "Ingresos Disponibles y Gastos Totales todavia no coinciden.",
+      ),
+    });
   }
   if (p.expectedEndCashFlow < 0) {
-    signals.push({ level: "problem", title: "Cash flow risk", text: `Projected Cash Flow is ${money(p.expectedEndCashFlow)}.` });
+    signals.push({
+      level: "problem",
+      title: bilingual("Cash flow risk", "Riesgo en flujo de efectivo"),
+      text: bilingual(
+        `Projected Cash Flow is ${money(p.expectedEndCashFlow)}.`,
+        `Flujo de Efectivo Proyectado es ${money(p.expectedEndCashFlow)}.`,
+      ),
+    });
   }
   if (p.projectedSavings < Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0)) {
-    signals.push({ level: "watch", title: "Savings not completed", text: "The planned savings deposit is not reflected in the current balance." });
+    signals.push({
+      level: "watch",
+      title: bilingual("Savings not completed", "Ahorro no completado"),
+      text: bilingual(
+        "The planned savings deposit is not reflected in the current balance.",
+        "El deposito de ahorro planeado no esta reflejado en el balance actual.",
+      ),
+    });
   }
   if (!signals.length) {
-    signals.push({ level: "good", title: "No critical help alerts", text: "The main budget checks are aligned with the values entered." });
+    signals.push({
+      level: "good",
+      title: bilingual("No critical help alerts", "Sin alertas criticas"),
+      text: bilingual(
+        "The main budget checks are aligned with the values entered.",
+        "Las revisiones principales del presupuesto estan alineadas con los valores ingresados.",
+      ),
+    });
   }
   return signals.slice(0, 4);
+}
+
+function bilingual(en, es) {
+  return helpLanguage() === "es" ? es : en;
 }
 
 function normalizeText(value) {
