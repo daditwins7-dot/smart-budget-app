@@ -1,6 +1,8 @@
 export const defaultState = {
-  dataVersion: 4,
+  dataVersion: 5,
   dataNotice: "",
+  termsAcceptedVersion: "",
+  termsAcceptedAt: "",
   month: new Date().toISOString().slice(0, 7),
   language: "en",
   regularIncome: 6500,

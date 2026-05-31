@@ -9,7 +9,9 @@ let page = ["dashboard", "budget", "transactions", "projections", "smartModel", 
   : "dashboard";
 const app = document.querySelector("#app");
 const validPages = ["dashboard", "budget", "transactions", "projections", "smartModel", "evaluation", "help", "settings"];
+const TERMS_VERSION = "2026-05-31";
 let helpMessages = initialHelpMessages();
+let showTermsModal = false;
 const comparativeReferences = {
   household: [
     ["4", "Food and Regular Home Purchases"],
@@ -70,12 +72,75 @@ function render() {
       ${page === "help" ? smartHelpPage(projection) : ""}
       ${page === "settings" ? settings() : ""}
     </main>
+    ${termsAcceptanceOverlay()}
   `;
   bindEvents();
 }
 
 function navButton(id, label) {
   return `<button class="nav-button ${page === id ? "active" : ""}" data-page="${id}">${label}</button>`;
+}
+
+function termsAccepted() {
+  return state.termsAcceptedVersion === TERMS_VERSION;
+}
+
+function termsAcceptanceOverlay() {
+  const mustAccept = !termsAccepted();
+  if (!mustAccept && !showTermsModal) return "";
+  return `<section class="terms-overlay" role="dialog" aria-modal="true" aria-labelledby="terms-title">
+    <article class="terms-modal">
+      <header class="terms-modal-head">
+        <div>
+          <p class="eyebrow">Home Smart Financial Systems</p>
+          <h2 id="terms-title">Terms and Conditions of Use</h2>
+          <p class="muted">SMART BUDGET - Version ${TERMS_VERSION}</p>
+        </div>
+        ${!mustAccept ? `<button class="icon terms-close" type="button" data-close-terms title="Close">x</button>` : ""}
+      </header>
+      <div class="terms-content">
+        ${termsAndConditionsMarkup()}
+      </div>
+      <footer class="terms-actions">
+        <p>${mustAccept ? "You must accept these Terms and Conditions before using Smart Budget." : `Accepted version: ${state.termsAcceptedVersion || "Not recorded"}`}</p>
+        <button class="primary" type="button" data-accept-terms>${mustAccept ? "I accept and continue" : "Accept current terms"}</button>
+      </footer>
+    </article>
+  </section>`;
+}
+
+function termsAndConditionsMarkup() {
+  return `
+    <h3>1. Free Use and Donations</h3>
+    <p>The free systems developed by HOME SMART FINANCIAL SYSTEMS, including SMART BUDGET, may be used without any mandatory payment, except for any applicable download, access, or license terms expressly stated by HOME SMART FINANCIAL SYSTEMS. Voluntary donations may be accepted to support ongoing development, maintenance, and improvement of the tools offered.</p>
+
+    <h3>2. Payments and Validity</h3>
+    <p>Payments for licenses, when applicable, will be made exclusively online by credit card, PayPal, or another payment method authorized by HOME SMART FINANCIAL SYSTEMS. This agreement begins when the customer or authorized user downloads, accesses, installs, or uses any HOME SMART FINANCIAL SYSTEMS software product, including Smart Budget, Affordable Mortgage, and Amortization Financial Tool. The agreement remains active as long as the customer complies with these terms, unless otherwise provided by HOME SMART FINANCIAL SYSTEMS.</p>
+
+    <h3>3. Grant of License</h3>
+    <p>Upon payment, when payment is required, HOME SMART FINANCIAL SYSTEMS grants the customer a limited, revocable, non-exclusive, non-transferable, and non-sublicensable license to use the software in accordance with this agreement. No ownership rights are transferred.</p>
+
+    <h3>4. Use of the Product</h3>
+    <p>Only authorized users may use HOME SMART FINANCIAL SYSTEMS products. The customer may create working copies with different names in the same authorized location for personal or internal use, provided such copies do not violate the license terms. Partial or total reproduction, distribution, resale, publication, or transfer of the product is not authorized except for one backup copy kept in the same authorized folder or location. Multiple or volume licenses may be installed on different computers or locations only up to the number of licenses purchased.</p>
+    <p>Any modification made by the customer does not grant ownership or intellectual property rights in the software. All copyright, authorship, and intellectual property notices must remain intact unless expressly authorized in writing. The customer may not allow any third party to modify, copy, distribute, export, or use the software in violation of United States export control laws or other applicable laws.</p>
+
+    <h3>5. Ownership</h3>
+    <p>The purchase or use of a license does not grant ownership of the software. All products, formulas, designs, interfaces, documentation, and related intellectual property remain the exclusive property of HOME SMART FINANCIAL SYSTEMS, except for any user-entered data.</p>
+
+    <h3>6. Delivery of the Product</h3>
+    <p>The software may be delivered through a digital download link, web access link, email, or another electronic delivery method provided by HOME SMART FINANCIAL SYSTEMS. The customer is responsible for providing accurate contact information when payment, download, or access is required.</p>
+
+    <h3>7. Limitation of Liability</h3>
+    <p>HOME SMART FINANCIAL SYSTEMS shall not be liable for calculation errors, inaccurate assumptions, user input errors, formula differences, software or hardware failures, browser storage issues, loss of data, network failures, interruption of service, or financial losses arising from the use of the software. Since the functions, formulas, assumptions, and projections used may differ from those of other similar programs, any decision made based on the results presented is the sole responsibility of the user.</p>
+    <p>SMART BUDGET is a budgeting and projection tool based only on the values entered by the user. It does not provide financial, legal, tax, credit, accounting, or investment advice. Users should verify all information independently before making financial decisions.</p>
+
+    <h3>8. System Authorship and Responsibility</h3>
+    <p>This system has been developed by Roman Martinez, who acts as author, designer, and technical manager of the content and operation of the products offered by HOME SMART FINANCIAL SYSTEMS. Questions, suggestions, or requests related to the system may be addressed directly by email to: <a href="mailto:rmartinez900@comcast.net">rmartinez900@comcast.net</a>.</p>
+
+    <h3>Acceptance</h3>
+    <p>By downloading, accessing, installing, or using this product, the customer or authorized user expressly agrees to all terms and conditions set forth in this agreement.</p>
+    <p><strong>Copyright © HOME SMART FINANCIAL SYSTEMS. All rights reserved.</strong></p>
+  `;
 }
 
 function dataQualityNotice(model) {
@@ -1349,6 +1414,11 @@ function settings() {
       <p class="muted">Debt-to-income target: 35%. Savings target: 10%. Mortgage capacity warning: 43%.</p>
       <button id="reset" class="secondary">Reset local data</button>
     </section>
+    <section class="panel">
+      <h2>Terms and Conditions</h2>
+      <p class="muted">Current terms version: ${TERMS_VERSION}. ${termsAccepted() ? `Accepted on ${new Date(state.termsAcceptedAt || Date.now()).toLocaleString("en-US")}.` : "Acceptance is required before using Smart Budget."}</p>
+      <button class="secondary" type="button" data-view-terms>View Terms and Conditions</button>
+    </section>
   `;
 }
 
@@ -1562,6 +1632,21 @@ function bindEvents() {
   });
   document.querySelector("[data-clear-help-chat]")?.addEventListener("click", () => {
     helpMessages = initialHelpMessages();
+    render();
+  });
+  document.querySelector("[data-view-terms]")?.addEventListener("click", () => {
+    showTermsModal = true;
+    render();
+  });
+  document.querySelector("[data-close-terms]")?.addEventListener("click", () => {
+    showTermsModal = false;
+    render();
+  });
+  document.querySelector("[data-accept-terms]")?.addEventListener("click", () => {
+    state.termsAcceptedVersion = TERMS_VERSION;
+    state.termsAcceptedAt = new Date().toISOString();
+    showTermsModal = false;
+    saveState(state);
     render();
   });
   document.querySelector("#reset")?.addEventListener("click", () => {
