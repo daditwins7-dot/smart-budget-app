@@ -5,6 +5,7 @@ export const defaultState = {
   termsAcceptedAt: "",
   historySnapshots: [],
   month: new Date().toISOString().slice(0, 7),
+  demoDate: new Date().toISOString().slice(0, 10),
   language: "en",
   regularIncome: 6500,
   irregularIncome: 300,
@@ -39,7 +40,10 @@ export const defaultState = {
   transactions: [],
 };
 
-const key = "smart-budget-app-state";
+const isDemoMode =
+  typeof globalThis.location !== "undefined" &&
+  (globalThis.location.pathname.endsWith("/demo.html") || new URLSearchParams(globalThis.location.search).get("demo") === "1");
+const key = isDemoMode ? "smart-budget-app-demo-state" : "smart-budget-app-state";
 const DATA_VERSION = defaultState.dataVersion;
 
 export function loadState() {
