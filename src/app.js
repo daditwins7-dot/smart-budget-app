@@ -750,7 +750,7 @@ function historyPage() {
               <th>Concept</th>
               <th>Budget</th>
               <th>Projection</th>
-              <th>Average</th>
+              <th>Average Year</th>
               ${completedSnapshots.map((snapshot) => `<th>${historySnapshotHeader(snapshot)}</th>`).join("")}
             </tr>
           </thead>
@@ -868,7 +868,7 @@ function displayShortDate(value) {
 function historyConceptRows() {
   const current = historyCurrentConceptValues();
   return [
-    { key: "available-income", label: "Available Income / Ingresos Disponibles", budget: current.budget["available-income"], projected: current.projected["available-income"] },
+    { key: "available-income", label: "Available Income", budget: current.budget["available-income"], projected: current.projected["available-income"] },
     { key: "cash-flow", label: "Cash Flow", budget: current.budget["cash-flow"], projected: current.projected["cash-flow"] },
     { key: "savings", label: "Savings", budget: current.budget.savings, projected: current.projected.savings },
     { key: "ref-1", label: "Mortgage Payment or Home Rent", budget: current.budget["ref-1"], projected: current.projected["ref-1"] },
