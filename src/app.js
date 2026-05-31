@@ -717,11 +717,10 @@ function projectionSpecialRow(row) {
 
 function historyPage() {
   const currentYear = Number(String(state.month || new Date().getFullYear()).slice(0, 4)) || new Date().getFullYear();
-  const snapshots = (state.historySnapshots || [])
-    .filter((snapshot) => Number(snapshot.year) === currentYear)
-    .sort(historySnapshotSort);
+  const snapshots = (state.historySnapshots || []).sort(historySnapshotSort);
   const completedSnapshots = snapshots.filter((snapshot) => historySnapshotKind(snapshot) === "final").slice(-12);
   const monthToDateSnapshot = snapshots.find((snapshot) => snapshot.month === state.month && historySnapshotKind(snapshot) === "mtd");
+  const monthToDateLabel = displayMonthUpdateDate(monthToDateSnapshot?.generatedDate || monthToDateSnapshot?.savedAt);
   const rows = historyConceptRows();
   return `
     <section class="panel history-panel">
@@ -741,22 +740,21 @@ function historyPage() {
       </div>
     </section>
     <section class="panel history-panel">
-      <h2>${currentYear} Concept History</h2>
+      <h2>12-Month Concept History</h2>
       <div class="table-wrap">
         <table class="history-table">
           <thead>
             <tr class="history-date-row">
               <th></th>
-              <th class="history-update-cell" colspan="2">Last update: ${displayShortDate(monthToDateSnapshot?.generatedDate || monthToDateSnapshot?.savedAt) || "Not updated"}</th>
-              ${completedSnapshots.length ? `<th class="history-month-group" colspan="${completedSnapshots.length}">Month</th>` : ""}
-              <th class="history-year-group">Year ${currentYear}</th>
+              <th class="history-update-cell" colspan="2">${monthToDateLabel || "MTH not updated"}</th>
+              <th class="history-month-group" colspan="${completedSnapshots.length + 1}">Month History</th>
             </tr>
             <tr>
               <th>Concept</th>
               <th>Budget</th>
               <th>Projection</th>
+              <th class="history-average-cell">AVERAGE</th>
               ${completedSnapshots.map((snapshot) => `<th class="history-month-cell">${historySnapshotHeader(snapshot)}</th>`).join("")}
-              <th class="history-year-cell">Average Year</th>
             </tr>
           </thead>
           <tbody>${rows.map((row) => historyConceptRow(row, completedSnapshots)).join("")}</tbody>
@@ -774,8 +772,8 @@ function historyDeleteTableRow(snapshots) {
     <tr class="history-delete-table-row">
       <td><strong>Delete Month</strong></td>
       <td></td><td></td>
+      <td class="history-average-cell"></td>
       ${snapshots.map((snapshot) => `<td class="history-month-cell"><button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete ${historySnapshotTitle(snapshot)}">X</button></td>`).join("")}
-      <td class="history-year-cell"></td>
     </tr>
   </tfoot>`;
 }
@@ -853,9 +851,7 @@ function historySnapshotKind(snapshot) {
 }
 
 function historySnapshotHeader(snapshot) {
-  const label = historySnapshotKind(snapshot) === "mtd" ? "MTD" : "Final";
-  const date = displayShortDate(snapshot.generatedDate || snapshot.savedAt);
-  return `<small>${date}</small><span>${monthShort(snapshot.month)} ${label}</span>`;
+  return monthYearLabel(snapshot.month);
 }
 
 function historySnapshotTitle(snapshot) {
@@ -869,6 +865,22 @@ function displayShortDate(value) {
   const date = new Date(String(value).slice(0, 10) + "T00:00:00");
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" });
+}
+
+function displayMonthUpdateDate(value) {
+  if (!value) return "";
+  const date = new Date(String(value).slice(0, 10) + "T00:00:00");
+  if (Number.isNaN(date.getTime())) return "";
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = date.toLocaleString("en-US", { month: "short" }).toUpperCase();
+  return `MTH ${day}-${month}`;
+}
+
+function monthYearLabel(month) {
+  const date = new Date(`${month}-01T00:00:00`);
+  if (Number.isNaN(date.getTime())) return month;
+  const monthLabel = date.toLocaleString("en-US", { month: "short" }).toUpperCase();
+  return `${monthLabel}${String(date.getFullYear()).slice(-2)}`;
 }
 
 function historyConceptRows() {
@@ -903,8 +915,8 @@ function historyConceptRow(row, snapshots) {
     <td><strong>${row.label}</strong></td>
     <td>${money(row.budget)}</td>
     <td>${money(row.projected)}</td>
+    <td class="history-average-cell">${money(average)}</td>
     ${values.map((value) => `<td class="history-month-cell">${money(value)}</td>`).join("")}
-    <td class="history-year-cell">${money(average)}</td>
   </tr>`;
 }
 

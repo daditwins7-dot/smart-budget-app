@@ -1371,7 +1371,7 @@ select {
 }
 
 .history-table {
-  min-width: 720px;
+  min-width: 660px;
   table-layout: fixed;
   width: max-content;
 }
@@ -1390,25 +1390,24 @@ select {
 .history-table td:first-child {
   text-align: left;
   white-space: normal;
-  width: 240px;
+  width: 230px;
 }
 
 .history-table th:nth-child(2),
 .history-table td:nth-child(2),
 .history-table th:nth-child(3),
 .history-table td:nth-child(3) {
-  width: 105px;
+  width: 95px;
 }
 
+.history-average-cell,
 .history-month-cell,
-.history-year-cell,
-.history-month-group,
-.history-year-group {
+.history-month-group {
   width: 125px;
 }
 
-.history-year-cell,
-.history-year-group {
+.history-average-cell,
+.history-month-group {
   border-left: 2px solid var(--line);
 }
 
@@ -1436,8 +1435,7 @@ select {
   text-align: center;
 }
 
-.history-date-row .history-month-group,
-.history-date-row .history-year-group {
+.history-date-row .history-month-group {
   border-bottom: 1px solid var(--line);
 }
 
