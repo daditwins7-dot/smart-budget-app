@@ -732,7 +732,7 @@ function historyPage() {
         <div class="history-actions">
           <button class="secondary" type="button" data-save-history-mtd>Update Month-to-date</button>
           <button class="primary" type="button" data-save-history-final>Save Completed Month</button>
-          <small>Update Month-to-date on the last day of the month, after entering all final values. Updating before or after month end can change projections, especially miscellaneous.</small>
+          <small>Save Completed Month only on the last day, after updating all actual balances and transactions. History uses final projected values for realistic monthly comparison.</small>
         </div>
       </div>
       <div class="history-summary-grid">
@@ -836,7 +836,7 @@ function createHistorySnapshot(kind = "mtd") {
     miscellaneousActual: p.miscellaneousActual,
     balanceDifference: totalBalanceDifference(p),
     evaluation: model.expenseTotalRow.evaluation.label,
-    concepts: historyActualConceptValues(model),
+    concepts: historyProjectedConceptValues(model),
   };
 }
 
@@ -924,23 +924,22 @@ function historySnapshotConceptValue(snapshot, key) {
   if (snapshot.concepts && Object.prototype.hasOwnProperty.call(snapshot.concepts, key)) {
     return Number(snapshot.concepts[key] || 0);
   }
-  if (key === "available-income") return Number(snapshot.availableActual || 0);
+  if (key === "available-income") return Number(snapshot.availableProjected || snapshot.availableActual || 0);
   return 0;
 }
 
-function historyActualConceptValues(model = projectionAnalysisModel(state)) {
+function historyProjectedConceptValues(model = projectionAnalysisModel(state)) {
+  const current = historyCurrentConceptValues();
   const values = {
-    "available-income": model.projection.actualAvailableForExpenses,
-    "cash-flow": Number(state.currentCashFlow || 0),
-    savings: Number(state.currentSavings || 0),
-    "ref-14": model.projection.miscellaneousActual,
+    "available-income": model.projection.projectedAvailableForExpenses,
+    "cash-flow": model.projection.expectedEndCashFlow,
+    savings: model.projection.projectedSavings,
+    "ref-14": model.projection.miscellaneousProjected,
     "cc-payments": model.creditCardRow.payments,
     "cc-expenses": model.creditCardRow.expenses,
   };
   for (let ref = 1; ref <= 13; ref += 1) {
-    values[`ref-${ref}`] = state.expenses
-      .filter((line) => String(line.reference) === String(ref))
-      .reduce((total, line) => total + transactionTotalForConcept(line.id), 0);
+    values[`ref-${ref}`] = current.projected[`ref-${ref}`] || 0;
   }
   return values;
 }
