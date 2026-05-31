@@ -720,6 +720,7 @@ function historyPage() {
   const snapshots = (state.historySnapshots || [])
     .filter((snapshot) => Number(snapshot.year) === currentYear)
     .sort(historySnapshotSort);
+  const monthToDateSnapshot = snapshots.find((snapshot) => snapshot.month === state.month && historySnapshotKind(snapshot) === "mtd");
   const rows = historyConceptRows();
   return `
     <section class="panel history-panel">
@@ -730,6 +731,7 @@ function historyPage() {
         </div>
         <div class="history-actions">
           <button class="secondary" type="button" data-save-history-mtd>Update Month-to-date</button>
+          <span class="history-update-date">Last update: ${displayShortDate(monthToDateSnapshot?.generatedDate || monthToDateSnapshot?.savedAt) || "Not updated"}</span>
           <button class="primary" type="button" data-save-history-final>Save Completed Month</button>
           <small>Update Month-to-date on the last day of the month, after entering all final values. Updating before or after month end can change projections, especially miscellaneous.</small>
         </div>
@@ -752,25 +754,23 @@ function historyPage() {
             </tr>
           </thead>
           <tbody>${rows.map((row) => historyConceptRow(row, snapshots)).join("")}</tbody>
+          ${historyDeleteTableRow(snapshots)}
         </table>
       </div>
-      <div class="history-delete-row">
-        ${historyDeleteButtons(snapshots, currentYear)}
-      </div>
+      ${snapshots.length ? "" : `<p class="muted history-empty">No snapshots saved for ${currentYear} yet.</p>`}
     </section>
   `;
 }
 
-function historyDeleteButtons(snapshots, currentYear) {
-  const completed = snapshots.filter((snapshot) => historySnapshotKind(snapshot) === "final");
-  if (completed.length) {
-    return completed
-      .map((snapshot) => `<button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete completed ${historySnapshotTitle(snapshot)}">Delete ${historySnapshotTitle(snapshot)}</button>`)
-      .join("");
-  }
-  return snapshots.length
-    ? `<span class="muted">Only completed historical months can be deleted here.</span>`
-    : `<span class="muted">No snapshots saved for ${currentYear} yet.</span>`;
+function historyDeleteTableRow(snapshots) {
+  if (!snapshots.length) return "";
+  return `<tfoot>
+    <tr class="history-delete-table-row">
+      <td><strong>Delete Month</strong></td>
+      ${snapshots.map((snapshot) => `<td>${historySnapshotKind(snapshot) === "final" ? `<button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete ${historySnapshotTitle(snapshot)}">X</button>` : ""}</td>`).join("")}
+      <td></td><td></td><td></td>
+    </tr>
+  </tfoot>`;
 }
 
 function historySummaryCards(snapshots) {
@@ -867,6 +867,7 @@ function displayShortDate(value) {
 function historyConceptRows() {
   const current = historyCurrentConceptValues();
   return [
+    { key: "available-income", label: "Available Income / Ingresos Disponibles", budget: current.budget["available-income"], projected: current.projected["available-income"] },
     { key: "cash-flow", label: "Cash Flow", budget: current.budget["cash-flow"], projected: current.projected["cash-flow"] },
     { key: "savings", label: "Savings", budget: current.budget.savings, projected: current.projected.savings },
     { key: "ref-1", label: "Mortgage Payment or Home Rent", budget: current.budget["ref-1"], projected: current.projected["ref-1"] },
@@ -889,7 +890,7 @@ function historyConceptRows() {
 }
 
 function historyConceptRow(row, snapshots) {
-  const values = snapshots.map((snapshot) => Number(snapshot.concepts?.[row.key] || 0));
+  const values = snapshots.map((snapshot) => historySnapshotConceptValue(snapshot, row.key));
   const average = values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0;
   return `<tr>
     <td><strong>${row.label}</strong></td>
@@ -900,8 +901,17 @@ function historyConceptRow(row, snapshots) {
   </tr>`;
 }
 
+function historySnapshotConceptValue(snapshot, key) {
+  if (snapshot.concepts && Object.prototype.hasOwnProperty.call(snapshot.concepts, key)) {
+    return Number(snapshot.concepts[key] || 0);
+  }
+  if (key === "available-income") return Number(snapshot.availableActual || 0);
+  return 0;
+}
+
 function historyActualConceptValues(model = projectionAnalysisModel(state)) {
   const values = {
+    "available-income": model.projection.actualAvailableForExpenses,
     "cash-flow": Number(state.currentCashFlow || 0),
     savings: Number(state.currentSavings || 0),
     "ref-14": model.projection.miscellaneousActual,
@@ -919,6 +929,7 @@ function historyActualConceptValues(model = projectionAnalysisModel(state)) {
 function historyCurrentConceptValues() {
   const model = projectionAnalysisModel(state);
   const budget = {
+    "available-income": model.projection.budgetAvailableForExpenses,
     "cash-flow": Number(state.desiredFinalCashFlow || 0),
     savings: Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0),
     "ref-14": model.projection.miscellaneous,
@@ -926,6 +937,7 @@ function historyCurrentConceptValues() {
     "cc-expenses": model.creditCardRow.expenses,
   };
   const projected = {
+    "available-income": model.projection.projectedAvailableForExpenses,
     "cash-flow": model.projection.expectedEndCashFlow,
     savings: model.projection.projectedSavings,
     "ref-14": model.projection.miscellaneousProjected,
