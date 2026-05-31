@@ -49,7 +49,7 @@ function render() {
       ${navButton("projections", t.projections)}
       ${navButton("smartModel", t.smartModel || "Smart Model")}
       ${navButton("evaluation", t.evaluation)}
-      ${navButton("help", t.help || "Smart Help")}
+      ${navButton("help", t.help || "Smart Help Chat")}
       ${navButton("settings", t.settings)}
     </aside>
     <main class="workspace ${page === "dashboard" ? "dashboard-workspace" : ""}">
@@ -966,7 +966,7 @@ function smartHelpPage(p) {
       <div class="help-intro">
         <div>
           <p class="eyebrow">Budget support chat</p>
-          <h2>Smart Help</h2>
+          <h2>Smart Help Chat</h2>
           <p class="muted">Ask short questions about this monthly budget. Answers are based only on the values entered in this system.</p>
         </div>
         <span class="help-scope">Budget guidance only</span>
@@ -984,7 +984,7 @@ function smartHelpPage(p) {
       <div class="help-quick">
         ${quickQuestions.map((question) => `<button class="secondary" type="button" data-help-question="${escapeHtml(question)}">${question}</button>`).join("")}
       </div>
-      <p class="help-disclaimer">Smart Help explains this budget and its projections. It does not replace financial, tax, legal, credit, or investment advice.</p>
+      <p class="help-disclaimer">Smart Help Chat explains this budget and its projections. It does not replace financial, tax, legal, credit, or investment advice.</p>
     </section>
     <section class="panel help-current">
       <h2>Current budget signals</h2>
@@ -995,7 +995,7 @@ function smartHelpPage(p) {
 
 function helpMessageBubble(message) {
   return `<article class="help-message help-${message.role}">
-    <span>${message.role === "user" ? "You" : "Smart Help"}</span>
+    <span>${message.role === "user" ? "You" : "Smart Help Chat"}</span>
     <p>${escapeHtml(message.text)}</p>
   </article>`;
 }
