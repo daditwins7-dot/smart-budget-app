@@ -1338,13 +1338,6 @@ select {
   text-align: right;
 }
 
-.history-update-date {
-  align-self: center;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
-}
-
 .history-head h2 {
   margin-bottom: 8px;
 }
@@ -1416,6 +1409,15 @@ select {
   color: var(--muted);
   font-size: 10px;
   margin-bottom: 3px;
+}
+
+.history-date-row th {
+  border-bottom: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  padding-bottom: 2px;
+  text-align: center;
 }
 
 .history-delete-table-row td {

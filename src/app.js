@@ -732,7 +732,6 @@ function historyPage() {
         </div>
         <div class="history-actions">
           <button class="secondary" type="button" data-save-history-mtd>Update Month-to-date</button>
-          <span class="history-update-date">Last update: ${displayShortDate(monthToDateSnapshot?.generatedDate || monthToDateSnapshot?.savedAt) || "Not updated"}</span>
           <button class="primary" type="button" data-save-history-final>Save Completed Month</button>
           <small>Update Month-to-date on the last day of the month, after entering all final values. Updating before or after month end can change projections, especially miscellaneous.</small>
         </div>
@@ -746,6 +745,12 @@ function historyPage() {
       <div class="table-wrap">
         <table class="history-table">
           <thead>
+            <tr class="history-date-row">
+              <th></th>
+              <th colspan="2">Last update: ${displayShortDate(monthToDateSnapshot?.generatedDate || monthToDateSnapshot?.savedAt) || "Not updated"}</th>
+              <th></th>
+              ${completedSnapshots.map(() => "<th></th>").join("")}
+            </tr>
             <tr>
               <th>Concept</th>
               <th>Budget</th>
