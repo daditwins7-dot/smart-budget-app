@@ -1326,6 +1326,16 @@ select {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
+  max-width: 360px;
+}
+
+.history-actions small {
+  color: var(--muted);
+  flex-basis: 100%;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: right;
 }
 
 .history-head h2 {
@@ -1371,7 +1381,7 @@ select {
 }
 
 .history-table td {
-  text-align: right;
+  text-align: left;
 }
 
 .history-table th:first-child,
@@ -1389,7 +1399,7 @@ select {
 .history-table th small {
   color: var(--muted);
   font-size: 10px;
-  margin-top: 3px;
+  margin-bottom: 3px;
 }
 
 .history-delete-row {

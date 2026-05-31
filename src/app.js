@@ -731,6 +731,7 @@ function historyPage() {
         <div class="history-actions">
           <button class="secondary" type="button" data-save-history-mtd>Update Month-to-date</button>
           <button class="primary" type="button" data-save-history-final>Save Completed Month</button>
+          <small>Update Month-to-date on the last day of the month, after entering all final values. Updating before or after month end can change projections, especially miscellaneous.</small>
         </div>
       </div>
       <div class="history-summary-grid">
@@ -754,10 +755,22 @@ function historyPage() {
         </table>
       </div>
       <div class="history-delete-row">
-        ${snapshots.length ? snapshots.map((snapshot) => `<button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete ${historySnapshotTitle(snapshot)}">${historySnapshotTitle(snapshot)} x</button>`).join("") : `<span class="muted">No snapshots saved for ${currentYear} yet.</span>`}
+        ${historyDeleteButtons(snapshots, currentYear)}
       </div>
     </section>
   `;
+}
+
+function historyDeleteButtons(snapshots, currentYear) {
+  const completed = snapshots.filter((snapshot) => historySnapshotKind(snapshot) === "final");
+  if (completed.length) {
+    return completed
+      .map((snapshot) => `<button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete completed ${historySnapshotTitle(snapshot)}">Delete ${historySnapshotTitle(snapshot)}</button>`)
+      .join("");
+  }
+  return snapshots.length
+    ? `<span class="muted">Only completed historical months can be deleted here.</span>`
+    : `<span class="muted">No snapshots saved for ${currentYear} yet.</span>`;
 }
 
 function historySummaryCards(snapshots) {
@@ -835,7 +848,7 @@ function historySnapshotKind(snapshot) {
 function historySnapshotHeader(snapshot) {
   const label = historySnapshotKind(snapshot) === "mtd" ? "MTD" : "Final";
   const date = displayShortDate(snapshot.generatedDate || snapshot.savedAt);
-  return `<span>${monthShort(snapshot.month)} ${label}</span><small>${date}</small>`;
+  return `<small>${date}</small><span>${monthShort(snapshot.month)} ${label}</span>`;
 }
 
 function historySnapshotTitle(snapshot) {
