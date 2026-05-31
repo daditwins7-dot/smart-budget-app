@@ -126,7 +126,14 @@ function normalizedHistorySnapshot(snapshot) {
     miscellaneousActual: normalizedNumber(snapshot.miscellaneousActual),
     balanceDifference: normalizedNumber(snapshot.balanceDifference),
     evaluation: snapshot.evaluation || "",
+    concepts: snapshot.concepts && typeof snapshot.concepts === "object" ? normalizedHistoryConcepts(snapshot.concepts) : {},
   };
+}
+
+function normalizedHistoryConcepts(concepts) {
+  return Object.fromEntries(
+    Object.entries(concepts).map(([key, value]) => [key, normalizedNumber(value)]),
+  );
 }
 
 function normalizedReference(line) {

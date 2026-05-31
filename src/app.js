@@ -720,12 +720,13 @@ function historyPage() {
   const snapshots = (state.historySnapshots || [])
     .filter((snapshot) => Number(snapshot.year) === currentYear)
     .sort((a, b) => String(a.month).localeCompare(String(b.month)));
+  const rows = historyConceptRows();
   return `
     <section class="panel history-panel">
       <div class="history-head">
         <div>
           <h2>History</h2>
-          <p class="muted">Save monthly snapshots to compare budget, actual, and projected results for the current year.</p>
+          <p class="muted">Save one real monthly result and compare spending behavior by Smart Model concept for the current year.</p>
         </div>
         <button class="primary" type="button" data-save-history-snapshot>Save Month Snapshot</button>
       </div>
@@ -734,29 +735,23 @@ function historyPage() {
       </div>
     </section>
     <section class="panel history-panel">
-      <h2>${currentYear} Monthly Results</h2>
+      <h2>${currentYear} Concept History</h2>
       <div class="table-wrap">
         <table class="history-table">
           <thead>
             <tr>
-              <th>Month</th>
-              <th>Avail. Budget</th>
-              <th>Avail. Actual</th>
-              <th>Avail. Projected</th>
-              <th>Exp. Budget</th>
-              <th>Exp. Actual</th>
-              <th>Exp. Projected</th>
-              <th>Cash End</th>
-              <th>Savings</th>
-              <th>Cards Diff.</th>
-              <th>Misc. Actual</th>
-              <th>Balance Diff.</th>
-              <th>Evaluation</th>
-              <th></th>
+              <th>Concept</th>
+              ${snapshots.map((snapshot) => `<th>${monthShort(snapshot.month)}</th>`).join("")}
+              <th>Average</th>
+              <th>Budget</th>
+              <th>Projection</th>
             </tr>
           </thead>
-          <tbody>${snapshots.length ? snapshots.map(historySnapshotRow).join("") : `<tr><td colspan="14" class="muted">No snapshots saved for ${currentYear} yet.</td></tr>`}</tbody>
+          <tbody>${rows.map((row) => historyConceptRow(row, snapshots)).join("")}</tbody>
         </table>
+      </div>
+      <div class="history-delete-row">
+        ${snapshots.length ? snapshots.map((snapshot) => `<button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete ${snapshot.month}">${monthShort(snapshot.month)} x</button>`).join("") : `<span class="muted">No snapshots saved for ${currentYear} yet.</span>`}
       </div>
     </section>
   `;
@@ -787,26 +782,6 @@ function historyMetric(label, value, detail) {
   return `<article class="history-metric"><span>${label}</span><strong>${value}</strong><small>${detail}</small></article>`;
 }
 
-function historySnapshotRow(snapshot) {
-  const statusClass = Math.abs(Number(snapshot.balanceDifference || 0)) < 0.01 ? "ok" : "danger";
-  return `<tr>
-    <td><strong>${snapshot.month}</strong><small>${snapshot.savedAt ? new Date(snapshot.savedAt).toLocaleDateString("en-US") : ""}</small></td>
-    <td>${money(snapshot.availableBudget)}</td>
-    <td>${money(snapshot.availableActual)}</td>
-    <td>${money(snapshot.availableProjected)}</td>
-    <td>${money(snapshot.expensesBudget)}</td>
-    <td>${money(snapshot.expensesActual)}</td>
-    <td>${money(snapshot.expensesProjected)}</td>
-    <td>${money(snapshot.cashFlowProjected)}</td>
-    <td>${money(snapshot.savingsProjected)}</td>
-    <td class="${snapshot.creditCardDifference < 0 ? "danger" : "ok"}">${money(snapshot.creditCardDifference)}</td>
-    <td class="${snapshot.miscellaneousActual < 0 ? "danger" : ""}">${money(snapshot.miscellaneousActual)}</td>
-    <td class="${statusClass}">${money(snapshot.balanceDifference)}</td>
-    <td>${snapshot.evaluation || ""}</td>
-    <td><button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete snapshot">x</button></td>
-  </tr>`;
-}
-
 function createHistorySnapshot() {
   const model = projectionAnalysisModel(state);
   const p = model.projection;
@@ -833,7 +808,97 @@ function createHistorySnapshot() {
     miscellaneousActual: p.miscellaneousActual,
     balanceDifference: totalBalanceDifference(p),
     evaluation: model.expenseTotalRow.evaluation.label,
+    concepts: historyActualConceptValues(model),
   };
+}
+
+function historyConceptRows() {
+  const current = historyCurrentConceptValues();
+  return [
+    { key: "cash-flow", label: "Cash Flow", budget: current.budget["cash-flow"], projected: current.projected["cash-flow"] },
+    { key: "savings", label: "Savings", budget: current.budget.savings, projected: current.projected.savings },
+    { key: "ref-1", label: "Mortgage Payment or Home Rent", budget: current.budget["ref-1"], projected: current.projected["ref-1"] },
+    { key: "ref-2", label: "Credit Cards", budget: current.budget["ref-2"], projected: current.projected["ref-2"] },
+    { key: "ref-3", label: "Auto, Personal, Loans, Commercial Credit and Other", budget: current.budget["ref-3"], projected: current.projected["ref-3"] },
+    { key: "ref-4", label: "Food and Regular Home Purchases", budget: current.budget["ref-4"], projected: current.projected["ref-4"] },
+    { key: "ref-5", label: "General Home Services", budget: current.budget["ref-5"], projected: current.projected["ref-5"] },
+    { key: "ref-6", label: "Communications, Internet, Telephones and Subscriptions", budget: current.budget["ref-6"], projected: current.projected["ref-6"] },
+    { key: "ref-7", label: "Auto Gas Transportation and Similar", budget: current.budget["ref-7"], projected: current.projected["ref-7"] },
+    { key: "ref-8", label: "Personal Expenses and Various", budget: current.budget["ref-8"], projected: current.projected["ref-8"] },
+    { key: "ref-9", label: "Education General Expense and Fees", budget: current.budget["ref-9"], projected: current.projected["ref-9"] },
+    { key: "ref-10", label: "Health, Medicines, Fees and Similar", budget: current.budget["ref-10"], projected: current.projected["ref-10"] },
+    { key: "ref-11", label: "Fun, Entertainment, Restaurant and Other", budget: current.budget["ref-11"], projected: current.projected["ref-11"] },
+    { key: "ref-12", label: "Other Various Expenses", budget: current.budget["ref-12"], projected: current.projected["ref-12"] },
+    { key: "ref-13", label: "Provision for Unforeseen or Scheduled Expenses", budget: current.budget["ref-13"], projected: current.projected["ref-13"] },
+    { key: "ref-14", label: "Miscellaneous no Register Expenses", budget: current.budget["ref-14"], projected: current.projected["ref-14"] },
+    { key: "cc-payments", label: "Credit card Payments", budget: current.budget["cc-payments"], projected: current.projected["cc-payments"] },
+    { key: "cc-expenses", label: "Credit card Expenses", budget: current.budget["cc-expenses"], projected: current.projected["cc-expenses"] },
+  ];
+}
+
+function historyConceptRow(row, snapshots) {
+  const values = snapshots.map((snapshot) => Number(snapshot.concepts?.[row.key] || 0));
+  const average = values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0;
+  return `<tr>
+    <td><strong>${row.label}</strong></td>
+    ${values.map((value) => `<td>${money(value)}</td>`).join("")}
+    <td>${money(average)}</td>
+    <td>${money(row.budget)}</td>
+    <td>${money(row.projected)}</td>
+  </tr>`;
+}
+
+function historyActualConceptValues(model = projectionAnalysisModel(state)) {
+  const values = {
+    "cash-flow": Number(state.currentCashFlow || 0),
+    savings: Number(state.currentSavings || 0),
+    "ref-14": model.projection.miscellaneousActual,
+    "cc-payments": model.creditCardRow.payments,
+    "cc-expenses": model.creditCardRow.expenses,
+  };
+  for (let ref = 1; ref <= 13; ref += 1) {
+    values[`ref-${ref}`] = state.expenses
+      .filter((line) => String(line.reference) === String(ref))
+      .reduce((total, line) => total + transactionTotalForConcept(line.id), 0);
+  }
+  return values;
+}
+
+function historyCurrentConceptValues() {
+  const model = projectionAnalysisModel(state);
+  const budget = {
+    "cash-flow": Number(state.desiredFinalCashFlow || 0),
+    savings: Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0),
+    "ref-14": model.projection.miscellaneous,
+    "cc-payments": model.creditCardRow.payments,
+    "cc-expenses": model.creditCardRow.expenses,
+  };
+  const projected = {
+    "cash-flow": model.projection.expectedEndCashFlow,
+    savings: model.projection.projectedSavings,
+    "ref-14": model.projection.miscellaneousProjected,
+    "cc-payments": model.creditCardRow.payments,
+    "cc-expenses": model.creditCardRow.expenses,
+  };
+  for (let ref = 1; ref <= 13; ref += 1) {
+    const lines = state.expenses.filter((line) => String(line.reference) === String(ref));
+    const budgetTotal = lines.reduce((total, line) => total + Number(line.amount || 0), 0);
+    const actualTotal = lines.reduce((total, line) => total + transactionTotalForConcept(line.id), 0);
+    budget[`ref-${ref}`] = budgetTotal;
+    projected[`ref-${ref}`] = Math.max(budgetTotal, actualTotal);
+  }
+  return { budget, projected };
+}
+
+function transactionTotalForConcept(conceptId) {
+  return state.transactions
+    .filter((tx) => tx.conceptId === conceptId)
+    .reduce((total, tx) => total + Number(tx.amount || 0), 0);
+}
+
+function monthShort(month) {
+  const date = new Date(`${month}-01T00:00:00`);
+  return Number.isNaN(date.getTime()) ? month : date.toLocaleString("en-US", { month: "short" }).toUpperCase();
 }
 
 function smartModelPage() {
