@@ -548,14 +548,15 @@ function projectionAvailableIncomeRow(row) {
 function projectionPaymentTiming(timing) {
   return `<aside class="payment-timing-card">
     <h2>Payment Timing</h2>
-    <div class="payment-timing-row"><span>Overdue Payments</span><strong>${money(timing.overdueAmount)}</strong></div>
+    <div class="payment-timing-row">
+      <span>Overdue Payments</span>
+      <strong>${money(timing.overdueAmount)}</strong>
+    </div>
     <div class="payment-timing-row future">
       <span>Future Committed Payments</span>
-      <div class="payment-timing-fields">
-        <label>Next Days <input type="number" min="0" max="31" step="1" data-field="projectionNextDays" value="${timing.nextDays}" /></label>
-        <small>Date ${timing.futureDate}</small>
-        <strong>${money(timing.futureCommittedAmount)}</strong>
-      </div>
+      <label>Next Days <input type="number" min="0" max="31" step="1" data-field="projectionNextDays" value="${timing.nextDays}" /></label>
+      <small>Date ${timing.futureDate}</small>
+      <strong>${money(timing.futureCommittedAmount)}</strong>
     </div>
   </aside>`;
 }

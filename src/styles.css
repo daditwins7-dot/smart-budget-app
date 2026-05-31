@@ -1410,7 +1410,7 @@ th {
 
 .projection-top-grid {
   display: grid;
-  gap: 20px;
+  gap: 12px;
   grid-template-columns: 1fr;
   align-items: start;
 }
@@ -1419,23 +1419,28 @@ th {
   background: #f7f9fb;
   border: 1px solid var(--line);
   border-radius: 8px;
-  justify-self: end;
-  max-width: 420px;
-  padding: 14px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(360px, 1.4fr);
+  padding: 12px;
   width: 100%;
 }
 
 .payment-timing-card h2 {
-  margin-bottom: 10px;
+  grid-column: 1 / -1;
+  margin-bottom: 0;
 }
 
 .payment-timing-row {
   align-items: center;
-  border-bottom: 1px solid var(--line);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   display: grid;
   gap: 8px;
   grid-template-columns: 1fr auto;
-  padding: 9px 0;
+  min-height: 58px;
+  padding: 10px 12px;
 }
 
 .payment-timing-row span,
@@ -1451,25 +1456,17 @@ th {
 }
 
 .payment-timing-row.future {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(150px, 1fr) 92px minmax(120px, auto) auto;
 }
 
-.payment-timing-fields {
-  align-items: end;
-  display: grid;
-  gap: 8px;
-  grid-template-columns: 88px 1fr auto;
-}
-
-.payment-timing-fields label,
-.payment-timing-fields small {
+.payment-timing-row.future label,
+.payment-timing-row.future small {
   display: grid;
   gap: 5px;
 }
 
-.payment-timing-fields strong {
+.payment-timing-row.future strong {
   justify-self: end;
-  padding-bottom: 7px;
 }
 
 .payment-timing-row input {
