@@ -719,16 +719,19 @@ function historyPage() {
   const currentYear = Number(String(state.month || new Date().getFullYear()).slice(0, 4)) || new Date().getFullYear();
   const snapshots = (state.historySnapshots || [])
     .filter((snapshot) => Number(snapshot.year) === currentYear)
-    .sort((a, b) => String(a.month).localeCompare(String(b.month)));
+    .sort(historySnapshotSort);
   const rows = historyConceptRows();
   return `
     <section class="panel history-panel">
       <div class="history-head">
         <div>
           <h2>History</h2>
-          <p class="muted">Save one real monthly result and compare spending behavior by Smart Model concept for the current year.</p>
+          <p class="muted">Update month-to-date while the month is open, then save the completed month when actual values are final.</p>
         </div>
-        <button class="primary" type="button" data-save-history-snapshot>Save Month Snapshot</button>
+        <div class="history-actions">
+          <button class="secondary" type="button" data-save-history-mtd>Update Month-to-date</button>
+          <button class="primary" type="button" data-save-history-final>Save Completed Month</button>
+        </div>
       </div>
       <div class="history-summary-grid">
         ${historySummaryCards(snapshots).join("")}
@@ -741,7 +744,7 @@ function historyPage() {
           <thead>
             <tr>
               <th>Concept</th>
-              ${snapshots.map((snapshot) => `<th>${monthShort(snapshot.month)}</th>`).join("")}
+              ${snapshots.map((snapshot) => `<th>${historySnapshotHeader(snapshot)}</th>`).join("")}
               <th>Average</th>
               <th>Budget</th>
               <th>Projection</th>
@@ -751,7 +754,7 @@ function historyPage() {
         </table>
       </div>
       <div class="history-delete-row">
-        ${snapshots.length ? snapshots.map((snapshot) => `<button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete ${snapshot.month}">${monthShort(snapshot.month)} x</button>`).join("") : `<span class="muted">No snapshots saved for ${currentYear} yet.</span>`}
+        ${snapshots.length ? snapshots.map((snapshot) => `<button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete ${historySnapshotTitle(snapshot)}">${historySnapshotTitle(snapshot)} x</button>`).join("") : `<span class="muted">No snapshots saved for ${currentYear} yet.</span>`}
       </div>
     </section>
   `;
@@ -766,10 +769,12 @@ function historySummaryCards(snapshots) {
       historyMetric("Average Misc. Actual", money(0), "Current year"),
     ];
   }
-  const avg = (field) => snapshots.reduce((total, snapshot) => total + Number(snapshot[field] || 0), 0) / snapshots.length;
-  const total = (field) => snapshots.reduce((sum, snapshot) => sum + Number(snapshot[field] || 0), 0);
+  const completed = snapshots.filter((snapshot) => historySnapshotKind(snapshot) === "final");
+  const summarySnapshots = completed.length ? completed : snapshots;
+  const avg = (field) => summarySnapshots.reduce((total, snapshot) => total + Number(snapshot[field] || 0), 0) / summarySnapshots.length;
+  const total = (field) => summarySnapshots.reduce((sum, snapshot) => sum + Number(snapshot[field] || 0), 0);
   return [
-    historyMetric("Snapshots", String(snapshots.length), "Saved months this year"),
+    historyMetric("Snapshots", String(snapshots.length), completed.length ? "Month-to-date and completed" : "Month-to-date only"),
     historyMetric("Average Cash End", money(avg("cashFlowProjected")), "Month-end projection"),
     historyMetric("Average Expenses Actual", money(avg("expensesActual")), "Actual expenses average"),
     historyMetric("Average Misc. Actual", money(avg("miscellaneousActual")), "Calculated actual miscellaneous"),
@@ -782,11 +787,16 @@ function historyMetric(label, value, detail) {
   return `<article class="history-metric"><span>${label}</span><strong>${value}</strong><small>${detail}</small></article>`;
 }
 
-function createHistorySnapshot() {
+function createHistorySnapshot(kind = "mtd") {
   const model = projectionAnalysisModel(state);
   const p = model.projection;
+  const snapshotKind = kind === "final" ? "final" : "mtd";
+  const generatedDate = localDateValue();
   return {
-    id: crypto.randomUUID(),
+    id: `history-${snapshotKind}-${state.month}`,
+    kind: snapshotKind,
+    label: snapshotKind === "mtd" ? "Month-to-date" : "Completed month",
+    generatedDate,
     month: state.month,
     year: Number(String(state.month).slice(0, 4)) || new Date().getFullYear(),
     savedAt: new Date().toISOString(),
@@ -810,6 +820,35 @@ function createHistorySnapshot() {
     evaluation: model.expenseTotalRow.evaluation.label,
     concepts: historyActualConceptValues(model),
   };
+}
+
+function historySnapshotSort(a, b) {
+  const monthCompare = String(a.month).localeCompare(String(b.month));
+  if (monthCompare) return monthCompare;
+  return historySnapshotKind(a) === historySnapshotKind(b) ? 0 : historySnapshotKind(a) === "mtd" ? -1 : 1;
+}
+
+function historySnapshotKind(snapshot) {
+  return snapshot.kind === "mtd" ? "mtd" : "final";
+}
+
+function historySnapshotHeader(snapshot) {
+  const label = historySnapshotKind(snapshot) === "mtd" ? "MTD" : "Final";
+  const date = displayShortDate(snapshot.generatedDate || snapshot.savedAt);
+  return `<span>${monthShort(snapshot.month)} ${label}</span><small>${date}</small>`;
+}
+
+function historySnapshotTitle(snapshot) {
+  const label = historySnapshotKind(snapshot) === "mtd" ? "MTD" : "Final";
+  const date = displayShortDate(snapshot.generatedDate || snapshot.savedAt);
+  return `${monthShort(snapshot.month)} ${label}${date ? ` ${date}` : ""}`;
+}
+
+function displayShortDate(value) {
+  if (!value) return "";
+  const date = new Date(String(value).slice(0, 10) + "T00:00:00");
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" });
 }
 
 function historyConceptRows() {
@@ -1886,15 +1925,11 @@ function bindEvents() {
     saveState(state);
     render();
   });
-  document.querySelector("[data-save-history-snapshot]")?.addEventListener("click", () => {
-    const snapshot = createHistorySnapshot();
-    state.historySnapshots = [
-      ...(state.historySnapshots || []).filter((item) => item.month !== snapshot.month),
-      snapshot,
-    ];
-    state.dataNotice = `History snapshot saved for ${snapshot.month}.`;
-    saveState(state);
-    render();
+  document.querySelector("[data-save-history-mtd]")?.addEventListener("click", () => {
+    saveHistorySnapshot("mtd");
+  });
+  document.querySelector("[data-save-history-final]")?.addEventListener("click", () => {
+    saveHistorySnapshot("final");
   });
   document.querySelectorAll("[data-remove-history-snapshot]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1908,6 +1943,17 @@ function bindEvents() {
     page = "budget";
     render();
   });
+}
+
+function saveHistorySnapshot(kind) {
+  const snapshot = createHistorySnapshot(kind);
+  state.historySnapshots = [
+    ...(state.historySnapshots || []).filter((item) => !(item.month === snapshot.month && historySnapshotKind(item) === snapshot.kind)),
+    snapshot,
+  ];
+  state.dataNotice = `${snapshot.label} history saved for ${snapshot.month}.`;
+  saveState(state);
+  render();
 }
 
 render();

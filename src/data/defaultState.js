@@ -1,5 +1,5 @@
 export const defaultState = {
-  dataVersion: 6,
+  dataVersion: 7,
   dataNotice: "",
   termsAcceptedVersion: "",
   termsAcceptedAt: "",
@@ -103,8 +103,13 @@ function normalizedTransaction(tx) {
 }
 
 function normalizedHistorySnapshot(snapshot) {
+  const kind = snapshot.kind === "mtd" ? "mtd" : "final";
+  const generatedDate = snapshot.generatedDate || (snapshot.savedAt ? String(snapshot.savedAt).slice(0, 10) : "");
   return {
-    id: snapshot.id || crypto.randomUUID(),
+    id: snapshot.id || `history-${kind}-${snapshot.month || crypto.randomUUID()}`,
+    kind,
+    generatedDate,
+    label: snapshot.label || (kind === "mtd" ? "Month-to-date" : "Completed month"),
     month: snapshot.month || "",
     year: normalizedNumber(snapshot.year),
     savedAt: snapshot.savedAt || "",

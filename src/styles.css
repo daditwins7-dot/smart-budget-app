@@ -1321,6 +1321,13 @@ select {
   justify-content: space-between;
 }
 
+.history-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .history-head h2 {
   margin-bottom: 8px;
 }
@@ -1354,7 +1361,7 @@ select {
 }
 
 .history-table {
-  min-width: 1180px;
+  min-width: 1080px;
 }
 
 .history-table th,
@@ -1371,7 +1378,18 @@ select {
 .history-table td:first-child {
   text-align: left;
   white-space: normal;
-  width: 310px;
+  width: 260px;
+}
+
+.history-table th span,
+.history-table th small {
+  display: block;
+}
+
+.history-table th small {
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 3px;
 }
 
 .history-delete-row {
