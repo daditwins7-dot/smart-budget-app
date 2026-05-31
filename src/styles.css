@@ -65,24 +65,6 @@ select {
   font-size: 25px;
 }
 
-.demo-badge {
-  background: #ecfeff;
-  border: 1px solid #67e8f9;
-  border-radius: 999px;
-  color: #0e7490;
-  font-size: 11px;
-  font-weight: 900;
-  margin: 0 6px 12px;
-  padding: 8px 10px;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.demo-panel {
-  background: #f0fdff;
-  border-color: #67e8f9;
-}
-
 .nav-button,
 .primary,
 .secondary,

@@ -4,7 +4,6 @@ import { copy } from "./i18n/index.js";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
-const isDemoMode = window.location.pathname.endsWith("/demo.html") || new URLSearchParams(window.location.search).get("demo") === "1";
 let page = ["dashboard", "budget", "transactions", "projections", "history", "smartModel", "evaluation", "help", "settings"].includes(initialPage)
   ? initialPage
   : "dashboard";
@@ -45,7 +44,6 @@ function render() {
   app.innerHTML = `
     <aside class="shell-nav">
       <div class="brand"><span>SMART</span><strong>BUDGET</strong></div>
-      ${isDemoMode ? `<div class="demo-badge">Presentation Demo</div>` : ""}
       ${navButton("dashboard", t.dashboard)}
       ${navButton("budget", t.budget)}
       ${navButton("transactions", t.transactions)}
@@ -62,7 +60,7 @@ function render() {
           <p class="eyebrow">Monthly predictive planning</p>
           <h1>${currentPageTitle}</h1>
         </div>
-        <div class="month-chip">${state.month}${isDemoMode ? ` | Demo ${state.demoDate}` : ""}</div>
+        <div class="month-chip">${state.month}</div>
       </header>` : ""}
       ${dataQualityNotice(dashboardData)}
       ${page !== "dashboard" && page !== "budget" && projection.alerts.length ? `<section class="alerts">${projection.alerts.map((a) => `<p>${a}</p>`).join("")}</section>` : ""}
@@ -82,10 +80,6 @@ function render() {
 }
 
 function appToday() {
-  if (isDemoMode && state.demoDate) {
-    const demoDate = new Date(`${state.demoDate}T12:00:00`);
-    if (!Number.isNaN(demoDate.getTime())) return demoDate;
-  }
   return new Date();
 }
 
@@ -1737,13 +1731,6 @@ function escapeHtml(value) {
 
 function settings() {
   return `
-    ${isDemoMode ? `<section class="panel demo-panel">
-      <h2>Presentation Demo Mode</h2>
-      <p class="muted">This copy uses separate saved data from the original Smart Budget app. Change the demo date to control dashboards, projections, due status, and presentation examples.</p>
-      <div class="form-grid">
-        <label>Demo Date<input type="date" data-field="demoDate" value="${state.demoDate || localDateValue()}"/></label>
-      </div>
-    </section>` : ""}
     <section class="form-grid">
       <label>Language<select data-field="language">
         <option value="en" ${state.language === "en" ? "selected" : ""}>English</option>
