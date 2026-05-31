@@ -720,6 +720,7 @@ function historyPage() {
   const snapshots = (state.historySnapshots || [])
     .filter((snapshot) => Number(snapshot.year) === currentYear)
     .sort(historySnapshotSort);
+  const completedSnapshots = snapshots.filter((snapshot) => historySnapshotKind(snapshot) === "final");
   const monthToDateSnapshot = snapshots.find((snapshot) => snapshot.month === state.month && historySnapshotKind(snapshot) === "mtd");
   const rows = historyConceptRows();
   return `
@@ -747,17 +748,17 @@ function historyPage() {
           <thead>
             <tr>
               <th>Concept</th>
-              ${snapshots.map((snapshot) => `<th>${historySnapshotHeader(snapshot)}</th>`).join("")}
-              <th>Average</th>
               <th>Budget</th>
               <th>Projection</th>
+              <th>Average</th>
+              ${completedSnapshots.map((snapshot) => `<th>${historySnapshotHeader(snapshot)}</th>`).join("")}
             </tr>
           </thead>
-          <tbody>${rows.map((row) => historyConceptRow(row, snapshots)).join("")}</tbody>
-          ${historyDeleteTableRow(snapshots)}
+          <tbody>${rows.map((row) => historyConceptRow(row, completedSnapshots)).join("")}</tbody>
+          ${historyDeleteTableRow(completedSnapshots)}
         </table>
       </div>
-      ${snapshots.length ? "" : `<p class="muted history-empty">No snapshots saved for ${currentYear} yet.</p>`}
+      ${completedSnapshots.length ? "" : `<p class="muted history-empty">No completed months saved for ${currentYear} yet. Month-to-date stays in the update date above.</p>`}
     </section>
   `;
 }
@@ -767,8 +768,8 @@ function historyDeleteTableRow(snapshots) {
   return `<tfoot>
     <tr class="history-delete-table-row">
       <td><strong>Delete Month</strong></td>
-      ${snapshots.map((snapshot) => `<td>${historySnapshotKind(snapshot) === "final" ? `<button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete ${historySnapshotTitle(snapshot)}">X</button>` : ""}</td>`).join("")}
       <td></td><td></td><td></td>
+      ${snapshots.map((snapshot) => `<td><button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete ${historySnapshotTitle(snapshot)}">X</button></td>`).join("")}
     </tr>
   </tfoot>`;
 }
@@ -894,10 +895,10 @@ function historyConceptRow(row, snapshots) {
   const average = values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0;
   return `<tr>
     <td><strong>${row.label}</strong></td>
-    ${values.map((value) => `<td>${money(value)}</td>`).join("")}
-    <td>${money(average)}</td>
     <td>${money(row.budget)}</td>
     <td>${money(row.projected)}</td>
+    <td>${money(average)}</td>
+    ${values.map((value) => `<td>${money(value)}</td>`).join("")}
   </tr>`;
 }
 
