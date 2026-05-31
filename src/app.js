@@ -747,7 +747,7 @@ function historyPage() {
           <thead>
             <tr class="history-date-row">
               <th></th>
-              <th colspan="2">Last update: ${displayShortDate(monthToDateSnapshot?.generatedDate || monthToDateSnapshot?.savedAt) || "Not updated"}</th>
+              <th class="history-update-cell" colspan="2">Last update: ${displayShortDate(monthToDateSnapshot?.generatedDate || monthToDateSnapshot?.savedAt) || "Not updated"}</th>
               <th></th>
               ${completedSnapshots.map(() => "<th></th>").join("")}
             </tr>
