@@ -720,7 +720,7 @@ function historyPage() {
   const snapshots = (state.historySnapshots || [])
     .filter((snapshot) => Number(snapshot.year) === currentYear)
     .sort(historySnapshotSort);
-  const completedSnapshots = snapshots.filter((snapshot) => historySnapshotKind(snapshot) === "final");
+  const completedSnapshots = snapshots.filter((snapshot) => historySnapshotKind(snapshot) === "final").slice(-12);
   const monthToDateSnapshot = snapshots.find((snapshot) => snapshot.month === state.month && historySnapshotKind(snapshot) === "mtd");
   const rows = historyConceptRows();
   return `
@@ -748,15 +748,15 @@ function historyPage() {
             <tr class="history-date-row">
               <th></th>
               <th class="history-update-cell" colspan="2">Last update: ${displayShortDate(monthToDateSnapshot?.generatedDate || monthToDateSnapshot?.savedAt) || "Not updated"}</th>
-              <th></th>
-              ${completedSnapshots.map(() => "<th></th>").join("")}
+              ${completedSnapshots.length ? `<th class="history-month-group" colspan="${completedSnapshots.length}">Month</th>` : ""}
+              <th class="history-year-group">Year ${currentYear}</th>
             </tr>
             <tr>
               <th>Concept</th>
               <th>Budget</th>
               <th>Projection</th>
-              <th>Average Year</th>
-              ${completedSnapshots.map((snapshot) => `<th>${historySnapshotHeader(snapshot)}</th>`).join("")}
+              ${completedSnapshots.map((snapshot) => `<th class="history-month-cell">${historySnapshotHeader(snapshot)}</th>`).join("")}
+              <th class="history-year-cell">Average Year</th>
             </tr>
           </thead>
           <tbody>${rows.map((row) => historyConceptRow(row, completedSnapshots)).join("")}</tbody>
@@ -773,8 +773,9 @@ function historyDeleteTableRow(snapshots) {
   return `<tfoot>
     <tr class="history-delete-table-row">
       <td><strong>Delete Month</strong></td>
-      <td></td><td></td><td></td>
-      ${snapshots.map((snapshot) => `<td><button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete ${historySnapshotTitle(snapshot)}">X</button></td>`).join("")}
+      <td></td><td></td>
+      ${snapshots.map((snapshot) => `<td class="history-month-cell"><button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete ${historySnapshotTitle(snapshot)}">X</button></td>`).join("")}
+      <td class="history-year-cell"></td>
     </tr>
   </tfoot>`;
 }
@@ -902,8 +903,8 @@ function historyConceptRow(row, snapshots) {
     <td><strong>${row.label}</strong></td>
     <td>${money(row.budget)}</td>
     <td>${money(row.projected)}</td>
-    <td>${money(average)}</td>
-    ${values.map((value) => `<td>${money(value)}</td>`).join("")}
+    ${values.map((value) => `<td class="history-month-cell">${money(value)}</td>`).join("")}
+    <td class="history-year-cell">${money(average)}</td>
   </tr>`;
 }
 
@@ -1978,13 +1979,22 @@ function bindEvents() {
 
 function saveHistorySnapshot(kind) {
   const snapshot = createHistorySnapshot(kind);
-  state.historySnapshots = [
+  state.historySnapshots = limitCompletedHistorySnapshots([
     ...(state.historySnapshots || []).filter((item) => !(item.month === snapshot.month && historySnapshotKind(item) === snapshot.kind)),
     snapshot,
-  ];
+  ]);
   state.dataNotice = `${snapshot.label} history saved for ${snapshot.month}.`;
   saveState(state);
   render();
+}
+
+function limitCompletedHistorySnapshots(snapshots) {
+  const monthToDate = snapshots.filter((snapshot) => historySnapshotKind(snapshot) === "mtd");
+  const completed = snapshots
+    .filter((snapshot) => historySnapshotKind(snapshot) === "final")
+    .sort((a, b) => String(a.month).localeCompare(String(b.month)))
+    .slice(-12);
+  return [...monthToDate, ...completed].sort(historySnapshotSort);
 }
 
 render();

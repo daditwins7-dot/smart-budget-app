@@ -1371,7 +1371,7 @@ select {
 }
 
 .history-table {
-  min-width: 760px;
+  min-width: 720px;
   table-layout: fixed;
   width: max-content;
 }
@@ -1390,21 +1390,26 @@ select {
 .history-table td:first-child {
   text-align: left;
   white-space: normal;
-  width: 260px;
+  width: 240px;
 }
 
 .history-table th:nth-child(2),
 .history-table td:nth-child(2),
 .history-table th:nth-child(3),
-.history-table td:nth-child(3),
-.history-table th:nth-child(4),
-.history-table td:nth-child(4) {
-  width: 120px;
+.history-table td:nth-child(3) {
+  width: 105px;
 }
 
-.history-table th:nth-child(n + 5),
-.history-table td:nth-child(n + 5) {
-  width: 130px;
+.history-month-cell,
+.history-year-cell,
+.history-month-group,
+.history-year-group {
+  width: 125px;
+}
+
+.history-year-cell,
+.history-year-group {
+  border-left: 2px solid var(--line);
 }
 
 .history-table th span,
@@ -1429,6 +1434,11 @@ select {
 
 .history-date-row .history-update-cell {
   text-align: center;
+}
+
+.history-date-row .history-month-group,
+.history-date-row .history-year-group {
+  border-bottom: 1px solid var(--line);
 }
 
 .history-delete-table-row td {
