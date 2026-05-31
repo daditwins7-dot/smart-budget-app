@@ -717,6 +717,7 @@ function projectionSpecialRow(row) {
 
 function historyPage() {
   const currentYear = Number(String(state.month || new Date().getFullYear()).slice(0, 4)) || new Date().getFullYear();
+  upgradeCurrentFinalHistorySnapshot();
   const snapshots = (state.historySnapshots || []).sort(historySnapshotSort);
   const completedSnapshots = snapshots.filter((snapshot) => historySnapshotKind(snapshot) === "final").slice(-12);
   const monthToDateSnapshot = snapshots.find((snapshot) => snapshot.month === state.month && historySnapshotKind(snapshot) === "mtd");
@@ -836,8 +837,20 @@ function createHistorySnapshot(kind = "mtd") {
     miscellaneousActual: p.miscellaneousActual,
     balanceDifference: totalBalanceDifference(p),
     evaluation: model.expenseTotalRow.evaluation.label,
+    historyBasis: "projected",
     concepts: historyProjectedConceptValues(model),
   };
+}
+
+function upgradeCurrentFinalHistorySnapshot() {
+  const currentFinal = (state.historySnapshots || []).find((snapshot) => snapshot.month === state.month && historySnapshotKind(snapshot) === "final");
+  if (!currentFinal || currentFinal.historyBasis === "projected") return;
+  const projectedSnapshot = createHistorySnapshot("final");
+  state.historySnapshots = limitCompletedHistorySnapshots([
+    ...(state.historySnapshots || []).filter((snapshot) => snapshot.id !== currentFinal.id),
+    projectedSnapshot,
+  ]);
+  saveState(state);
 }
 
 function historySnapshotSort(a, b) {

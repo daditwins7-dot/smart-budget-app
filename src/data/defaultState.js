@@ -1,5 +1,5 @@
 export const defaultState = {
-  dataVersion: 7,
+  dataVersion: 8,
   dataNotice: "",
   termsAcceptedVersion: "",
   termsAcceptedAt: "",
@@ -131,6 +131,7 @@ function normalizedHistorySnapshot(snapshot) {
     miscellaneousActual: normalizedNumber(snapshot.miscellaneousActual),
     balanceDifference: normalizedNumber(snapshot.balanceDifference),
     evaluation: snapshot.evaluation || "",
+    historyBasis: snapshot.historyBasis || "",
     concepts: snapshot.concepts && typeof snapshot.concepts === "object" ? normalizedHistoryConcepts(snapshot.concepts) : {},
   };
 }
