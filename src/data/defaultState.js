@@ -1,8 +1,9 @@
 export const defaultState = {
-  dataVersion: 5,
+  dataVersion: 6,
   dataNotice: "",
   termsAcceptedVersion: "",
   termsAcceptedAt: "",
+  historySnapshots: [],
   month: new Date().toISOString().slice(0, 7),
   language: "en",
   regularIncome: 6500,
@@ -52,6 +53,7 @@ export function loadState() {
       ...(saved.transactionFilters || {}),
     };
     saved.transactions = Array.isArray(saved.transactions) ? saved.transactions.map(normalizedTransaction) : [];
+    saved.historySnapshots = Array.isArray(saved.historySnapshots) ? saved.historySnapshots.map(normalizedHistorySnapshot) : [];
     saved.expenses = saved.expenses.map((line) => ({
       ...line,
       concept:
@@ -100,6 +102,33 @@ function normalizedTransaction(tx) {
   };
 }
 
+function normalizedHistorySnapshot(snapshot) {
+  return {
+    id: snapshot.id || crypto.randomUUID(),
+    month: snapshot.month || "",
+    year: normalizedNumber(snapshot.year),
+    savedAt: snapshot.savedAt || "",
+    availableBudget: normalizedNumber(snapshot.availableBudget),
+    availableActual: normalizedNumber(snapshot.availableActual),
+    availableProjected: normalizedNumber(snapshot.availableProjected),
+    expensesBudget: normalizedNumber(snapshot.expensesBudget),
+    expensesActual: normalizedNumber(snapshot.expensesActual),
+    expensesProjected: normalizedNumber(snapshot.expensesProjected),
+    cashFlowInitial: normalizedNumber(snapshot.cashFlowInitial),
+    cashFlowActual: normalizedNumber(snapshot.cashFlowActual),
+    cashFlowProjected: normalizedNumber(snapshot.cashFlowProjected),
+    savingsBudget: normalizedNumber(snapshot.savingsBudget),
+    savingsActual: normalizedNumber(snapshot.savingsActual),
+    savingsProjected: normalizedNumber(snapshot.savingsProjected),
+    creditCardPayments: normalizedNumber(snapshot.creditCardPayments),
+    creditCardExpenses: normalizedNumber(snapshot.creditCardExpenses),
+    creditCardDifference: normalizedNumber(snapshot.creditCardDifference),
+    miscellaneousActual: normalizedNumber(snapshot.miscellaneousActual),
+    balanceDifference: normalizedNumber(snapshot.balanceDifference),
+    evaluation: snapshot.evaluation || "",
+  };
+}
+
 function normalizedReference(line) {
   if (line.group === "debts") {
     if (line.id === "housing") return "1";
@@ -134,6 +163,7 @@ export function reconcileState(state) {
     },
   };
   reconciled.transactions = Array.isArray(state.transactions) ? state.transactions.map(normalizedTransaction) : [];
+  reconciled.historySnapshots = Array.isArray(state.historySnapshots) ? state.historySnapshots.map(normalizedHistorySnapshot) : [];
   reconciled.expenses = Array.isArray(state.expenses)
     ? state.expenses.map((line) => ({
         ...line,

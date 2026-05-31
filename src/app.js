@@ -4,11 +4,11 @@ import { copy } from "./i18n/index.js";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
-let page = ["dashboard", "budget", "transactions", "projections", "smartModel", "evaluation", "help", "settings"].includes(initialPage)
+let page = ["dashboard", "budget", "transactions", "projections", "history", "smartModel", "evaluation", "help", "settings"].includes(initialPage)
   ? initialPage
   : "dashboard";
 const app = document.querySelector("#app");
-const validPages = ["dashboard", "budget", "transactions", "projections", "smartModel", "evaluation", "help", "settings"];
+const validPages = ["dashboard", "budget", "transactions", "projections", "history", "smartModel", "evaluation", "help", "settings"];
 const TERMS_VERSION = "2026-05-31";
 let helpMessages = initialHelpMessages();
 let showTermsModal = false;
@@ -48,6 +48,7 @@ function render() {
       ${navButton("budget", t.budget)}
       ${navButton("transactions", t.transactions)}
       ${navButton("projections", t.projections)}
+      ${navButton("history", t.history || "History")}
       ${navButton("smartModel", t.smartModel || "Smart Model")}
       ${navButton("evaluation", t.evaluation)}
       ${navButton("help", t.help || "Smart Help Chat")}
@@ -67,6 +68,7 @@ function render() {
       ${page === "budget" ? budgetSetup(projection) : ""}
       ${page === "transactions" ? transactions() : ""}
       ${page === "projections" ? projections() : ""}
+      ${page === "history" ? historyPage() : ""}
       ${page === "smartModel" ? smartModelPage() : ""}
       ${page === "evaluation" ? evaluation(projection) : ""}
       ${page === "help" ? smartHelpPage(projection) : ""}
@@ -711,6 +713,127 @@ function projectionDetailRow(row) {
 
 function projectionSpecialRow(row) {
   return `<tr class="status-${row.evaluation.key}"><td><strong>${row.label}</strong></td><td>${money(row.payments)}</td><td>${money(row.expenses)}</td><td class="${row.difference < 0 ? "danger" : "ok"}">${money(row.difference)}</td><td>${evaluationResult(row.evaluation)}</td></tr>`;
+}
+
+function historyPage() {
+  const currentYear = Number(String(state.month || new Date().getFullYear()).slice(0, 4)) || new Date().getFullYear();
+  const snapshots = (state.historySnapshots || [])
+    .filter((snapshot) => Number(snapshot.year) === currentYear)
+    .sort((a, b) => String(a.month).localeCompare(String(b.month)));
+  return `
+    <section class="panel history-panel">
+      <div class="history-head">
+        <div>
+          <h2>History</h2>
+          <p class="muted">Save monthly snapshots to compare budget, actual, and projected results for the current year.</p>
+        </div>
+        <button class="primary" type="button" data-save-history-snapshot>Save Month Snapshot</button>
+      </div>
+      <div class="history-summary-grid">
+        ${historySummaryCards(snapshots).join("")}
+      </div>
+    </section>
+    <section class="panel history-panel">
+      <h2>${currentYear} Monthly Results</h2>
+      <div class="table-wrap">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Avail. Budget</th>
+              <th>Avail. Actual</th>
+              <th>Avail. Projected</th>
+              <th>Exp. Budget</th>
+              <th>Exp. Actual</th>
+              <th>Exp. Projected</th>
+              <th>Cash End</th>
+              <th>Savings</th>
+              <th>Cards Diff.</th>
+              <th>Misc. Actual</th>
+              <th>Balance Diff.</th>
+              <th>Evaluation</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>${snapshots.length ? snapshots.map(historySnapshotRow).join("") : `<tr><td colspan="14" class="muted">No snapshots saved for ${currentYear} yet.</td></tr>`}</tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
+function historySummaryCards(snapshots) {
+  if (!snapshots.length) {
+    return [
+      historyMetric("Snapshots", "0", "Save the current month to start history."),
+      historyMetric("Average Cash End", money(0), "Current year"),
+      historyMetric("Average Expenses Actual", money(0), "Current year"),
+      historyMetric("Average Misc. Actual", money(0), "Current year"),
+    ];
+  }
+  const avg = (field) => snapshots.reduce((total, snapshot) => total + Number(snapshot[field] || 0), 0) / snapshots.length;
+  const total = (field) => snapshots.reduce((sum, snapshot) => sum + Number(snapshot[field] || 0), 0);
+  return [
+    historyMetric("Snapshots", String(snapshots.length), "Saved months this year"),
+    historyMetric("Average Cash End", money(avg("cashFlowProjected")), "Month-end projection"),
+    historyMetric("Average Expenses Actual", money(avg("expensesActual")), "Actual expenses average"),
+    historyMetric("Average Misc. Actual", money(avg("miscellaneousActual")), "Calculated actual miscellaneous"),
+    historyMetric("Average Balance Diff.", money(avg("balanceDifference")), "Should stay near zero"),
+    historyMetric("Cards Net Difference", money(total("creditCardDifference")), "Payments minus card purchases"),
+  ];
+}
+
+function historyMetric(label, value, detail) {
+  return `<article class="history-metric"><span>${label}</span><strong>${value}</strong><small>${detail}</small></article>`;
+}
+
+function historySnapshotRow(snapshot) {
+  const statusClass = Math.abs(Number(snapshot.balanceDifference || 0)) < 0.01 ? "ok" : "danger";
+  return `<tr>
+    <td><strong>${snapshot.month}</strong><small>${snapshot.savedAt ? new Date(snapshot.savedAt).toLocaleDateString("en-US") : ""}</small></td>
+    <td>${money(snapshot.availableBudget)}</td>
+    <td>${money(snapshot.availableActual)}</td>
+    <td>${money(snapshot.availableProjected)}</td>
+    <td>${money(snapshot.expensesBudget)}</td>
+    <td>${money(snapshot.expensesActual)}</td>
+    <td>${money(snapshot.expensesProjected)}</td>
+    <td>${money(snapshot.cashFlowProjected)}</td>
+    <td>${money(snapshot.savingsProjected)}</td>
+    <td class="${snapshot.creditCardDifference < 0 ? "danger" : "ok"}">${money(snapshot.creditCardDifference)}</td>
+    <td class="${snapshot.miscellaneousActual < 0 ? "danger" : ""}">${money(snapshot.miscellaneousActual)}</td>
+    <td class="${statusClass}">${money(snapshot.balanceDifference)}</td>
+    <td>${snapshot.evaluation || ""}</td>
+    <td><button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete snapshot">x</button></td>
+  </tr>`;
+}
+
+function createHistorySnapshot() {
+  const model = projectionAnalysisModel(state);
+  const p = model.projection;
+  return {
+    id: crypto.randomUUID(),
+    month: state.month,
+    year: Number(String(state.month).slice(0, 4)) || new Date().getFullYear(),
+    savedAt: new Date().toISOString(),
+    availableBudget: p.budgetAvailableForExpenses,
+    availableActual: p.actualAvailableForExpenses,
+    availableProjected: p.projectedAvailableForExpenses,
+    expensesBudget: p.totalExpensesBudget,
+    expensesActual: p.totalActualExpenses,
+    expensesProjected: p.totalProjectedExpenses,
+    cashFlowInitial: Number(state.initialCashFlow || 0),
+    cashFlowActual: Number(state.currentCashFlow || 0),
+    cashFlowProjected: p.expectedEndCashFlow,
+    savingsBudget: Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0),
+    savingsActual: Number(state.currentSavings || 0),
+    savingsProjected: p.projectedSavings,
+    creditCardPayments: model.creditCardRow.payments,
+    creditCardExpenses: model.creditCardRow.expenses,
+    creditCardDifference: model.creditCardRow.difference,
+    miscellaneousActual: p.miscellaneousActual,
+    balanceDifference: totalBalanceDifference(p),
+    evaluation: model.expenseTotalRow.evaluation.label,
+  };
 }
 
 function smartModelPage() {
@@ -1697,6 +1820,23 @@ function bindEvents() {
     showTermsModal = false;
     saveState(state);
     render();
+  });
+  document.querySelector("[data-save-history-snapshot]")?.addEventListener("click", () => {
+    const snapshot = createHistorySnapshot();
+    state.historySnapshots = [
+      ...(state.historySnapshots || []).filter((item) => item.month !== snapshot.month),
+      snapshot,
+    ];
+    state.dataNotice = `History snapshot saved for ${snapshot.month}.`;
+    saveState(state);
+    render();
+  });
+  document.querySelectorAll("[data-remove-history-snapshot]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.historySnapshots = (state.historySnapshots || []).filter((item) => item.id !== button.dataset.removeHistorySnapshot);
+      saveState(state);
+      render();
+    });
   });
   document.querySelector("#reset")?.addEventListener("click", () => {
     state = resetState();
