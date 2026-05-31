@@ -1030,6 +1030,13 @@ function smartHelpPage(p) {
       <div class="help-chat" aria-live="polite">
         ${helpMessages.map(helpMessageBubble).join("")}
       </div>
+      <div class="help-start-guide">
+        <div>
+          <strong>${helpText("startGuideTitle")}</strong>
+          <span>${helpText("startGuideText")}</span>
+        </div>
+        <button class="primary" type="button" data-start-guide>${helpText("startGuideButton")}</button>
+      </div>
       <form id="help-form" class="help-form">
         <input name="question" autocomplete="off" placeholder="${helpText("placeholder")}" />
         <button type="submit">${helpText("ask")}</button>
@@ -1071,6 +1078,9 @@ function helpText(key) {
       placeholder: "Ask about cash flow, savings, cards, miscellaneous, or balance mismatch",
       ask: "Ask",
       clear: "Clear chat",
+      startGuideTitle: "New user?",
+      startGuideText: "Use a short guided flow to learn the first steps.",
+      startGuideButton: "Start Guide",
       disclaimer:
         "Smart Help Chat explains this budget and its projections. It does not replace financial, tax, legal, credit, or investment advice.",
       signalsTitle: "Current budget signals",
@@ -1085,6 +1095,9 @@ function helpText(key) {
       placeholder: "Pregunta sobre flujo, ahorros, tarjetas, miscelaneos o desbalance",
       ask: "Preguntar",
       clear: "Borrar chat",
+      startGuideTitle: "Usuario nuevo?",
+      startGuideText: "Usa una guia corta para aprender los primeros pasos.",
+      startGuideButton: "Iniciar guia",
       disclaimer:
         "Smart Help Chat explica este presupuesto y sus proyecciones. No reemplaza asesoria financiera, fiscal, legal, crediticia ni de inversion.",
       signalsTitle: "Senales actuales del presupuesto",
@@ -1104,6 +1117,7 @@ function helpQuickQuestions() {
       "How do credit card purchases affect the budget?",
       "What do I need to focus on?",
       "What does Ref mean?",
+      "Show me the first steps",
       "How do I start a new month?",
     ],
     es: [
@@ -1114,6 +1128,7 @@ function helpQuickQuestions() {
       "Como afectan las compras con tarjeta al presupuesto?",
       "En que debo enfocarme?",
       "Que significa Ref?",
+      "Muestrame los primeros pasos",
       "Como inicio un nuevo mes?",
     ],
   };
@@ -1146,6 +1161,10 @@ function answerHelpQuestion(question, p) {
 function smartHelpTopics(p) {
   const balanceGap = Math.abs(Number(p.actualBalanceDifference || 0)) + Math.abs(Number(p.projectedBalanceDifference || 0));
   return [
+    {
+      keywords: ["start guide", "first steps", "start using", "how do i start", "what should i enter first", "new user", "primeros pasos", "como empiezo", "como iniciar", "usuario nuevo", "que debo ingresar primero", "guia"],
+      answer: smartHelpStartGuideAnswer(),
+    },
     {
       keywords: ["focus", "improve", "priority", "priorities", "review first", "what do i need", "where should i start", "mejorar", "enfocar", "prioridad", "prioridades", "que reviso", "que debo revisar"],
       answer: smartHelpFocusAnswer(p),
@@ -1268,6 +1287,29 @@ function smartHelpReferenceAnswer() {
   return bilingual(
     "Ref is the comparative budget group number. It links each budget concept to Smart Model groups, so the system can compare your budget distribution with the reference model. In some sections the Ref is fixed, such as Other Debts = 3 and Miscellaneous = 14.",
     "Ref es el numero de grupo comparativo del presupuesto. Conecta cada concepto con los grupos de Smart Model para comparar la distribucion del presupuesto con el modelo de referencia. En algunas secciones el Ref es fijo, por ejemplo Other Debts = 3 y Miscellaneous = 14.",
+  );
+}
+
+function smartHelpStartGuideAnswer() {
+  return bilingual(
+    [
+      "Start with these steps:",
+      "1. Budget Setup: enter monthly income, initial cash flow, planned savings, expense concepts, due days, and credit card budget.",
+      "2. Update Transactions: enter current Cash Flow, current Savings, actual income deposits, expense payments, card purchases, and card payments.",
+      "3. Projection Analysis: confirm Available Income and Total Expenses match in Budget, Actual, and Projected.",
+      "4. Review alerts: fix balance mismatch, negative Actual Miscellaneous, cash flow risk, overdue payments, or missed savings deposit.",
+      "5. Use Smart Help Chat during the month when a number does not make sense.",
+      "6. New month: use New month: reset actuals only, then enter the new actual balances and movements.",
+    ].join("\n"),
+    [
+      "Empieza con estos pasos:",
+      "1. Budget Setup: ingresa ingresos mensuales, flujo inicial, ahorro planeado, conceptos de gastos, dias de vencimiento y presupuesto de tarjetas.",
+      "2. Update Transactions: ingresa Cash Flow actual, Savings actual, depositos de ingresos, pagos de gastos, compras con tarjeta y pagos de tarjeta.",
+      "3. Projection Analysis: confirma que Available Income y Total Expenses coincidan en Budget, Actual y Projected.",
+      "4. Revisa alertas: corrige desbalance, Miscelaneos Actual negativo, riesgo de flujo, pagos vencidos o ahorro no depositado.",
+      "5. Usa Smart Help Chat durante el mes cuando un numero no tenga sentido.",
+      "6. Nuevo mes: usa New month: reset actuals only, despues ingresa los nuevos balances y movimientos actuales.",
+    ].join("\n"),
   );
 }
 
@@ -1629,6 +1671,13 @@ function bindEvents() {
   });
   document.querySelectorAll("[data-help-question]").forEach((button) => {
     button.addEventListener("click", () => submitHelpQuestion(button.dataset.helpQuestion));
+  });
+  document.querySelector("[data-start-guide]")?.addEventListener("click", () => {
+    helpMessages = [
+      ...helpMessages,
+      { role: "assistant", text: smartHelpStartGuideAnswer() },
+    ].slice(-10);
+    render();
   });
   document.querySelector("[data-clear-help-chat]")?.addEventListener("click", () => {
     helpMessages = initialHelpMessages();

@@ -670,6 +670,7 @@ h2 {
 }
 
 .help-message p {
+  white-space: pre-line;
   font-size: 14px;
   line-height: 1.45;
   margin: 0;
@@ -700,6 +701,32 @@ h2 {
   display: grid;
   gap: 10px;
   grid-template-columns: 1fr auto;
+}
+
+.help-start-guide {
+  align-items: center;
+  background: #f0fbfb;
+  border: 1px solid #b7e5e6;
+  border-radius: 12px;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+
+.help-start-guide div {
+  display: grid;
+  gap: 3px;
+}
+
+.help-start-guide strong {
+  color: var(--nav);
+  font-size: 14px;
+}
+
+.help-start-guide span {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .help-form input {
@@ -2569,11 +2596,13 @@ th {
 
 @media (max-width: 700px) {
   .help-intro,
-  .help-form {
+  .help-form,
+  .help-start-guide {
     grid-template-columns: 1fr;
   }
 
-  .help-intro {
+  .help-intro,
+  .help-start-guide {
     display: grid;
   }
 
