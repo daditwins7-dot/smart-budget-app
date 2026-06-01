@@ -1226,6 +1226,11 @@ h2 {
   border-radius: 8px;
 }
 
+.language-setting,
+.form-grid label:has([data-field="language"]) {
+  display: none;
+}
+
 .metric {
   padding: 18px;
   display: grid;

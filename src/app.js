@@ -37,7 +37,7 @@ function initialHelpMessages() {
 }
 
 function render() {
-  const t = copy[state.language] || copy.en;
+  const t = copy.en;
   const currentPageTitle = t[page] || copy.en[page] || "Smart Model";
   const dashboardData = dashboardModel(state, appToday());
   const projection = dashboardData.projection;
@@ -88,8 +88,7 @@ function navButton(id, label) {
 }
 
 function ui(key) {
-  const labels = copy[state.language] || copy.en;
-  return labels[key] || copy.en[key] || key;
+  return copy.en[key] || key;
 }
 
 function termsAccepted() {
@@ -1357,7 +1356,7 @@ function helpMessageBubble(message) {
 }
 
 function helpLanguage() {
-  return state.language === "es" ? "es" : "en";
+  return "en";
 }
 
 function helpText(key) {
@@ -1738,7 +1737,7 @@ function escapeHtml(value) {
 function settings() {
   return `
     <section class="form-grid">
-      <label>Language<select data-field="language">
+      <label class="language-setting">Language<select data-field="language">
         <option value="en" ${state.language === "en" ? "selected" : ""}>English</option>
         <option value="es" ${state.language === "es" ? "selected" : ""}>Español</option>
       </select></label>
