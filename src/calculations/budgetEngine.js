@@ -574,11 +574,17 @@ function buildAlerts(state, miscellaneousRaw, miscellaneousActualRaw, miscellane
     alerts.push("Crisis mode: keep the deficit visible until a revised budget is confirmed.");
   }
   if (miscellaneousProjected < 0) alerts.push("Projected deficit: current cash balance reduces miscellaneous below zero.");
-  if (state.savingsDepositDay < today.getDate() && numeric(state.currentSavings) < projectedSavings) {
-    alerts.push("Savings deposit date passed and current savings does not reflect the budgeted deposit.");
+  if (savingsPlanMismatch(state, today)) {
+    alerts.push("Savings plan mismatch: the deposit date passed and current savings does not match Savings Initial plus Budgeted Savings. Update Budgeted Savings if the planned deposit changed before relying on projections.");
   }
   if (numeric(state.currentCashFlow) < 0) alerts.push("Current cash flow is below zero.");
   return alerts;
+}
+
+function savingsPlanMismatch(state, today) {
+  const depositDatePassed = numeric(state.savingsDepositDay) < today.getDate();
+  const expectedSavings = numeric(state.initialSavings) + numeric(state.budgetedSavings);
+  return depositDatePassed && Math.abs(numeric(state.currentSavings) - expectedSavings) > 0.01;
 }
 
 function clamp(value, min, max) {

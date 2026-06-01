@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260601h";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260601h";
-import { copy } from "./i18n/index.js?v=20260601h";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260601i";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260601i";
+import { copy } from "./i18n/index.js?v=20260601i";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -187,10 +187,19 @@ function dataQualityIssues(p) {
   if (Number(p.miscellaneousActualRaw || 0) < 0) {
     issues.push("Actual Miscellaneous is negative. This usually means transactions or balances are missing; correct Cash Flow, Savings, income, card purchases, or payments before continuing.");
   }
+  if (savingsPlanMismatchForCurrentDate()) {
+    issues.push("Savings plan mismatch. The savings deposit date passed, but current Savings does not match Savings Initial plus Budgeted Savings. If the planned savings amount changed, update Budgeted Savings in Budget Setup before relying on projections.");
+  }
   if (Math.abs(Number(p.actualBalanceDifference || 0)) > 0.01 || Math.abs(Number(p.projectedBalanceDifference || 0)) > 0.01) {
     issues.push("Balance check is not zero. Use Synchronize and recalculate first; if numbers remain wrong, reset actual month data and re-enter balances and transactions.");
   }
   return issues;
+}
+
+function savingsPlanMismatchForCurrentDate() {
+  const depositDatePassed = Number(state.savingsDepositDay || 0) < appToday().getDate();
+  const expectedSavings = Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0);
+  return depositDatePassed && Math.abs(Number(state.currentSavings || 0) - expectedSavings) > 0.01;
 }
 
 function dashboard(model) {
