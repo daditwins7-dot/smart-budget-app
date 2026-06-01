@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260601l";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260601l";
-import { copy } from "./i18n/index.js?v=20260601l";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260601m";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260601m";
+import { copy } from "./i18n/index.js?v=20260601m";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -534,6 +534,7 @@ function actualControlNotes() {
       <li>If the planned savings amount changed, update Budgeted Savings in Budget Setup; otherwise projected miscellaneous and available income can be wrong.</li>
       <li>If savings were used for payments, adjust the Savings balance and record the related payment or cash movement.</li>
       <li>Select Cash or Credit card correctly. Payment method changes cash flow, card balance, and projected totals.</li>
+      <li>If a credit card is used for an unbudgeted purchase, record it under the closest budget expense group; otherwise it will not be included in available income or accumulated credit card expenses.</li>
       <li>Miscellaneous is calculated by the system from balances and activity; do not record it as a transaction.</li>
     </ul>
   </section>`;

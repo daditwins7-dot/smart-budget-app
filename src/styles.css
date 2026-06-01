@@ -1580,6 +1580,16 @@ th {
   margin-bottom: 22px;
 }
 
+.actual-balance-grid label {
+  align-content: start;
+  display: grid;
+  grid-template-rows: 20px 42px minmax(30px, auto);
+}
+
+.actual-balance-grid input {
+  height: 42px;
+}
+
 .actual-balance-grid small {
   color: var(--muted);
   font-size: 11px;
