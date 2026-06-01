@@ -1692,6 +1692,32 @@ th {
   padding-top: 12px;
 }
 
+.important-notes {
+  background: #fffbeb;
+  border: 1px solid #f5d287;
+  border-radius: 8px;
+  color: #7c2d12;
+  margin: 14px 0;
+  padding: 12px 14px;
+}
+
+.important-notes strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.important-notes ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.important-notes li {
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 3px 0;
+}
+
 .projection-panel h2 {
   margin-bottom: 12px;
 }

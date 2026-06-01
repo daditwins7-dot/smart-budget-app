@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260601k";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260601k";
-import { copy } from "./i18n/index.js?v=20260601k";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260601l";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260601l";
+import { copy } from "./i18n/index.js?v=20260601l";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -480,6 +480,7 @@ function transactions() {
           <small>${updateCurrent ? "Balances updated today" : "Update balances for today"}</small>
         </label>
       </section>
+      ${actualControlNotes()}
       <form id="tx-form" class="transaction-form">
         <input name="date" type="date" value="${today}" />
         <select name="type" id="tx-type">
@@ -523,6 +524,19 @@ function transactions() {
       <p class="transaction-rules">Only budgeted expense concepts are available for tracking. Miscellaneous is calculated by the system and is not recorded here. Payment Method is required for accurate cash flow and credit card balances; select Cash or Credit card correctly for each expense. Credit card expenses and payments are accumulated totals; identify individual card activity in Comment. Savings are not recorded as transactions because bank balances define increases or reductions; when savings are used for payments, reduce the savings balance and increase payments or cash flow as applicable.</p>
     </section>
   `;
+}
+
+function actualControlNotes() {
+  return `<section class="important-notes" aria-label="Important actual data controls">
+    <strong>Important control notes</strong>
+    <ul>
+      <li>Update Cash Flow and Savings with real current balances before trusting projections.</li>
+      <li>If the planned savings amount changed, update Budgeted Savings in Budget Setup; otherwise projected miscellaneous and available income can be wrong.</li>
+      <li>If savings were used for payments, adjust the Savings balance and record the related payment or cash movement.</li>
+      <li>Select Cash or Credit card correctly. Payment method changes cash flow, card balance, and projected totals.</li>
+      <li>Miscellaneous is calculated by the system from balances and activity; do not record it as a transaction.</li>
+    </ul>
+  </section>`;
 }
 
 function localDateValue(date = appToday()) {
@@ -587,6 +601,7 @@ function projections() {
       <div class="projection-top-grid">
         <div>
           <h2>Available Income</h2>
+          <p class="muted projection-note">Before making decisions, confirm current balances, Budgeted Savings, payment method, and alerts. Available Income and Total Expenses must remain aligned.</p>
           <div class="projection-grid projection-grid-header">
             <span>Group</span><span>Budget</span><span>Actual</span><span>Projected</span><span>Remaining</span><span>% Paid</span><span>Evaluation</span>
           </div>
