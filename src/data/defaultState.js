@@ -4,7 +4,7 @@ export const defaultState = {
   termsAcceptedVersion: "",
   termsAcceptedAt: "",
   historySnapshots: [],
-  month: new Date().toISOString().slice(0, 7),
+  month: currentMonthValue(),
   language: "en",
   regularIncome: 6500,
   irregularIncome: 300,
@@ -193,11 +193,17 @@ export function reconcileState(state) {
 export function clearActualMonthState(state) {
   return {
     ...reconcileState(state),
+    month: currentMonthValue(),
     transactions: [],
     currentCashFlow: normalizedNumber(state.initialCashFlow, defaultState.initialCashFlow),
     currentSavings: normalizedNumber(state.initialSavings, defaultState.initialSavings),
     lastActualUpdate: "",
-    dataNotice: "Actual month data was reset. Budget values remain; enter current Cash Flow, current Savings, income deposits, expenses, and credit card activity again.",
+    dataNotice: "Actual month data was reset and the budget month was moved to the current month. Budget values remain; enter current Cash Flow, current Savings, income deposits, expenses, and credit card activity again.",
     transactionFilters: structuredClone(defaultState.transactionFilters),
   };
+}
+
+function currentMonthValue(date = new Date()) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${date.getFullYear()}-${month}`;
 }

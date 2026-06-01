@@ -1231,6 +1231,10 @@ h2 {
   display: none;
 }
 
+.form-grid:has(.language-setting:only-child) {
+  display: none;
+}
+
 .metric {
   padding: 18px;
   display: grid;

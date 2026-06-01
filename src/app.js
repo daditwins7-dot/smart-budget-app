@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js";
-import { copy } from "./i18n/index.js";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260601c";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260601c";
+import { copy } from "./i18n/index.js?v=20260601c";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -296,7 +296,7 @@ function budgetSetup(p) {
           <p class="board-heading">${ui("budget")}</p>
           <div class="dashboard-brand"><span aria-hidden="true"></span>SMART BUDGET</div>
         </div>
-        <input type="month" data-field="month" value="${state.month}" aria-label="Budget month" />
+        <div class="month-chip">${state.month}</div>
       </header>
       <section class="budget-section">
         <h2>${ui("income")}</h2>
@@ -1741,7 +1741,6 @@ function settings() {
         <option value="en" ${state.language === "en" ? "selected" : ""}>English</option>
         <option value="es" ${state.language === "es" ? "selected" : ""}>Español</option>
       </select></label>
-      <label>Month<input type="month" data-field="month" value="${state.month}"/></label>
     </section>
     <section class="panel">
       <h2>Reference model</h2>
