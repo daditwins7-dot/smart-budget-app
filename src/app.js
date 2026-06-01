@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260601d";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260601d";
-import { copy } from "./i18n/index.js?v=20260601d";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260601e";
+import { loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260601e";
+import { copy } from "./i18n/index.js?v=20260601e";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -208,7 +208,6 @@ function dashboard(model) {
           <div><dt>${ui("remainDays")}</dt><dd>${model.period.remainingDays}</dd></div>
         </dl>
       </header>
-      ${dashboardMonthResetPanel()}
       <div class="dashboard-table-wrap">
         <table class="dashboard-summary">
           <thead><tr><th>${ui("concept")}</th><th>${ui("budgetLabel")}</th><th>${ui("projected")}</th><th>${ui("evaluationLabel")}</th></tr></thead>
@@ -243,16 +242,6 @@ function dashboard(model) {
       </footer>
     </section>
   `;
-}
-
-function dashboardMonthResetPanel() {
-  return `<section class="dashboard-month-reset">
-    <div>
-      <strong>Start current month</strong>
-      <p>This button deletes only current actual values and transactions, keeps the budget setup, and sets the budget month to the current calendar month.</p>
-    </div>
-    <button class="danger-button" type="button" data-clear-actual-month>Reset current actuals only</button>
-  </section>`;
 }
 
 function dashboardRow(row) {
@@ -1562,8 +1551,8 @@ function smartHelpTopics(p) {
     {
       keywords: ["new", "month", "mes", "nuevo", "reset", "borrar", "clear"],
       answer: bilingual(
-        "Use Reset current actuals only from Dashboard when starting the current calendar month. It clears current transactions and actual balances, but it keeps the budget setup so you can enter current month data again.",
-        "Usa Reset current actuals only desde Dashboard al iniciar el mes calendario actual. Borra transacciones y balances actuales, pero mantiene el presupuesto para ingresar otra vez los datos del mes actual.",
+        "The month reset control is intentionally not shown during normal use to prevent accidental deletion of actual values. Review the budget first, then make month changes only after confirming the current month should be cleared.",
+        "El control para reiniciar el mes no se muestra durante el uso normal para evitar borrar valores actuales por error. Revisa primero el presupuesto y cambia el mes solo despues de confirmar que el mes actual debe borrarse.",
       ),
     },
     {
@@ -1599,7 +1588,7 @@ function smartHelpStartGuideAnswer() {
       "3. Projection Analysis: confirm Available Income and Total Expenses match in Budget, Actual, and Projected.",
       "4. Review alerts: fix balance mismatch, negative Actual Miscellaneous, cash flow risk, overdue payments, or missed savings deposit.",
       "5. Use Smart Help Chat during the month when a number does not make sense.",
-      "6. New month: use Reset current actuals only on Dashboard, then enter the current actual balances and movements.",
+      "6. New month: review results first, then clear current actuals only after confirming the month should be restarted.",
     ].join("\n"),
     [
       "Empieza con estos pasos:",
@@ -1608,7 +1597,7 @@ function smartHelpStartGuideAnswer() {
       "3. Projection Analysis: confirma que Available Income y Total Expenses coincidan en Budget, Actual y Projected.",
       "4. Revisa alertas: corrige desbalance, Miscelaneos Actual negativo, riesgo de flujo, pagos vencidos o ahorro no depositado.",
       "5. Usa Smart Help Chat durante el mes cuando un numero no tenga sentido.",
-      "6. Nuevo mes: usa Reset current actuals only en Dashboard, despues ingresa los balances y movimientos actuales.",
+      "6. Nuevo mes: revisa resultados primero y borra los valores actuales solo despues de confirmar que el mes debe reiniciarse.",
     ].join("\n"),
   );
 }
@@ -1884,17 +1873,6 @@ function bindEvents() {
     button.addEventListener("click", () => {
       state = reconcileState(state);
       state.dataNotice = `Saved data synchronized and recalculated on ${new Date().toLocaleString("en-US")}. If numbers still differ, reset actual month data and re-enter balances and transactions.`;
-      saveState(state);
-      render();
-    });
-  });
-  document.querySelectorAll("[data-clear-actual-month]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const confirmed = window.confirm(
-        "This will delete only current actual values and transactions, keep the budget setup, and set the budget month to the current calendar month. Continue?",
-      );
-      if (!confirmed) return;
-      state = clearActualMonthState(state);
       saveState(state);
       render();
     });
