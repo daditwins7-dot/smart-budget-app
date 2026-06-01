@@ -77,16 +77,19 @@ export function calculateProjection(state, today = new Date()) {
   const actualHouseholdExpenses = actualGroupTotal(state, "household");
   const actualExtraordinaryExpenses = actualGroupTotal(state, "extraordinary");
   const totalControlledActualExpenses = actualCommittedDebts + actualHouseholdExpenses + actualExtraordinaryExpenses;
-  const miscellaneousActualRaw =
+  const actualMiscellaneousBase =
     initialCashFlow +
     actualIncome -
     currentCashFlow -
     totalControlledActualExpenses -
     currentSavings +
-    numeric(state.initialSavings) +
-    initialCashFlow +
+    totalSavingsBudget +
     safeDivide(miscellaneous, timing.daysInMonth) +
     actualCardSpending;
+  const miscellaneousActualRaw =
+    (actualMiscellaneousBase < 0 ? 0 : actualMiscellaneousBase - budgetedSavings) -
+    budgetedSavings +
+    initialCashFlow;
   const miscellaneousActual = miscellaneousActualRaw;
   const totalActualExpenses = totalControlledActualExpenses + miscellaneousActual;
   const actualAvailableForExpenses = totalActualExpenses;
