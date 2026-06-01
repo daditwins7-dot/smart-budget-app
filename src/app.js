@@ -87,6 +87,11 @@ function navButton(id, label) {
   return `<button class="nav-button ${page === id ? "active" : ""}" data-page="${id}">${label}</button>`;
 }
 
+function ui(key) {
+  const labels = copy[state.language] || copy.en;
+  return labels[key] || copy.en[key] || key;
+}
+
 function termsAccepted() {
   return state.termsAcceptedVersion === TERMS_VERSION;
 }
@@ -196,28 +201,28 @@ function dashboard(model) {
     <section class="dashboard-board">
       <header class="dashboard-header">
         <div>
-          <p class="board-heading">Dashboard</p>
+          <p class="board-heading">${ui("dashboard")}</p>
           <div class="dashboard-brand"><span aria-hidden="true"></span>SMART BUDGET</div>
         </div>
         <dl class="period-data">
-          <div><dt>Month</dt><dd>${model.period.monthLabel}</dd></div>
-          <div><dt>Date</dt><dd>${model.period.dateLabel}</dd></div>
-          <div><dt>Remain Days</dt><dd>${model.period.remainingDays}</dd></div>
+          <div><dt>${ui("month")}</dt><dd>${model.period.monthLabel}</dd></div>
+          <div><dt>${ui("date")}</dt><dd>${model.period.dateLabel}</dd></div>
+          <div><dt>${ui("remainDays")}</dt><dd>${model.period.remainingDays}</dd></div>
         </dl>
       </header>
       <div class="dashboard-table-wrap">
         <table class="dashboard-summary">
-          <thead><tr><th>Concept</th><th>Budget</th><th>Projected</th><th>Evaluation</th></tr></thead>
+          <thead><tr><th>${ui("concept")}</th><th>${ui("budgetLabel")}</th><th>${ui("projected")}</th><th>${ui("evaluationLabel")}</th></tr></thead>
           <tbody>
             ${model.conceptRows.map(dashboardRow).join("")}
-            <tr class="table-section-row"><td colspan="4">Total Expense Structure</td></tr>
+            <tr class="table-section-row"><td colspan="4">${ui("totalExpenseStructure")}</td></tr>
             ${model.expenseStructureRows.map(expenseStructureRow).join("")}
             ${creditCardStructureRow(model.creditCardStructure)}
           </tbody>
         </table>
       </div>
       <section class="financial-status">
-        <h2><span aria-hidden="true"></span> Financial Status</h2>
+        <h2><span aria-hidden="true"></span> ${ui("financialStatus")}</h2>
         <div class="status-scale" aria-label="Financial health indicator">
           <i class="good"></i><i class="watch"></i><i class="problem"></i>
           <b style="left:${model.indicatorPosition}%"></b>
@@ -232,10 +237,10 @@ function dashboard(model) {
       ${balanceCorrectionPanel(p, "dashboard")}
       ${actionSuggestionPanel(p, "dashboard")}
       <footer class="signal-guide">
-        <h2>Signals</h2>
-        <p>${signalDot("problem")} Problem</p>
-        <p>${signalDot("watch")} Watch</p>
-        <p>${signalDot("good")} On track</p>
+        <h2>${ui("signals")}</h2>
+        <p>${signalDot("problem")} ${ui("problem")}</p>
+        <p>${signalDot("watch")} ${ui("watch")}</p>
+        <p>${signalDot("good")} ${ui("onTrack")}</p>
       </footer>
     </section>
   `;
@@ -262,10 +267,10 @@ function expenseStructureRow(row) {
 function creditCardStructureRow(row) {
   return `<tr class="detail-row credit-card-structure status-${row.evaluation.key}">
     <td><span class="detail-name">${row.label}</span></td>
-    <td>${rowValues([{ label: "Budget", value: row.budget }])}</td>
+    <td>${rowValues([{ label: ui("budgetLabel"), value: row.budget }])}</td>
     <td>${rowValues([
-      { label: "Overdraft", value: row.overdraft },
-      { label: "Total", value: row.total },
+      { label: ui("overdraft"), value: row.overdraft },
+      { label: ui("total"), value: row.total },
     ])}</td>
     <td>${evaluationResult(row.evaluation)}</td>
   </tr>`;
@@ -276,7 +281,8 @@ function rowValues(values) {
 }
 
 function evaluationResult(evaluation) {
-  return `<span class="evaluation ${evaluation.key}">${signalDot(evaluation.key)}${evaluation.label}</span>`;
+  const label = evaluation.key === "good" ? ui("onTrack") : evaluation.key === "watch" ? ui("watch") : evaluation.key === "problem" ? ui("problem") : evaluation.label;
+  return `<span class="evaluation ${evaluation.key}">${signalDot(evaluation.key)}${label}</span>`;
 }
 
 function signalDot(status) {
@@ -288,76 +294,76 @@ function budgetSetup(p) {
     <section class="budget-sheet">
       <header class="budget-title">
         <div>
-          <p class="board-heading">Budget Setup</p>
+          <p class="board-heading">${ui("budget")}</p>
           <div class="dashboard-brand"><span aria-hidden="true"></span>SMART BUDGET</div>
         </div>
         <input type="month" data-field="month" value="${state.month}" aria-label="Budget month" />
       </header>
       <section class="budget-section">
-        <h2>Income</h2>
+        <h2>${ui("income")}</h2>
         <table class="budget-simple">
-          <thead><tr><th>Concept</th><th>Amount</th><th>% Tax</th></tr></thead>
+          <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th>${ui("tax")}</th></tr></thead>
           <tbody>
-            <tr class="budget-total-row"><td>Available Income</td><td>${money(p.budgetAvailableForExpenses)}</td><td class="calculated-mark">Calculated</td></tr>
-            <tr><td>Salary Net Income</td><td>${inlineNumber("regularIncome")}</td><td>${inlineNumber("estimatedTaxPercent", "percent")}</td></tr>
-            <tr><td>Other Income</td><td>${inlineNumber("irregularIncome")}</td><td class="calculated-mark">---</td></tr>
+            <tr class="budget-total-row"><td>${ui("availableIncome")}</td><td>${money(p.budgetAvailableForExpenses)}</td><td class="calculated-mark">${ui("calculated")}</td></tr>
+            <tr><td>${ui("salaryNetIncome")}</td><td>${inlineNumber("regularIncome")}</td><td>${inlineNumber("estimatedTaxPercent", "percent")}</td></tr>
+            <tr><td>${ui("otherIncome")}</td><td>${inlineNumber("irregularIncome")}</td><td class="calculated-mark">---</td></tr>
           </tbody>
         </table>
       </section>
       <section class="budget-section">
-        <h2>Balances</h2>
+        <h2>${ui("balances")}</h2>
         <table class="budget-simple">
-          <thead><tr><th>Concept</th><th>Amount</th><th></th></tr></thead>
+          <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th></th></tr></thead>
           <tbody>
-            <tr><td>Cash Flow Initial</td><td>${inlineNumber("initialCashFlow")}</td><td></td></tr>
-            <tr><td>Cash Flow Budget</td><td>${inlineNumber("desiredFinalCashFlow")}</td><td></td></tr>
-            <tr><td>Savings Initial</td><td>${inlineNumber("initialSavings")}</td><td></td></tr>
+            <tr><td>${ui("cashFlowInitial")}</td><td>${inlineNumber("initialCashFlow")}</td><td></td></tr>
+            <tr><td>${ui("cashFlowBudget")}</td><td>${inlineNumber("desiredFinalCashFlow")}</td><td></td></tr>
+            <tr><td>${ui("savingsInitial")}</td><td>${inlineNumber("initialSavings")}</td><td></td></tr>
           </tbody>
         </table>
       </section>
       <section class="budget-section total-expenses-section">
-        <h2>Expenses</h2>
+        <h2>${ui("expenses")}</h2>
         <table class="budget-simple">
-          <thead><tr><th>Concept</th><th>Amount</th><th></th></tr></thead>
+          <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th></th></tr></thead>
           <tbody>
-            <tr class="budget-total-row"><td>Total Expenses</td><td>${money(p.totalExpensesBudget)}</td><td class="calculated-mark">Calculated</td></tr>
+            <tr class="budget-total-row"><td>${ui("totalExpenses")}</td><td>${money(p.totalExpensesBudget)}</td><td class="calculated-mark">${ui("calculated")}</td></tr>
           </tbody>
         </table>
       </section>
-      ${budgetExpenseSection("Committed Debts", "debts", "Fixed references: Home Rent or Mortgage = 1, Credit Cards = 2, Other Debts = 3.")}
-      ${budgetExpenseSection("Household Expenses", "household", "Choose the comparative budget group that describes each monthly expense.")}
-      ${budgetExpenseSection("Extraordinary Expenses", "extraordinary", "Unforeseen or scheduled non-monthly expenses use comparative group 13.")}
+      ${budgetExpenseSection(ui("committedDebts"), "debts", ui("fixedDebtRefs"))}
+      ${budgetExpenseSection(ui("householdExpenses"), "household", ui("householdNote"))}
+      ${budgetExpenseSection(ui("extraordinaryExpenses"), "extraordinary", ui("extraordinaryNote"))}
       <section class="budget-section calculated-section">
         <div class="calculated-heading">
-          <h2>Calculated Miscellaneous Balance</h2>
-          <p>Remaining after payments, available for expenses, savings and miscellaneous.</p>
+          <h2>${ui("calculatedMiscBalance")}</h2>
+          <p>${ui("miscExplanation")}</p>
         </div>
         <table class="budget-simple misc-table">
-          <thead><tr><th>Concept</th><th>Amount</th><th>Ref</th></tr></thead>
-          <tbody><tr><td>Miscellaneous</td><td class="${p.miscellaneous < 0 ? "danger" : "ok"}">${money(p.miscellaneous)}</td><td>14</td></tr></tbody>
+          <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th>${ui("ref")}</th></tr></thead>
+          <tbody><tr><td>${ui("miscellaneous")}</td><td class="${p.miscellaneous < 0 ? "danger" : "ok"}">${money(p.miscellaneous)}</td><td>14</td></tr></tbody>
         </table>
       </section>
       <section class="budget-section ending-section">
         <table class="budget-simple summary-inputs">
-          <thead><tr><th>Concept</th><th>Amount</th><th>Deposit Day</th></tr></thead>
+          <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th>${ui("depositDay")}</th></tr></thead>
           <tbody>
-            <tr><td><strong>Savings</strong> Planned Saving</td><td>${inlineNumber("budgetedSavings")}</td><td>${inlineNumber("savingsDepositDay", "day")}</td></tr>
+            <tr><td><strong>${ui("savings")}</strong> ${ui("plannedSaving")}</td><td>${inlineNumber("budgetedSavings")}</td><td>${inlineNumber("savingsDepositDay", "day")}</td></tr>
           </tbody>
         </table>
       </section>
       <section class="budget-section credit-card-budget-section">
         <table class="credit-card-budget">
-          <thead><tr><th></th><th>Budget</th><th>Overdraft</th><th>Total</th></tr></thead>
+          <thead><tr><th></th><th>${ui("budgetLabel")}</th><th>${ui("overdraft")}</th><th>${ui("total")}</th></tr></thead>
           <tbody>
             <tr>
-              <td><span class="detail-name">Credit Cards</span></td>
+              <td><span class="detail-name">${ui("creditCards")}</span></td>
               <td>${inlineNumber("plannedCreditCardSpending")}</td>
               <td class="${p.creditCardOverdraft > 0 ? "danger" : "ok"}">${money(p.creditCardOverdraft)}</td>
               <td class="credit-card-total">${money(p.creditCardTotal)}</td>
             </tr>
           </tbody>
         </table>
-        <p class="budget-note">Overdraft is calculated when controlled expenses exceed available income before credit cards.</p>
+        <p class="budget-note">${ui("creditCardBudgetNote")}</p>
       </section>
     </section>
   `;
@@ -368,7 +374,7 @@ function budgetExpenseSection(title, group, note) {
     <section class="budget-section expense-setup">
       <div class="budget-section-head">
         <h2>${title}</h2>
-        <button class="secondary add-concept" data-add-group="${group}" type="button">${group === "debts" ? "+ Add Other Debt" : "+ Add concept"}</button>
+        <button class="secondary add-concept" data-add-group="${group}" type="button">${group === "debts" ? ui("addOtherDebt") : ui("addConcept")}</button>
       </div>
       <div class="table-wrap">${budgetExpenseTable(group)}</div>
       <p class="budget-note">${note}</p>
@@ -382,7 +388,7 @@ function budgetExpenseTable(group) {
     .filter(({ line }) => line.group === group);
   return `
     <table class="budget-expenses ${group === "debts" ? "fixed-refs" : "selectable-refs"}">
-      <thead><tr><th>Concept</th><th>Ref</th><th>Amount</th><th>Due Day</th><th></th></tr></thead>
+      <thead><tr><th>${ui("concept")}</th><th>${ui("ref")}</th><th>${ui("amount")}</th><th>${ui("dueDay")}</th><th></th></tr></thead>
       <tbody>${rows
         .map(
           ({ line, index }) => `<tr>
@@ -390,7 +396,7 @@ function budgetExpenseTable(group) {
             <td>${referenceControl(line, index, group)}</td>
             <td><input type="number" data-line="${index}" data-prop="amount" value="${line.amount}" /></td>
             <td><input type="number" min="1" max="31" data-line="${index}" data-prop="dueDay" value="${line.dueDay}" /></td>
-            <td>${removableExpenseLine(line, group) ? `<button class="icon danger-text" data-remove-line="${index}" title="Remove concept">x</button>` : ""}</td>
+            <td>${removableExpenseLine(line, group) ? `<button class="icon danger-text" data-remove-line="${index}" title="${ui("removeConcept")}">x</button>` : ""}</td>
           </tr>`
         )
         .join("")}</tbody>
