@@ -60,6 +60,7 @@ export function calculateProjection(state, today = new Date()) {
   const projectedIncome = Math.max(regularIncome + irregularIncome, actualIncome);
   const totalSavingsBudget = numeric(state.initialSavings) + budgetedSavings;
   const currentSavings = numeric(state.currentSavings);
+  const currentCashFlow = numeric(state.currentCashFlow);
   const savingsDepositPassed = timing.currentDay > numeric(state.savingsDepositDay);
   const projectedSavings =
     savingsDepositPassed && currentSavings < totalSavingsBudget
@@ -76,26 +77,19 @@ export function calculateProjection(state, today = new Date()) {
   const actualHouseholdExpenses = actualGroupTotal(state, "household");
   const actualExtraordinaryExpenses = actualGroupTotal(state, "extraordinary");
   const totalControlledActualExpenses = actualCommittedDebts + actualHouseholdExpenses + actualExtraordinaryExpenses;
-  const actualAvailableForExpenses =
-    initialCashFlow +
-    actualIncome -
-    numeric(state.currentSavings) +
-    numeric(state.initialSavings) -
-    numeric(state.currentCashFlow) +
-    safeDivide(miscellaneous, timing.daysInMonth) +
-    actualCardSpending +
-    initialCashFlow;
   const miscellaneousActualRaw =
     initialCashFlow +
     actualIncome -
-    numeric(state.currentCashFlow) -
+    currentCashFlow -
     totalControlledActualExpenses -
-    numeric(state.currentSavings) +
+    currentSavings +
     numeric(state.initialSavings) +
     initialCashFlow +
     safeDivide(miscellaneous, timing.daysInMonth) +
     actualCardSpending;
   const miscellaneousActual = miscellaneousActualRaw;
+  const totalActualExpenses = totalControlledActualExpenses + miscellaneousActual;
+  const actualAvailableForExpenses = totalActualExpenses;
   const projectedControlledExpenses =
     projectedCommittedDebts + projectedHouseholdExpenses + projectedExtraordinaryExpenses;
   const projectedMiscellaneousRunRate =
@@ -126,7 +120,6 @@ export function calculateProjection(state, today = new Date()) {
     projectedHouseholdExpenses +
     projectedExtraordinaryExpenses +
     miscellaneousProjected;
-  const totalActualExpenses = totalControlledActualExpenses + miscellaneousActual;
   const debtToIncome = totalIncomeBudget ? committedDebts / totalIncomeBudget : 0;
   const savingsRatio = totalIncomeBudget ? budgetedSavings / totalIncomeBudget : 0;
   const deficitPenalty = miscellaneousRaw < 0 ? 25 : 0;
