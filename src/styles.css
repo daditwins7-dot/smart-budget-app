@@ -274,6 +274,36 @@ h2 {
   width: 6px;
 }
 
+.dashboard-month-reset {
+  align-items: center;
+  background: #fff8f7;
+  border: 1px solid #f3b5ae;
+  border-radius: 8px;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin: 8px 0 10px;
+  padding: 10px 12px;
+}
+
+.dashboard-month-reset strong {
+  color: var(--danger);
+  display: block;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+.dashboard-month-reset p {
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.dashboard-month-reset button {
+  flex: 0 0 auto;
+}
+
 .period-data {
   display: flex;
   gap: 22px;

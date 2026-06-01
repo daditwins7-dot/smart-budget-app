@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260601c";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260601c";
-import { copy } from "./i18n/index.js?v=20260601c";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260601d";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260601d";
+import { copy } from "./i18n/index.js?v=20260601d";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -164,7 +164,6 @@ function dataQualityNotice(model) {
     </div>
     <div class="notice-actions">
       <button class="secondary" type="button" data-reconcile-data>Synchronize and recalculate</button>
-      <button class="secondary" type="button" data-clear-actual-month>New month: reset actuals only</button>
     </div>
   </section>`;
 }
@@ -209,6 +208,7 @@ function dashboard(model) {
           <div><dt>${ui("remainDays")}</dt><dd>${model.period.remainingDays}</dd></div>
         </dl>
       </header>
+      ${dashboardMonthResetPanel()}
       <div class="dashboard-table-wrap">
         <table class="dashboard-summary">
           <thead><tr><th>${ui("concept")}</th><th>${ui("budgetLabel")}</th><th>${ui("projected")}</th><th>${ui("evaluationLabel")}</th></tr></thead>
@@ -243,6 +243,16 @@ function dashboard(model) {
       </footer>
     </section>
   `;
+}
+
+function dashboardMonthResetPanel() {
+  return `<section class="dashboard-month-reset">
+    <div>
+      <strong>Start current month</strong>
+      <p>This button deletes only current actual values and transactions, keeps the budget setup, and sets the budget month to the current calendar month.</p>
+    </div>
+    <button class="danger-button" type="button" data-clear-actual-month>Reset current actuals only</button>
+  </section>`;
 }
 
 function dashboardRow(row) {
@@ -445,7 +455,6 @@ function transactions() {
         <div class="transaction-heading-actions">
           <strong class="income-total">Income: ${money(filteredIncomeTotal)}</strong>
           <strong class="expense-total">Expenses: ${money(filteredExpenseTotal)}</strong>
-          <button class="danger-button" type="button" id="clear-month-data">Clear month data</button>
         </div>
       </div>
       <section class="actual-balance-grid">
@@ -649,7 +658,6 @@ function balanceCorrectionPanel(p, context) {
       </div>
       <div class="notice-actions">
         <button class="secondary" type="button" data-reconcile-data>Synchronize and recalculate</button>
-        <button class="secondary" type="button" data-clear-actual-month>New month: reset actuals only</button>
       </div>
     </div>
     <div class="balance-difference-grid">
@@ -1554,8 +1562,8 @@ function smartHelpTopics(p) {
     {
       keywords: ["new", "month", "mes", "nuevo", "reset", "borrar", "clear"],
       answer: bilingual(
-        "Use New month: reset actuals only when starting a new month. It clears current transactions and actual balances, but it keeps the budget setup so you can enter new month actual data.",
-        "Usa New month: reset actuals only al iniciar un nuevo mes. Borra transacciones y balances actuales, pero mantiene el presupuesto para que ingreses los datos actuales del nuevo mes.",
+        "Use Reset current actuals only from Dashboard when starting the current calendar month. It clears current transactions and actual balances, but it keeps the budget setup so you can enter current month data again.",
+        "Usa Reset current actuals only desde Dashboard al iniciar el mes calendario actual. Borra transacciones y balances actuales, pero mantiene el presupuesto para ingresar otra vez los datos del mes actual.",
       ),
     },
     {
@@ -1591,7 +1599,7 @@ function smartHelpStartGuideAnswer() {
       "3. Projection Analysis: confirm Available Income and Total Expenses match in Budget, Actual, and Projected.",
       "4. Review alerts: fix balance mismatch, negative Actual Miscellaneous, cash flow risk, overdue payments, or missed savings deposit.",
       "5. Use Smart Help Chat during the month when a number does not make sense.",
-      "6. New month: use New month: reset actuals only, then enter the new actual balances and movements.",
+      "6. New month: use Reset current actuals only on Dashboard, then enter the current actual balances and movements.",
     ].join("\n"),
     [
       "Empieza con estos pasos:",
@@ -1600,7 +1608,7 @@ function smartHelpStartGuideAnswer() {
       "3. Projection Analysis: confirma que Available Income y Total Expenses coincidan en Budget, Actual y Projected.",
       "4. Revisa alertas: corrige desbalance, Miscelaneos Actual negativo, riesgo de flujo, pagos vencidos o ahorro no depositado.",
       "5. Usa Smart Help Chat durante el mes cuando un numero no tenga sentido.",
-      "6. Nuevo mes: usa New month: reset actuals only, despues ingresa los nuevos balances y movimientos actuales.",
+      "6. Nuevo mes: usa Reset current actuals only en Dashboard, despues ingresa los balances y movimientos actuales.",
     ].join("\n"),
   );
 }
@@ -1872,11 +1880,6 @@ function bindEvents() {
       render();
     });
   });
-  document.querySelector("#clear-month-data")?.addEventListener("click", () => {
-    state = clearActualMonthState(state);
-    saveState(state);
-    render();
-  });
   document.querySelectorAll("[data-reconcile-data]").forEach((button) => {
     button.addEventListener("click", () => {
       state = reconcileState(state);
@@ -1887,6 +1890,10 @@ function bindEvents() {
   });
   document.querySelectorAll("[data-clear-actual-month]").forEach((button) => {
     button.addEventListener("click", () => {
+      const confirmed = window.confirm(
+        "This will delete only current actual values and transactions, keep the budget setup, and set the budget month to the current calendar month. Continue?",
+      );
+      if (!confirmed) return;
       state = clearActualMonthState(state);
       saveState(state);
       render();
