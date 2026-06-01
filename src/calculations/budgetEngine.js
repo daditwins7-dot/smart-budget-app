@@ -84,14 +84,15 @@ export function calculateProjection(state, today = new Date()) {
     numeric(state.currentCashFlow) +
     safeDivide(miscellaneous, timing.daysInMonth) +
     actualCardSpending +
-    budgetedSavings;
+    initialCashFlow;
   const miscellaneousActualRaw =
     initialCashFlow +
     actualIncome -
     numeric(state.currentCashFlow) -
     totalControlledActualExpenses -
     numeric(state.currentSavings) +
-    totalSavingsBudget +
+    numeric(state.initialSavings) +
+    initialCashFlow +
     safeDivide(miscellaneous, timing.daysInMonth) +
     actualCardSpending;
   const miscellaneousActual = miscellaneousActualRaw;
