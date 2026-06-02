@@ -113,8 +113,12 @@ export function calculateProjection(state, today = new Date()) {
       ? miscellaneousActual
       : safeDivide(miscellaneous, timing.daysInMonth) * timing.remainingDays || miscellaneous
     : miscellaneous;
+  const projectedMiscellaneousFuture =
+    hasActualMonthlyActivity && miscellaneousActual + projectedMiscellaneousRunRate - totalSavingsBudget + currentSavings < 0
+      ? 0
+      : projectedMiscellaneousRunRate;
   const miscellaneousProjected =
-    projectedMiscellaneousRunRate - totalSavingsBudget + currentSavings < 0 ? 0 : projectedMiscellaneousRunRate;
+    projectedMiscellaneousFuture + (hasActualMonthlyActivity ? miscellaneousActual + creditCardTotal : 0);
   const expectedEndCashFlow =
     initialCashFlow +
     projectedIncome -
@@ -130,8 +134,7 @@ export function calculateProjection(state, today = new Date()) {
     projectedSavings +
     totalSavingsBudget -
     expectedEndCashFlow +
-    projectedCardCoverage +
-    creditCardOverdraft -
+    projectedCardCoverage -
     (savingsDepositPassed ? 0 : budgetedSavings);
   const totalIncomeBudget = regularIncome + irregularIncome;
   const totalExpensesBudget = committedDebts + householdExpenses + extraordinaryExpenses + miscellaneous;
