@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260601n";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260601n";
-import { copy } from "./i18n/index.js?v=20260601n";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260601o";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260601o";
+import { copy } from "./i18n/index.js?v=20260601o";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -528,8 +528,9 @@ function transactions() {
 
 function actualControlNotes() {
   return `<section class="important-notes" aria-label="Important actual data controls">
-    <strong>Important control notes</strong>
+    <strong>Required for accurate budget calculations</strong>
     <ul>
+      <li>The budget can start on any day of the month only if all bank and credit card transactions up to the current date are entered.</li>
       <li>Update Cash Flow and Savings with real current balances before trusting projections.</li>
       <li>If the planned savings amount changed, update Budgeted Savings in Budget Setup; otherwise projected miscellaneous and available income can be wrong.</li>
       <li>If savings were used for payments, adjust the Savings balance and record the related payment or cash movement.</li>
