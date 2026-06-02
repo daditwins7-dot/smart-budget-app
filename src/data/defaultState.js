@@ -71,7 +71,7 @@ export function loadState() {
     saved.currentSavings = normalizedNumber(saved.currentSavings, defaultState.currentSavings);
     if (needsMigration) {
       saved.dataNotice =
-        "Your saved browser data was updated to the latest calculation model. Review actual balances and transactions before using projections.";
+        "The budget can be changed at any time. Review current balances, income, expenses, and card activity to avoid inconsistencies.";
       saveState(saved);
     }
     return saved;

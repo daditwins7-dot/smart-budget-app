@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260601o";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260601o";
-import { copy } from "./i18n/index.js?v=20260601o";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260602a";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260602a";
+import { copy } from "./i18n/index.js?v=20260602a";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -158,7 +158,7 @@ function dataQualityNotice(model) {
   if (!issues.length && !state.dataNotice) return "";
   return `<section class="data-quality-notice">
     <div>
-      <strong>Data check before decisions</strong>
+      <strong>Review balances after changes</strong>
       ${state.dataNotice ? `<p>${state.dataNotice}</p>` : ""}
       ${issues.map((issue) => `<p>${issue}</p>`).join("")}
     </div>
@@ -176,7 +176,7 @@ function dataQualityIssues(p) {
   const expenseTransactions = state.transactions.filter((tx) => tx.type === "expense").length;
 
   if (hasBalances && !hasTransactions) {
-    issues.push("Actual balances exist but no transactions are recorded. Projection can look inconsistent until movements are entered or month data is cleared.");
+    issues.push("The budget can be updated at any time. Review income, expenses, Cash Flow, Savings, and card activity to avoid inconsistent projections.");
   }
   if (hasTransactions && (!state.lastActualUpdate || state.lastActualUpdate !== localDateValue())) {
     issues.push("Transactions were saved on a different date. Confirm balances in Update Transactions so projected days and cash flow use the latest actual date.");
@@ -528,15 +528,14 @@ function transactions() {
 
 function actualControlNotes() {
   return `<section class="important-notes" aria-label="Important actual data controls">
-    <strong>Required for accurate budget calculations</strong>
+    <strong>Important: required for accurate budget calculations</strong>
     <ul>
       <li>The budget can start on any day of the month only if all bank and credit card transactions up to the current date are entered.</li>
-      <li>Update Cash Flow and Savings with real current balances before trusting projections.</li>
-      <li>If the planned savings amount changed, update Budgeted Savings in Budget Setup; otherwise projected miscellaneous and available income can be wrong.</li>
-      <li>If savings were used for payments, adjust the Savings balance and record the related payment or cash movement.</li>
-      <li>Select Cash or Credit card correctly. Payment method changes cash flow, card balance, and projected totals.</li>
-      <li>If a credit card is used for an unbudgeted purchase, record it under the closest budget expense group; otherwise it will not be included in available income or accumulated credit card expenses.</li>
-      <li>Credit card purchases and payments are controlled as total amounts for all cards. Use Comment to identify each card when individual tracking is needed.</li>
+      <li>Update Cash Flow and Savings with real current balances.</li>
+      <li>If planned savings changed, update Budgeted Savings in Budget Setup.</li>
+      <li>Select Cash or Credit card correctly in payments.</li>
+      <li>If a credit card is used for an unbudgeted purchase, record it under the closest budget expense group.</li>
+      <li>Credit card purchases and payments are controlled as totals for all cards; use Comment for individual card tracking.</li>
       <li>Miscellaneous is calculated by the system from balances and activity; do not record it as a transaction.</li>
     </ul>
   </section>`;
