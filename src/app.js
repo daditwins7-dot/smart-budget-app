@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260603f";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260603f";
-import { copy } from "./i18n/index.js?v=20260603f";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260603g";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260603g";
+import { copy } from "./i18n/index.js?v=20260603g";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -460,7 +460,9 @@ function budgetCashFlowReview() {
 }
 
 function budgetSavingsReview() {
-  if (!isReviewSeason()) return budgetNeutralReview();
+  const timing = budgetReviewTiming();
+  const depositDatePassed = Number(state.savingsDepositDay || 0) > 0 && Number(state.savingsDepositDay || 0) < timing.currentDay;
+  if (!isReviewSeason() && !depositDatePassed) return budgetNeutralReview();
   const targetSavings = Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0);
   if (Number(state.currentSavings || 0) >= targetSavings) return reviewPill("ok", "OK");
   return reviewPill("watch", "Review");
