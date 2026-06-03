@@ -1107,28 +1107,36 @@ h2 {
   padding: 5px 9px;
 }
 
-.budget-expenses th:first-child {
-  width: 28%;
+.budget-expenses th:first-child,
+.budget-expenses td:first-child {
+  width: 34%;
 }
 
-.budget-expenses th:nth-child(2) {
+.budget-expenses th:nth-child(2),
+.budget-expenses td:nth-child(2) {
   width: 8%;
 }
 
-.budget-expenses th:nth-child(3) {
+.budget-expenses th:nth-child(3),
+.budget-expenses td:nth-child(3) {
+  width: 20%;
+}
+
+.budget-expenses th:nth-child(4),
+.budget-expenses td:nth-child(4) {
+  width: 11%;
+}
+
+.budget-expenses th:nth-child(5),
+.budget-expenses td:nth-child(5) {
+  text-align: center;
   width: 17%;
 }
 
-.budget-expenses th:nth-child(4) {
-  width: 9%;
-}
-
-.budget-expenses th:nth-child(5) {
-  width: 13%;
-}
-
-.budget-expenses th:last-child {
-  width: 5%;
+.budget-expenses th:last-child,
+.budget-expenses td:last-child {
+  text-align: center;
+  width: 10%;
 }
 
 .budget-expenses .ref-input {
@@ -1170,29 +1178,37 @@ h2 {
   outline: none;
 }
 
-.selectable-refs th:first-child {
-  width: 28%;
+.selectable-refs th:first-child,
+.selectable-refs td:first-child {
+  width: 34%;
 }
 
-.selectable-refs th:nth-child(2) {
+.selectable-refs th:nth-child(2),
+.selectable-refs td:nth-child(2) {
   padding-left: 13px;
   width: 8%;
 }
 
-.selectable-refs th:nth-child(3) {
+.selectable-refs th:nth-child(3),
+.selectable-refs td:nth-child(3) {
+  width: 20%;
+}
+
+.selectable-refs th:nth-child(4),
+.selectable-refs td:nth-child(4) {
+  width: 11%;
+}
+
+.selectable-refs th:nth-child(5),
+.selectable-refs td:nth-child(5) {
+  text-align: center;
   width: 17%;
 }
 
-.selectable-refs th:nth-child(4) {
-  width: 9%;
-}
-
-.selectable-refs th:nth-child(5) {
-  width: 13%;
-}
-
-.selectable-refs th:last-child {
-  width: 7%;
+.selectable-refs th:last-child,
+.selectable-refs td:last-child {
+  text-align: center;
+  width: 10%;
 }
 
 .review-note {
