@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260603b";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260603b";
-import { copy } from "./i18n/index.js?v=20260603b";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260603c";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260603c";
+import { copy } from "./i18n/index.js?v=20260603c";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -320,7 +320,7 @@ function budgetSetup(p) {
       ${actualControlNotes()}
       <section class="budget-section">
         <h2>${ui("income")}</h2>
-        <table class="budget-simple">
+        <table class="budget-simple setup-review-table">
           <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th>${ui("tax")}</th><th>Review</th></tr></thead>
           <tbody>
             <tr class="budget-total-row"><td>${ui("availableIncome")}</td><td>${money(p.budgetAvailableForExpenses)}</td><td class="calculated-mark">${ui("calculated")}</td><td>${budgetSummaryReview(p.budgetAvailableForExpenses, p.actualAvailableForExpenses)}</td></tr>
@@ -331,7 +331,7 @@ function budgetSetup(p) {
       </section>
       <section class="budget-section">
         <h2>${ui("balances")}</h2>
-        <table class="budget-simple">
+        <table class="budget-simple setup-review-table">
           <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th></th><th>Review</th></tr></thead>
           <tbody>
             <tr><td>${ui("cashFlowInitial")}</td><td>${inlineNumber("initialCashFlow")}</td><td></td><td>${budgetNeutralReview()}</td></tr>
@@ -342,7 +342,7 @@ function budgetSetup(p) {
       </section>
       <section class="budget-section total-expenses-section">
         <h2>${ui("expenses")}</h2>
-        <table class="budget-simple">
+        <table class="budget-simple setup-review-table">
           <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th></th><th>Review</th></tr></thead>
           <tbody>
             <tr class="budget-total-row"><td>${ui("totalExpenses")}</td><td>${money(p.totalExpensesBudget)}</td><td class="calculated-mark">${ui("calculated")}</td><td>${budgetSummaryReview(p.totalExpensesBudget, p.totalActualExpenses)}</td></tr>
@@ -363,7 +363,7 @@ function budgetSetup(p) {
         </table>
       </section>
       <section class="budget-section ending-section">
-        <table class="budget-simple summary-inputs">
+        <table class="budget-simple summary-inputs setup-review-table">
           <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th>${ui("depositDay")}</th><th>Review</th></tr></thead>
           <tbody>
             <tr><td><strong>${ui("savings")}</strong> ${ui("plannedSaving")}</td><td>${inlineNumber("budgetedSavings")}</td><td>${inlineNumber("savingsDepositDay", "day")}</td><td>${budgetSavingsReview()}</td></tr>

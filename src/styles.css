@@ -991,6 +991,27 @@ h2 {
   width: 18%;
 }
 
+.setup-review-table th:first-child,
+.setup-review-table td:first-child {
+  width: 33%;
+}
+
+.setup-review-table th:nth-child(2),
+.setup-review-table td:nth-child(2) {
+  width: 24%;
+}
+
+.setup-review-table th:nth-child(3),
+.setup-review-table td:nth-child(3) {
+  width: 21%;
+}
+
+.setup-review-table th:nth-child(4),
+.setup-review-table td:nth-child(4) {
+  text-align: center;
+  width: 22%;
+}
+
 .budget-simple th,
 .budget-expenses th {
   font-size: 10px;
@@ -1007,7 +1028,8 @@ h2 {
   align-items: center;
   display: inline-flex;
   gap: 5px;
-  max-width: 148px;
+  max-width: 100%;
+  width: 100%;
 }
 
 .inline-field input,
@@ -1024,6 +1046,22 @@ h2 {
   background: #fff;
   border-color: var(--accent);
   outline: none;
+}
+
+.setup-review-table td:nth-child(2) .inline-field input,
+.budget-expenses td:nth-child(3) input,
+.budget-expenses td:nth-child(4) input {
+  width: 100%;
+}
+
+.setup-review-table td:nth-child(3),
+.budget-expenses td:nth-child(4),
+.budget-expenses td:nth-child(5) {
+  text-align: center;
+}
+
+.budget-expenses td:nth-child(2) {
+  text-align: center;
 }
 
 .field-suffix {
@@ -1070,23 +1108,23 @@ h2 {
 }
 
 .budget-expenses th:first-child {
-  width: 30%;
+  width: 28%;
 }
 
 .budget-expenses th:nth-child(2) {
-  width: 9%;
+  width: 8%;
 }
 
 .budget-expenses th:nth-child(3) {
-  width: 18%;
+  width: 17%;
 }
 
 .budget-expenses th:nth-child(4) {
-  width: 10%;
+  width: 9%;
 }
 
 .budget-expenses th:nth-child(5) {
-  width: 14%;
+  width: 13%;
 }
 
 .budget-expenses th:last-child {
@@ -1133,24 +1171,24 @@ h2 {
 }
 
 .selectable-refs th:first-child {
-  width: 30%;
+  width: 28%;
 }
 
 .selectable-refs th:nth-child(2) {
   padding-left: 13px;
-  width: 9%;
+  width: 8%;
 }
 
 .selectable-refs th:nth-child(3) {
-  width: 18%;
+  width: 17%;
 }
 
 .selectable-refs th:nth-child(4) {
-  width: 10%;
+  width: 9%;
 }
 
 .selectable-refs th:nth-child(5) {
-  width: 14%;
+  width: 13%;
 }
 
 .selectable-refs th:last-child {
@@ -1272,29 +1310,29 @@ h2 {
 
 .credit-card-budget th:first-child,
 .credit-card-budget td:first-child {
-  width: 38%;
+  width: 34%;
 }
 
 .credit-card-budget th:nth-child(2),
 .credit-card-budget td:nth-child(2) {
-  width: 20%;
+  width: 18%;
 }
 
 .credit-card-budget th:nth-child(3),
 .credit-card-budget td:nth-child(3) {
-  width: 15%;
+  width: 16%;
 }
 
 .credit-card-budget th:nth-child(4),
 .credit-card-budget td:nth-child(4) {
   text-align: right;
-  width: 12%;
+  width: 14%;
 }
 
 .credit-card-budget th:nth-child(5),
 .credit-card-budget td:nth-child(5) {
   text-align: center;
-  width: 15%;
+  width: 18%;
 }
 
 .credit-card-budget td {
