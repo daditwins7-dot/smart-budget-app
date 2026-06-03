@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260602d";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260602d";
-import { copy } from "./i18n/index.js?v=20260602d";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260603a";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260603a";
+import { copy } from "./i18n/index.js?v=20260603a";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -317,6 +317,7 @@ function budgetSetup(p) {
         </div>
         <div class="month-chip">${state.month}</div>
       </header>
+      ${actualControlNotes()}
       <section class="budget-section">
         <h2>${ui("income")}</h2>
         <table class="budget-simple">
@@ -395,6 +396,7 @@ function budgetExpenseSection(title, group, note) {
         <button class="secondary add-concept" data-add-group="${group}" type="button">${group === "debts" ? ui("addOtherDebt") : ui("addConcept")}</button>
       </div>
       <div class="table-wrap">${budgetExpenseTable(group)}</div>
+      <p class="budget-note review-note">Review warns when actual payments are below budget near the due date, after the due date, or near month end. Adjust the budget only when the unpaid difference is real.</p>
       <p class="budget-note">${note}</p>
     </section>
   `;
@@ -406,7 +408,7 @@ function budgetExpenseTable(group) {
     .filter(({ line }) => line.group === group);
   return `
     <table class="budget-expenses ${group === "debts" ? "fixed-refs" : "selectable-refs"}">
-      <thead><tr><th>${ui("concept")}</th><th>${ui("ref")}</th><th>${ui("amount")}</th><th>${ui("dueDay")}</th><th></th></tr></thead>
+      <thead><tr><th>${ui("concept")}</th><th>${ui("ref")}</th><th>${ui("amount")}</th><th>${ui("dueDay")}</th><th>Review</th><th></th></tr></thead>
       <tbody>${rows
         .map(
           ({ line, index }) => `<tr>
@@ -414,12 +416,46 @@ function budgetExpenseTable(group) {
             <td>${referenceControl(line, index, group)}</td>
             <td><input type="number" data-line="${index}" data-prop="amount" value="${line.amount}" /></td>
             <td><input type="number" min="1" max="31" data-line="${index}" data-prop="dueDay" value="${line.dueDay}" /></td>
+            <td>${budgetLineReview(line)}</td>
             <td>${removableExpenseLine(line, group) ? `<button class="icon danger-text" data-remove-line="${index}" title="${ui("removeConcept")}">x</button>` : ""}</td>
           </tr>`
         )
         .join("")}</tbody>
     </table>
   `;
+}
+
+function budgetLineReview(line) {
+  const budget = Number(line.amount || 0);
+  if (budget <= 0) return `<span class="review-pill neutral">---</span>`;
+  const actual = actualPaidForConcept(line.id);
+  const timing = budgetReviewTiming();
+  const dueDay = Math.round(Number(line.dueDay || 0));
+  const daysUntilDue = dueDay ? dueDay - timing.currentDay : 999;
+  const nearMonthEnd = timing.daysInMonth - timing.currentDay <= 5;
+  if (actual > budget) return `<span class="review-pill over">Over</span>`;
+  if (actual >= budget) return `<span class="review-pill ok">OK</span>`;
+  if (dueDay && daysUntilDue < 0) return `<span class="review-pill missing">Missing</span>`;
+  if ((dueDay && daysUntilDue <= 5) || nearMonthEnd) return `<span class="review-pill watch">Review</span>`;
+  return `<span class="review-pill neutral">---</span>`;
+}
+
+function budgetReviewTiming() {
+  const today = state.lastActualUpdate ? new Date(`${state.lastActualUpdate}T12:00:00`) : appToday();
+  const selected = new Date(`${state.month}-01T12:00:00`);
+  const reference = Number.isNaN(selected.getTime()) ? today : selected;
+  const year = reference.getFullYear();
+  const monthIndex = reference.getMonth();
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const sameMonth = year === today.getFullYear() && monthIndex === today.getMonth();
+  const currentDay = sameMonth ? Math.min(today.getDate(), daysInMonth) : today > reference ? daysInMonth : 1;
+  return { currentDay, daysInMonth };
+}
+
+function actualPaidForConcept(conceptId) {
+  return state.transactions
+    .filter((tx) => tx.conceptId === conceptId)
+    .reduce((total, tx) => total + Number(tx.amount || 0), 0);
 }
 
 function removableExpenseLine(line, group) {
@@ -480,7 +516,6 @@ function transactions() {
           <small>${updateCurrent ? "Balances updated today" : "Update balances for today"}</small>
         </label>
       </section>
-      ${actualControlNotes()}
       <form id="tx-form" class="transaction-form">
         <input name="date" type="date" value="${today}" />
         <select name="type" id="tx-type">
@@ -521,7 +556,7 @@ function transactions() {
           <tbody>${transactionRows(visibleTransactions)}</tbody>
         </table>
       </section>
-      <p class="transaction-rules">Only budgeted expense concepts are available for tracking. Miscellaneous is calculated by the system and is not recorded here. Payment Method is required for accurate cash flow and credit card balances; select Cash or Credit card correctly for each expense. Credit card expenses and payments are accumulated totals; identify individual card activity in Comment. Savings are not recorded as transactions because bank balances define increases or reductions; when savings are used for payments, reduce the savings balance and increase payments or cash flow as applicable.</p>
+      <p class="transaction-rules">Record actual income deposits, budgeted expense payments, credit card purchases, and card payments. Select Cash or Credit card correctly; Miscellaneous and Savings are controlled by the system balances, not entered as regular transactions.</p>
     </section>
   `;
 }

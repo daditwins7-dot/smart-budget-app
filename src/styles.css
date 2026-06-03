@@ -1066,19 +1066,23 @@ h2 {
 }
 
 .budget-expenses th:first-child {
-  width: 42%;
+  width: 34%;
 }
 
 .budget-expenses th:nth-child(2) {
-  width: 12%;
+  width: 11%;
 }
 
 .budget-expenses th:nth-child(3) {
-  width: 22%;
+  width: 20%;
 }
 
 .budget-expenses th:nth-child(4) {
-  width: 17%;
+  width: 13%;
+}
+
+.budget-expenses th:nth-child(5) {
+  width: 14%;
 }
 
 .budget-expenses th:last-child {
@@ -1125,24 +1129,69 @@ h2 {
 }
 
 .selectable-refs th:first-child {
-  width: 42%;
+  width: 34%;
 }
 
 .selectable-refs th:nth-child(2) {
   padding-left: 13px;
-  width: 12%;
+  width: 11%;
 }
 
 .selectable-refs th:nth-child(3) {
-  width: 22%;
+  width: 20%;
 }
 
 .selectable-refs th:nth-child(4) {
-  width: 17%;
+  width: 13%;
+}
+
+.selectable-refs th:nth-child(5) {
+  width: 14%;
 }
 
 .selectable-refs th:last-child {
   width: 7%;
+}
+
+.review-note {
+  color: #7c2d12;
+}
+
+.review-pill {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 800;
+  justify-content: center;
+  min-width: 64px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
+.review-pill.ok {
+  background: #ecfdf3;
+  color: #047857;
+}
+
+.review-pill.watch {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.review-pill.missing {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.review-pill.over {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.review-pill.neutral {
+  background: #f5f8fa;
+  color: var(--muted);
 }
 
 .budget-expenses .icon {
@@ -2519,7 +2568,11 @@ th {
   }
 
   .budget-expenses th:nth-child(4) {
-    width: 24%;
+    width: 16%;
+  }
+
+  .budget-expenses th:nth-child(5) {
+    width: 18%;
   }
 
   .budget-expenses th:last-child,
@@ -2567,16 +2620,18 @@ th {
     gap: 4px 8px;
     grid-template-areas:
       "concept concept concept"
-      "ref amount due";
-    grid-template-columns: 54px 1fr 76px;
+      "ref amount due"
+      "review review review";
+    grid-template-columns: 54px 1fr 64px;
     padding: 5px 4px;
   }
 
   .budget-expenses.selectable-refs tr {
     grid-template-areas:
       "concept concept concept"
-      "ref amount due";
-    grid-template-columns: 54px 1fr 76px;
+      "ref amount due"
+      "review review review";
+    grid-template-columns: 54px 1fr 64px;
   }
 
   .budget-expenses td {
@@ -2625,6 +2680,14 @@ th {
 
   .budget-expenses td:nth-child(4)::before {
     content: "Due Day";
+  }
+
+  .budget-expenses td:nth-child(5) {
+    grid-area: review;
+  }
+
+  .budget-expenses td:nth-child(5)::before {
+    content: "Review";
   }
 
   .budget-expenses input {
