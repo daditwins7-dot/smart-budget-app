@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260603d";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260603d";
-import { copy } from "./i18n/index.js?v=20260603d";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260603e";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260603e";
+import { copy } from "./i18n/index.js?v=20260603e";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -435,7 +435,7 @@ function budgetLineReview(line) {
   const nearMonthEnd = timing.daysInMonth - timing.currentDay <= 5;
   if (actual > budget) return budgetNeutralReview();
   if (actual >= budget) return reviewPill("ok", "OK");
-  if (dueDay && daysUntilDue < 0) return reviewPill("missing", "Missing");
+  if (dueDay && daysUntilDue < 0) return reviewPill("watch", "Review");
   if ((dueDay && daysUntilDue <= 5) || nearMonthEnd) return reviewPill("watch", "Review");
   return budgetNeutralReview();
 }
@@ -612,8 +612,8 @@ function transactions() {
 
 function actualControlNotes() {
   return `<section class="important-notes" aria-label="Important actual data controls">
-    <strong>Important: required for accurate budget calculations</strong>
-    <p>After mid-month, use the Review column to confirm income, savings, credit cards, and budget lines that may be paid for less or deferred. Modify only concepts intentionally not paid this month; over-budget concepts and Miscellaneous are excluded from this review.</p>
+    <strong>Important: required for accurate final Cash Flow calculation</strong>
+    <p>After mid-month, Review means the concept needs confirmation: check the due date, confirm whether the income or payment was entered, or adjust the budget only if the amount will not be used this month or will be deferred to next month. Over-budget concepts and Miscellaneous are excluded from this review.</p>
     <ul>
       <li>The budget can start on any day of the month only if all bank and credit card transactions up to the current date are entered.</li>
       <li>Update Cash Flow and Savings with real current balances.</li>

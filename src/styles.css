@@ -1237,11 +1237,6 @@ h2 {
   color: #b45309;
 }
 
-.review-pill.missing {
-  background: #fff1f2;
-  color: #be123c;
-}
-
 .review-pill.over {
   background: #eef2ff;
   color: #4338ca;
