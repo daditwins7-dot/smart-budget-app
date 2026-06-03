@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260603a";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260603a";
-import { copy } from "./i18n/index.js?v=20260603a";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260603b";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260603b";
+import { copy } from "./i18n/index.js?v=20260603b";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -321,31 +321,31 @@ function budgetSetup(p) {
       <section class="budget-section">
         <h2>${ui("income")}</h2>
         <table class="budget-simple">
-          <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th>${ui("tax")}</th></tr></thead>
+          <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th>${ui("tax")}</th><th>Review</th></tr></thead>
           <tbody>
-            <tr class="budget-total-row"><td>${ui("availableIncome")}</td><td>${money(p.budgetAvailableForExpenses)}</td><td class="calculated-mark">${ui("calculated")}</td></tr>
-            <tr><td>${ui("salaryNetIncome")}</td><td>${inlineNumber("regularIncome")}</td><td>${inlineNumber("estimatedTaxPercent", "percent")}</td></tr>
-            <tr><td>${ui("otherIncome")}</td><td>${inlineNumber("irregularIncome")}</td><td class="calculated-mark">---</td></tr>
+            <tr class="budget-total-row"><td>${ui("availableIncome")}</td><td>${money(p.budgetAvailableForExpenses)}</td><td class="calculated-mark">${ui("calculated")}</td><td>${budgetSummaryReview(p.budgetAvailableForExpenses, p.actualAvailableForExpenses)}</td></tr>
+            <tr><td>${ui("salaryNetIncome")}</td><td>${inlineNumber("regularIncome")}</td><td>${inlineNumber("estimatedTaxPercent", "percent")}</td><td>${budgetIncomeReview("net-income", state.regularIncome)}</td></tr>
+            <tr><td>${ui("otherIncome")}</td><td>${inlineNumber("irregularIncome")}</td><td class="calculated-mark">---</td><td>${budgetIncomeReview("other-deposits", state.irregularIncome)}</td></tr>
           </tbody>
         </table>
       </section>
       <section class="budget-section">
         <h2>${ui("balances")}</h2>
         <table class="budget-simple">
-          <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th></th></tr></thead>
+          <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th></th><th>Review</th></tr></thead>
           <tbody>
-            <tr><td>${ui("cashFlowInitial")}</td><td>${inlineNumber("initialCashFlow")}</td><td></td></tr>
-            <tr><td>${ui("cashFlowBudget")}</td><td>${inlineNumber("desiredFinalCashFlow")}</td><td></td></tr>
-            <tr><td>${ui("savingsInitial")}</td><td>${inlineNumber("initialSavings")}</td><td></td></tr>
+            <tr><td>${ui("cashFlowInitial")}</td><td>${inlineNumber("initialCashFlow")}</td><td></td><td>${budgetNeutralReview()}</td></tr>
+            <tr><td>${ui("cashFlowBudget")}</td><td>${inlineNumber("desiredFinalCashFlow")}</td><td></td><td>${budgetCashFlowReview()}</td></tr>
+            <tr><td>${ui("savingsInitial")}</td><td>${inlineNumber("initialSavings")}</td><td></td><td>${budgetSavingsReview()}</td></tr>
           </tbody>
         </table>
       </section>
       <section class="budget-section total-expenses-section">
         <h2>${ui("expenses")}</h2>
         <table class="budget-simple">
-          <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th></th></tr></thead>
+          <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th></th><th>Review</th></tr></thead>
           <tbody>
-            <tr class="budget-total-row"><td>${ui("totalExpenses")}</td><td>${money(p.totalExpensesBudget)}</td><td class="calculated-mark">${ui("calculated")}</td></tr>
+            <tr class="budget-total-row"><td>${ui("totalExpenses")}</td><td>${money(p.totalExpensesBudget)}</td><td class="calculated-mark">${ui("calculated")}</td><td>${budgetSummaryReview(p.totalExpensesBudget, p.totalActualExpenses)}</td></tr>
           </tbody>
         </table>
       </section>
@@ -364,21 +364,22 @@ function budgetSetup(p) {
       </section>
       <section class="budget-section ending-section">
         <table class="budget-simple summary-inputs">
-          <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th>${ui("depositDay")}</th></tr></thead>
+          <thead><tr><th>${ui("concept")}</th><th>${ui("amount")}</th><th>${ui("depositDay")}</th><th>Review</th></tr></thead>
           <tbody>
-            <tr><td><strong>${ui("savings")}</strong> ${ui("plannedSaving")}</td><td>${inlineNumber("budgetedSavings")}</td><td>${inlineNumber("savingsDepositDay", "day")}</td></tr>
+            <tr><td><strong>${ui("savings")}</strong> ${ui("plannedSaving")}</td><td>${inlineNumber("budgetedSavings")}</td><td>${inlineNumber("savingsDepositDay", "day")}</td><td>${budgetSavingsReview()}</td></tr>
           </tbody>
         </table>
       </section>
       <section class="budget-section credit-card-budget-section">
         <table class="credit-card-budget">
-          <thead><tr><th></th><th>${ui("budgetLabel")}</th><th>${ui("overdraft")}</th><th>${ui("total")}</th></tr></thead>
+          <thead><tr><th></th><th>${ui("budgetLabel")}</th><th>${ui("overdraft")}</th><th>${ui("total")}</th><th>Review</th></tr></thead>
           <tbody>
             <tr>
               <td><span class="detail-name">${ui("creditCards")}</span></td>
               <td>${inlineNumber("plannedCreditCardSpending")}</td>
               <td class="${p.creditCardOverdraft > 0 ? "danger" : "ok"}">${money(p.creditCardOverdraft)}</td>
               <td class="credit-card-total">${money(p.creditCardTotal)}</td>
+              <td>${budgetCreditCardReview(p.creditCardTotal)}</td>
             </tr>
           </tbody>
         </table>
@@ -396,7 +397,6 @@ function budgetExpenseSection(title, group, note) {
         <button class="secondary add-concept" data-add-group="${group}" type="button">${group === "debts" ? ui("addOtherDebt") : ui("addConcept")}</button>
       </div>
       <div class="table-wrap">${budgetExpenseTable(group)}</div>
-      <p class="budget-note review-note">Review warns when actual payments are below budget near the due date, after the due date, or near month end. Adjust the budget only when the unpaid difference is real.</p>
       <p class="budget-note">${note}</p>
     </section>
   `;
@@ -427,17 +427,66 @@ function budgetExpenseTable(group) {
 
 function budgetLineReview(line) {
   const budget = Number(line.amount || 0);
-  if (budget <= 0) return `<span class="review-pill neutral">---</span>`;
+  if (budget <= 0) return budgetNeutralReview();
   const actual = actualPaidForConcept(line.id);
   const timing = budgetReviewTiming();
   const dueDay = Math.round(Number(line.dueDay || 0));
   const daysUntilDue = dueDay ? dueDay - timing.currentDay : 999;
   const nearMonthEnd = timing.daysInMonth - timing.currentDay <= 5;
-  if (actual > budget) return `<span class="review-pill over">Over</span>`;
-  if (actual >= budget) return `<span class="review-pill ok">OK</span>`;
-  if (dueDay && daysUntilDue < 0) return `<span class="review-pill missing">Missing</span>`;
-  if ((dueDay && daysUntilDue <= 5) || nearMonthEnd) return `<span class="review-pill watch">Review</span>`;
-  return `<span class="review-pill neutral">---</span>`;
+  if (actual > budget) return budgetNeutralReview();
+  if (actual >= budget) return reviewPill("ok", "OK");
+  if (dueDay && daysUntilDue < 0) return reviewPill("missing", "Missing");
+  if ((dueDay && daysUntilDue <= 5) || nearMonthEnd) return reviewPill("watch", "Review");
+  return budgetNeutralReview();
+}
+
+function budgetSummaryReview(budget, actual) {
+  if (!isReviewSeason()) return budgetNeutralReview();
+  if (Number(actual || 0) >= Number(budget || 0)) return reviewPill("ok", "OK");
+  return reviewPill("watch", "Review");
+}
+
+function budgetIncomeReview(conceptId, budget) {
+  if (!isReviewSeason()) return budgetNeutralReview();
+  const actual = actualPaidForConcept(conceptId);
+  if (actual >= Number(budget || 0)) return reviewPill("ok", "OK");
+  return reviewPill("watch", "Review");
+}
+
+function budgetCashFlowReview() {
+  if (!isReviewSeason()) return budgetNeutralReview();
+  if (Number(state.currentCashFlow || 0) >= Number(state.desiredFinalCashFlow || 0)) return reviewPill("ok", "OK");
+  return reviewPill("watch", "Review");
+}
+
+function budgetSavingsReview() {
+  if (!isReviewSeason()) return budgetNeutralReview();
+  const targetSavings = Number(state.initialSavings || 0) + Number(state.budgetedSavings || 0);
+  if (Number(state.currentSavings || 0) >= targetSavings) return reviewPill("ok", "OK");
+  return reviewPill("watch", "Review");
+}
+
+function budgetCreditCardReview(cardBudget) {
+  if (!isReviewSeason()) return budgetNeutralReview();
+  const actualCardSpending = state.transactions
+    .filter((tx) => tx.type === "expense" && tx.paymentMethod === "creditCard" && tx.conceptId !== "cards")
+    .reduce((total, tx) => total + Number(tx.amount || 0), 0);
+  if (actualCardSpending <= 0) return reviewPill("watch", "Review");
+  if (actualCardSpending <= Number(cardBudget || 0)) return reviewPill("ok", "OK");
+  return budgetNeutralReview();
+}
+
+function isReviewSeason() {
+  const timing = budgetReviewTiming();
+  return timing.currentDay > timing.daysInMonth / 2;
+}
+
+function budgetNeutralReview() {
+  return reviewPill("neutral", "---");
+}
+
+function reviewPill(status, label) {
+  return `<span class="review-pill ${status}">${label}</span>`;
 }
 
 function budgetReviewTiming() {
@@ -564,6 +613,7 @@ function transactions() {
 function actualControlNotes() {
   return `<section class="important-notes" aria-label="Important actual data controls">
     <strong>Important: required for accurate budget calculations</strong>
+    <p>After mid-month, use the Review column to confirm income, savings, credit cards, and budget lines that may be paid for less or deferred. Modify only concepts intentionally not paid this month; over-budget concepts and Miscellaneous are excluded from this review.</p>
     <ul>
       <li>The budget can start on any day of the month only if all bank and credit card transactions up to the current date are entered.</li>
       <li>Update Cash Flow and Savings with real current balances.</li>

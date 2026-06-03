@@ -976,15 +976,19 @@ h2 {
 }
 
 .budget-simple th:first-child {
-  width: 48%;
+  width: 42%;
 }
 
 .budget-simple th:nth-child(2) {
-  width: 28%;
+  width: 22%;
 }
 
 .budget-simple th:nth-child(3) {
-  width: 24%;
+  width: 18%;
+}
+
+.budget-simple th:nth-child(4) {
+  width: 18%;
 }
 
 .budget-simple th,
@@ -1066,19 +1070,19 @@ h2 {
 }
 
 .budget-expenses th:first-child {
-  width: 34%;
+  width: 30%;
 }
 
 .budget-expenses th:nth-child(2) {
-  width: 11%;
+  width: 9%;
 }
 
 .budget-expenses th:nth-child(3) {
-  width: 20%;
+  width: 18%;
 }
 
 .budget-expenses th:nth-child(4) {
-  width: 13%;
+  width: 10%;
 }
 
 .budget-expenses th:nth-child(5) {
@@ -1086,7 +1090,7 @@ h2 {
 }
 
 .budget-expenses th:last-child {
-  width: 7%;
+  width: 5%;
 }
 
 .budget-expenses .ref-input {
@@ -1129,20 +1133,20 @@ h2 {
 }
 
 .selectable-refs th:first-child {
-  width: 34%;
+  width: 30%;
 }
 
 .selectable-refs th:nth-child(2) {
   padding-left: 13px;
-  width: 11%;
+  width: 9%;
 }
 
 .selectable-refs th:nth-child(3) {
-  width: 20%;
+  width: 18%;
 }
 
 .selectable-refs th:nth-child(4) {
-  width: 13%;
+  width: 10%;
 }
 
 .selectable-refs th:nth-child(5) {
@@ -1206,8 +1210,26 @@ h2 {
   margin: 4px 7px 0;
 }
 
+.important-notes p {
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0 0 8px;
+}
+
 .calculated-section td:nth-child(2) {
   font-weight: 800;
+}
+
+.misc-table th:first-child {
+  width: 48%;
+}
+
+.misc-table th:nth-child(2) {
+  width: 28%;
+}
+
+.misc-table th:nth-child(3) {
+  width: 24%;
 }
 
 .calculated-heading {
@@ -1250,23 +1272,29 @@ h2 {
 
 .credit-card-budget th:first-child,
 .credit-card-budget td:first-child {
-  width: 48%;
+  width: 38%;
 }
 
 .credit-card-budget th:nth-child(2),
 .credit-card-budget td:nth-child(2) {
-  width: 28%;
+  width: 20%;
 }
 
 .credit-card-budget th:nth-child(3),
 .credit-card-budget td:nth-child(3) {
-  width: 16%;
+  width: 15%;
 }
 
 .credit-card-budget th:nth-child(4),
 .credit-card-budget td:nth-child(4) {
   text-align: right;
-  width: 8%;
+  width: 12%;
+}
+
+.credit-card-budget th:nth-child(5),
+.credit-card-budget td:nth-child(5) {
+  text-align: center;
+  width: 15%;
 }
 
 .credit-card-budget td {
@@ -2747,6 +2775,12 @@ th {
   .credit-card-budget td:nth-child(4) {
     font-size: 11px;
     width: 12%;
+  }
+
+  .credit-card-budget th:nth-child(5),
+  .credit-card-budget td:nth-child(5) {
+    font-size: 11px;
+    width: 15%;
   }
 
   .credit-card-budget td {
