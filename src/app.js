@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260603e";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260603e";
-import { copy } from "./i18n/index.js?v=20260603e";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260603f";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260603f";
+import { copy } from "./i18n/index.js?v=20260603f";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -613,15 +613,16 @@ function transactions() {
 function actualControlNotes() {
   return `<section class="important-notes" aria-label="Important actual data controls">
     <strong>Important: required for accurate final Cash Flow calculation</strong>
-    <p>After mid-month, Review means the concept needs confirmation: check the due date, confirm whether the income or payment was entered, or adjust the budget only if the amount will not be used this month or will be deferred to next month. Over-budget concepts and Miscellaneous are excluded from this review.</p>
+    <p>After mid-month, Review means confirm due dates, entered payments/income, or adjust only amounts not used this month.</p>
+    <h3>Key budget activities</h3>
     <ul>
-      <li>The budget can start on any day of the month only if all bank and credit card transactions up to the current date are entered.</li>
-      <li>Update Cash Flow and Savings with real current balances.</li>
-      <li>If planned savings changed, update Budgeted Savings in Budget Setup.</li>
-      <li>Select Cash or Credit card correctly in payments.</li>
-      <li>If a credit card is used for an unbudgeted purchase, record it under the closest budget expense group.</li>
-      <li>Credit card purchases and payments are controlled as totals for all cards; use Comment for individual card tracking.</li>
-      <li>Miscellaneous is calculated by the system from balances and activity; do not record it as a transaction.</li>
+      <li>Start any day: enter all current bank and card transactions.</li>
+      <li>Update Cash Flow and Savings with real balances.</li>
+      <li>If planned savings changed, update Budgeted Savings.</li>
+      <li>Select Cash or Credit card correctly.</li>
+      <li>Record unbudgeted card purchases under the closest expense group.</li>
+      <li>Cards are tracked as totals; use Comment for each card.</li>
+      <li>Do not enter Miscellaneous; the system calculates it.</li>
     </ul>
   </section>`;
 }

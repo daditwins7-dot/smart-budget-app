@@ -1262,7 +1262,14 @@ h2 {
 .important-notes p {
   font-size: 13px;
   line-height: 1.45;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
+}
+
+.important-notes h3 {
+  color: #7c2d12;
+  font-size: 12px;
+  margin: 0 0 5px;
+  text-transform: uppercase;
 }
 
 .calculated-section td:nth-child(2) {
@@ -1844,11 +1851,14 @@ th {
 }
 
 .important-notes ul {
+  column-gap: 28px;
+  columns: 2;
   margin: 0;
   padding-left: 18px;
 }
 
 .important-notes li {
+  break-inside: avoid;
   font-size: 12px;
   line-height: 1.45;
   margin: 3px 0;
