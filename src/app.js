@@ -1,6 +1,7 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260604b";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260604b";
-import { copy } from "./i18n/index.js?v=20260604b";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260604c";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260604c";
+import { copy } from "./i18n/index.js?v=20260604c";
+import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260604c";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -12,6 +13,12 @@ const validPages = ["dashboard", "budget", "transactions", "projections", "histo
 const TERMS_VERSION = "2026-06-04-trial-access";
 let helpMessages = initialHelpMessages();
 let showTermsModal = false;
+let authLoading = isSupabaseConfigured;
+let authSession = null;
+let authUser = null;
+let authProfile = null;
+let authMode = "sign-in";
+let authMessage = "";
 const comparativeReferences = {
   household: [
     ["4", "Food and Regular Home Purchases"],
@@ -37,6 +44,11 @@ function initialHelpMessages() {
 }
 
 function render() {
+  if (isSupabaseConfigured && (authLoading || !authUser)) {
+    app.innerHTML = authScreen();
+    bindAuthEvents();
+    return;
+  }
   const t = copy.en;
   const currentPageTitle = t[page] || copy.en[page] || "Smart Model";
   const dashboardData = dashboardModel(state, appToday());
@@ -55,6 +67,7 @@ function render() {
       ${navButton("settings", t.settings)}
     </aside>
     <main class="workspace ${page === "dashboard" ? "dashboard-workspace" : ""}">
+      ${accountBar()}
       ${page !== "dashboard" && page !== "budget" ? `<header class="topbar">
         <div>
           <p class="eyebrow">Monthly predictive planning</p>
@@ -77,6 +90,167 @@ function render() {
     ${termsAcceptanceOverlay()}
   `;
   bindEvents();
+}
+
+function authScreen() {
+  if (authLoading) {
+    return `<main class="auth-shell">
+      <section class="auth-card">
+        <p class="eyebrow">Home Smart Financial Systems</p>
+        <h1>Smart Budget Access</h1>
+        <p class="muted">Checking protected trial access...</p>
+      </section>
+    </main>`;
+  }
+
+  const isSignUp = authMode === "sign-up";
+  return `<main class="auth-shell">
+    <section class="auth-card">
+      <div>
+        <p class="eyebrow">Home Smart Financial Systems</p>
+        <h1>Smart Budget Access</h1>
+        <p class="muted">Protected trial access. Use your email and password to continue.</p>
+      </div>
+      ${authMessage ? `<p class="auth-message">${escapeHtml(authMessage)}</p>` : ""}
+      <form class="auth-form" id="auth-form">
+        <label>Email<input type="email" name="email" autocomplete="email" required /></label>
+        <label>Password<input type="password" name="password" autocomplete="${isSignUp ? "new-password" : "current-password"}" minlength="8" required /></label>
+        <button class="primary" type="submit">${isSignUp ? "Create trial account" : "Sign in"}</button>
+      </form>
+      <div class="auth-switch">
+        ${isSignUp ? "Already have access?" : "Need trial access?"}
+        <button class="link-button" type="button" data-auth-mode="${isSignUp ? "sign-in" : "sign-up"}">
+          ${isSignUp ? "Sign in" : "Create account"}
+        </button>
+      </div>
+      <button class="link-button" type="button" data-reset-password>Reset password by email</button>
+      <p class="auth-note">Email confirmation may be required before the first sign in. Only email is used for access.</p>
+    </section>
+  </main>`;
+}
+
+function accountBar() {
+  if (!authUser) return "";
+  const access = authProfile?.access_status || "trial";
+  const expires = authProfile?.trial_expires_at ? new Date(authProfile.trial_expires_at).toLocaleDateString("en-US") : "Not set";
+  return `<section class="account-bar">
+    <div>
+      <strong>${escapeHtml(authUser.email || "Signed in")}</strong>
+      <span>${access === "trial" ? `Trial access ends: ${expires}` : `Access: ${access}`}</span>
+    </div>
+    <button class="secondary" type="button" data-sign-out>Sign out</button>
+  </section>`;
+}
+
+async function initAuth() {
+  if (!isSupabaseConfigured) {
+    authLoading = false;
+    render();
+    return;
+  }
+
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    authMessage = error.message;
+  }
+  await setAuthSession(data?.session || null);
+  authLoading = false;
+  render();
+
+  supabase.auth.onAuthStateChange(async (_event, session) => {
+    await setAuthSession(session);
+    render();
+  });
+}
+
+async function setAuthSession(session) {
+  authSession = session;
+  authUser = session?.user || null;
+  authProfile = authUser ? await loadAuthProfile() : null;
+  if (authUser?.email) {
+    state.accessEmail = authUser.email;
+    state.trialExpiresAt = authProfile?.trial_expires_at || state.trialExpiresAt || "";
+    saveState(state);
+  }
+  if (authProfile?.access_status && !["trial", "active"].includes(authProfile.access_status)) {
+    authMessage = "This account is not active. Contact Home Smart Financial Systems to restore access.";
+    await supabase.auth.signOut();
+  }
+  if (authProfile?.access_status === "trial" && authProfile.trial_expires_at && new Date(authProfile.trial_expires_at) < new Date()) {
+    authMessage = "Trial access expired. Contact Home Smart Financial Systems to extend or activate access.";
+    await supabase.auth.signOut();
+  }
+}
+
+async function loadAuthProfile() {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("email, role, access_status, trial_expires_at, terms_required_version")
+    .eq("user_id", authUser.id)
+    .maybeSingle();
+  if (error) {
+    authMessage = `Profile access needs review: ${error.message}`;
+    return null;
+  }
+  return data;
+}
+
+async function recordTermsAcceptance() {
+  if (!authUser) return;
+  await supabase.from("terms_acceptances").insert({
+    user_id: authUser.id,
+    terms_version: TERMS_VERSION,
+    user_email: authUser.email || "",
+    acceptance_source: "smart_budget_app",
+  });
+}
+
+function bindAuthEvents() {
+  document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      authMode = button.dataset.authMode;
+      authMessage = "";
+      render();
+    });
+  });
+  document.querySelector("#auth-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") || "").trim();
+    const password = String(formData.get("password") || "");
+    authMessage = "Processing access...";
+    render();
+
+    const redirectTo = window.location.href.split("#")[0];
+    const result =
+      authMode === "sign-up"
+        ? await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } })
+        : await supabase.auth.signInWithPassword({ email, password });
+
+    if (result.error) {
+      authMessage = result.error.message;
+      render();
+      return;
+    }
+
+    authMessage =
+      authMode === "sign-up"
+        ? "Account created. Check your email if confirmation is required, then sign in."
+        : "Access confirmed.";
+    if (result.data?.session) {
+      await setAuthSession(result.data.session);
+    }
+    render();
+  });
+  document.querySelector("[data-reset-password]")?.addEventListener("click", async () => {
+    const email = window.prompt("Enter your account email to receive a password reset link:");
+    if (!email) return;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.href.split("#")[0],
+    });
+    authMessage = error ? error.message : "Password reset email sent if the account exists.";
+    render();
+  });
 }
 
 function appToday() {
@@ -113,7 +287,7 @@ function termsAcceptanceOverlay() {
       </div>
       <footer class="terms-actions">
         <p>${mustAccept ? "You must accept these Terms and Conditions before using Smart Budget." : `Accepted version: ${state.termsAcceptedVersion || "Not recorded"}`}</p>
-        <small>Trial acceptance is stored locally now and will be linked to the user's account when protected login is enabled.</small>
+        <small>Trial acceptance is linked to the signed-in email account.</small>
         <button class="primary" type="button" data-accept-terms>${mustAccept ? "I accept and continue" : "Accept current terms"}</button>
       </footer>
     </article>
@@ -1951,6 +2125,14 @@ function transactionRows(transactions) {
 }
 
 function bindEvents() {
+  document.querySelector("[data-sign-out]")?.addEventListener("click", async () => {
+    await supabase.auth.signOut();
+    authSession = null;
+    authUser = null;
+    authProfile = null;
+    authMessage = "Signed out.";
+    render();
+  });
   document.querySelectorAll("[data-page]").forEach((button) => {
     button.addEventListener("click", () => {
       setPage(button.dataset.page);
@@ -2112,10 +2294,11 @@ function bindEvents() {
     showTermsModal = false;
     render();
   });
-  document.querySelector("[data-accept-terms]")?.addEventListener("click", () => {
+  document.querySelector("[data-accept-terms]")?.addEventListener("click", async () => {
     state.termsAcceptedVersion = TERMS_VERSION;
     state.termsAcceptedAt = new Date().toISOString();
     showTermsModal = false;
+    await recordTermsAcceptance();
     saveState(state);
     render();
   });
@@ -2159,7 +2342,7 @@ function limitCompletedHistorySnapshots(snapshots) {
   return [...monthToDate, ...completed].sort(historySnapshotSort);
 }
 
-render();
+initAuth();
 
 function setPage(nextPage) {
   if (!validPages.includes(nextPage)) return;
