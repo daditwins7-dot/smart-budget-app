@@ -1,6 +1,6 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260603g";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260603g";
-import { copy } from "./i18n/index.js?v=20260603g";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260604a";
+import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260604a";
+import { copy } from "./i18n/index.js?v=20260604a";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -379,7 +379,7 @@ function budgetSetup(p) {
               <td>${inlineNumber("plannedCreditCardSpending")}</td>
               <td class="${p.creditCardOverdraft > 0 ? "danger" : "ok"}">${money(p.creditCardOverdraft)}</td>
               <td class="credit-card-total">${money(p.creditCardTotal)}</td>
-              <td>${budgetCreditCardReview(p.creditCardTotal)}</td>
+              <td>${budgetCreditCardReview()}</td>
             </tr>
           </tbody>
         </table>
@@ -468,14 +468,15 @@ function budgetSavingsReview() {
   return reviewPill("watch", "Review");
 }
 
-function budgetCreditCardReview(cardBudget) {
-  if (!isReviewSeason()) return budgetNeutralReview();
+function budgetCreditCardReview() {
+  const timing = budgetReviewTiming();
+  if (timing.currentDay <= 15) return budgetNeutralReview();
+  const cardBudget = Number(state.plannedCreditCardSpending || 0);
+  if (cardBudget <= 0) return budgetNeutralReview();
   const actualCardSpending = state.transactions
     .filter((tx) => tx.type === "expense" && tx.paymentMethod === "creditCard" && tx.conceptId !== "cards")
     .reduce((total, tx) => total + Number(tx.amount || 0), 0);
-  if (actualCardSpending <= 0) return reviewPill("watch", "Review");
-  if (actualCardSpending <= Number(cardBudget || 0)) return reviewPill("ok", "OK");
-  return budgetNeutralReview();
+  return actualCardSpending < cardBudget ? reviewPill("watch", "Review") : reviewPill("ok", "OK");
 }
 
 function isReviewSeason() {
