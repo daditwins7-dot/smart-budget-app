@@ -1,7 +1,7 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260604c";
-import { clearActualMonthState, loadState, reconcileState, resetState, saveState } from "./data/defaultState.js?v=20260604c";
-import { copy } from "./i18n/index.js?v=20260604c";
-import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260604c";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260604d";
+import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260604d";
+import { copy } from "./i18n/index.js?v=20260604d";
+import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260604d";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -19,6 +19,8 @@ let authUser = null;
 let authProfile = null;
 let authMode = "sign-in";
 let authMessage = "";
+let remoteStateLoaded = !isSupabaseConfigured;
+let remoteSaveTimer = null;
 const comparativeReferences = {
   household: [
     ["4", "Food and Regular Home Purchases"],
@@ -142,6 +144,30 @@ function accountBar() {
   </section>`;
 }
 
+function saveState(nextState) {
+  saveLocalState(nextState);
+  queueRemoteStateSave(nextState);
+}
+
+function queueRemoteStateSave(nextState) {
+  if (!isSupabaseConfigured || !authUser || !remoteStateLoaded) return;
+  window.clearTimeout(remoteSaveTimer);
+  remoteSaveTimer = window.setTimeout(() => {
+    saveRemoteBudgetState(nextState);
+  }, 450);
+}
+
+async function saveRemoteBudgetState(nextState) {
+  if (!authUser) return;
+  const { error } = await supabase.from("budget_states").upsert({
+    user_id: authUser.id,
+    state: { ...nextState, accessEmail: authUser.email || nextState.accessEmail || "" },
+  });
+  if (error) {
+    console.warn("Smart Budget remote save failed:", error.message);
+  }
+}
+
 async function initAuth() {
   if (!isSupabaseConfigured) {
     authLoading = false;
@@ -166,11 +192,16 @@ async function initAuth() {
 async function setAuthSession(session) {
   authSession = session;
   authUser = session?.user || null;
+  remoteStateLoaded = false;
+  if (!authUser) {
+    authProfile = null;
+    state = structuredClone(defaultState);
+    remoteStateLoaded = false;
+    return;
+  }
   authProfile = authUser ? await loadAuthProfile() : null;
   if (authUser?.email) {
-    state.accessEmail = authUser.email;
-    state.trialExpiresAt = authProfile?.trial_expires_at || state.trialExpiresAt || "";
-    saveState(state);
+    await loadRemoteBudgetState();
   }
   if (authProfile?.access_status && !["trial", "active"].includes(authProfile.access_status)) {
     authMessage = "This account is not active. Contact Home Smart Financial Systems to restore access.";
@@ -180,6 +211,32 @@ async function setAuthSession(session) {
     authMessage = "Trial access expired. Contact Home Smart Financial Systems to extend or activate access.";
     await supabase.auth.signOut();
   }
+}
+
+async function loadRemoteBudgetState() {
+  const { data, error } = await supabase.from("budget_states").select("state").eq("user_id", authUser.id).maybeSingle();
+  if (error) {
+    authMessage = `Budget data access needs review: ${error.message}`;
+    state = prepareAccountState(structuredClone(defaultState));
+    remoteStateLoaded = true;
+    return;
+  }
+
+  const storedState = data?.state && Object.keys(data.state).length ? data.state : null;
+  state = prepareAccountState(storedState ? reconcileState(data.state) : structuredClone(defaultState));
+  remoteStateLoaded = true;
+  saveLocalState(state);
+  if (!storedState) {
+    await saveRemoteBudgetState(state);
+  }
+}
+
+function prepareAccountState(accountState) {
+  return {
+    ...reconcileState(accountState),
+    accessEmail: authUser?.email || "",
+    trialExpiresAt: authProfile?.trial_expires_at || accountState.trialExpiresAt || "",
+  };
 }
 
 async function loadAuthProfile() {
@@ -2317,6 +2374,8 @@ function bindEvents() {
   });
   document.querySelector("#reset")?.addEventListener("click", () => {
     state = resetState();
+    state = prepareAccountState(state);
+    saveState(state);
     page = "budget";
     render();
   });
