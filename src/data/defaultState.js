@@ -1,8 +1,11 @@
 export const defaultState = {
-  dataVersion: 8,
+  dataVersion: 9,
   dataNotice: "",
   termsAcceptedVersion: "",
   termsAcceptedAt: "",
+  accessMode: "trial",
+  accessEmail: "",
+  trialExpiresAt: "",
   historySnapshots: [],
   month: currentMonthValue(),
   language: "en",
