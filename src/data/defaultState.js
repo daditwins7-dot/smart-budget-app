@@ -1,5 +1,5 @@
 export const defaultState = {
-  dataVersion: 9,
+  dataVersion: 10,
   dataNotice: "",
   termsAcceptedVersion: "",
   termsAcceptedAt: "",
@@ -34,7 +34,6 @@ export const defaultState = {
   expenses: [
     { id: "housing", concept: "Home Rent or Pay Mortgage", amount: 1850, dueDay: 1, group: "debts", reference: "1" },
     { id: "cards", concept: "Credit Cards All Payments", amount: 650, dueDay: 12, group: "debts", reference: "2" },
-    { id: "other-debts", concept: "Other Debts", amount: 0, dueDay: 15, group: "debts", reference: "3" },
     { id: "utilities", concept: "Utilities and services", amount: 420, dueDay: 10, group: "household", reference: "5" },
     { id: "groceries", concept: "Groceries", amount: 850, dueDay: 20, group: "household", reference: "4" },
     { id: "car", concept: "Car maintenance provision", amount: 250, dueDay: 25, group: "extraordinary", reference: "13" },
@@ -67,9 +66,7 @@ export function loadState() {
             : line.concept,
       reference: normalizedReference(line),
     }));
-    if (!saved.expenses.some((line) => line.group === "debts" && line.reference === "3")) {
-      saved.expenses.splice(2, 0, structuredClone(defaultState.expenses[2]));
-    }
+    saved.expenses = removeUnusedDefaultOtherDebt(saved.expenses);
     saved.currentCashFlow = normalizedNumber(saved.currentCashFlow, defaultState.currentCashFlow);
     saved.currentSavings = normalizedNumber(saved.currentSavings, defaultState.currentSavings);
     if (needsMigration) {
@@ -188,9 +185,14 @@ export function reconcileState(state) {
         reference: normalizedReference(line),
       }))
     : structuredClone(defaultState.expenses);
+  reconciled.expenses = removeUnusedDefaultOtherDebt(reconciled.expenses);
   reconciled.currentCashFlow = normalizedNumber(reconciled.currentCashFlow, defaultState.currentCashFlow);
   reconciled.currentSavings = normalizedNumber(reconciled.currentSavings, defaultState.currentSavings);
   return reconciled;
+}
+
+function removeUnusedDefaultOtherDebt(expenses) {
+  return expenses.filter((line) => !(line.id === "other-debts" && normalizedNumber(line.amount) === 0));
 }
 
 export function clearActualMonthState(state) {

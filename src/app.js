@@ -1,7 +1,7 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260604e";
-import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260604d";
-import { copy } from "./i18n/index.js?v=20260604e";
-import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260604e";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260604f";
+import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260604f";
+import { copy } from "./i18n/index.js?v=20260604f";
+import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260604f";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -564,7 +564,7 @@ function budgetSetup(p) {
           <tbody>
             <tr class="budget-total-row"><td>${ui("availableIncome")}</td><td>${money(p.budgetAvailableForExpenses)}</td><td class="calculated-mark">${ui("calculated")}</td><td>${budgetSummaryReview(p.budgetAvailableForExpenses, p.actualAvailableForExpenses)}</td></tr>
             <tr><td>${ui("salaryNetIncome")}</td><td>${inlineNumber("regularIncome")}</td><td>${inlineNumber("estimatedTaxPercent", "percent")}</td><td>${budgetIncomeReview("net-income", state.regularIncome)}</td></tr>
-            <tr><td>${ui("otherIncome")}</td><td>${inlineNumber("irregularIncome")}</td><td class="calculated-mark">---</td><td>${budgetIncomeReview("other-deposits", state.irregularIncome)}</td></tr>
+            <tr><td>${ui("otherIncome")}</td><td>${inlineNumber("irregularIncome")}</td><td class="calculated-mark"></td><td>${budgetIncomeReview("other-deposits", state.irregularIncome)}</td></tr>
           </tbody>
         </table>
       </section>
@@ -724,7 +724,7 @@ function isReviewSeason() {
 }
 
 function budgetNeutralReview() {
-  return reviewPill("neutral", "---");
+  return "";
 }
 
 function reviewPill(status, label) {
@@ -855,7 +855,7 @@ function transactions() {
 function actualControlNotes() {
   return `<section class="important-notes" aria-label="Important actual data controls">
     <strong>Important: required for accurate final Cash Flow calculation</strong>
-    <p>After mid-month, Review means confirm due dates, entered payments/income, or adjust only amounts not used this month.</p>
+    <p>After mid-month, Review means confirm due dates, entered payments/income, Savings changes, card budget use, or adjust only amounts not used this month.</p>
     <h3>Key budget activities</h3>
     <ul>
       <li>Start any day: enter all current bank and card transactions.</li>
