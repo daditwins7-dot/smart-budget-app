@@ -1,7 +1,7 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260604d";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260604e";
 import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260604d";
-import { copy } from "./i18n/index.js?v=20260604d";
-import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260604d";
+import { copy } from "./i18n/index.js?v=20260604e";
+import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260604e";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -1798,18 +1798,25 @@ function answerHelpQuestion(question, p) {
   const scored = topics
     .map((topic) => ({
       ...topic,
-      score: topic.keywords.reduce((total, keyword) => {
-        const normalizedKeyword = normalizeText(keyword);
-        const words = normalizedKeyword.split(" ").filter(Boolean);
-        if (normalized.includes(normalizedKeyword)) return total + Math.max(2, words.length);
-        return total + words.filter((word) => normalized.includes(word)).length;
-      }, 0),
+      score: topic.keywords.reduce((total, keyword) => total + helpKeywordScore(normalized, keyword), 0),
     }))
     .sort((a, b) => b.score - a.score);
   if (scored[0]?.score > 0) return scored[0].answer;
   return helpLanguage() === "es"
     ? "No encontre una coincidencia exacta. Intenta preguntar sobre flujo de efectivo, ahorros, tarjetas, miscelaneos, desbalance, transacciones, proyeccion, pagos vencidos, Ref o nuevo mes."
     : "I did not find an exact match. Try asking about cash flow, savings, credit cards, miscellaneous, balance mismatch, transactions, projection, overdue payments, Ref, or new month.";
+}
+
+function helpKeywordScore(normalizedQuestion, keyword) {
+  const normalizedKeyword = normalizeText(keyword);
+  if (normalizedQuestion.includes(normalizedKeyword)) {
+    return normalizedKeyword.includes(" ") ? normalizedKeyword.split(" ").length + 2 : 3;
+  }
+  const weakWords = new Set(["what", "when", "where", "which", "who", "why", "how", "can", "could", "should", "would", "need", "does", "this", "that", "with", "about", "para", "que", "como", "cual", "cuando", "donde", "debo", "puedo", "necesito", "sobre", "con", "los", "las", "una", "uno"]);
+  const words = normalizedKeyword
+    .split(" ")
+    .filter((word) => word.length > 2 && !weakWords.has(word));
+  return words.filter((word) => new RegExp(`\\b${word}\\b`).test(normalizedQuestion)).length;
 }
 
 function smartHelpTopics(p) {
@@ -1891,6 +1898,13 @@ function smartHelpTopics(p) {
               `Credit card payments are ${money(p.creditCardPaymentsActual)} and card purchases are ${money(p.creditCardActual)}. Card activity should be entered correctly as card purchases or payments, with details in comments if needed.`,
               `Los pagos de tarjeta son ${money(p.creditCardPaymentsActual)} y las compras con tarjeta son ${money(p.creditCardActual)}. La actividad de tarjetas debe registrarse correctamente como compras o pagos, usando comentarios si necesitas detalle.`,
             ),
+    },
+    {
+      keywords: ["extraordinary expenses", "extraordinary", "non monthly", "non-monthly", "unplanned", "unforeseen", "scheduled", "one time", "gastos extraordinarios", "extraordinarios", "no mensual", "imprevisto", "programado", "una vez"],
+      answer: bilingual(
+        "Extraordinary Expenses are non-monthly or unusual items that you want to reserve or control in this month, such as car repair, medical bill, home repair, annual fee, insurance difference, school expense, travel, or another scheduled non-recurring payment. They should be budgeted only when they affect this month.",
+        "Gastos Extraordinarios son gastos no mensuales o poco comunes que quieres reservar o controlar en este mes, como reparacion de auto, gasto medico, reparacion de casa, cuota anual, diferencia de seguro, gasto escolar, viaje u otro pago programado no recurrente. Deben presupuestarse solo cuando afectan este mes.",
+      ),
     },
     {
       keywords: ["transaction", "transactions", "movimiento", "movimientos", "actual", "actuales", "update"],
