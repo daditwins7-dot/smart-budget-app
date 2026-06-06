@@ -1,7 +1,7 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260604f";
-import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260604f";
-import { copy } from "./i18n/index.js?v=20260604f";
-import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260604f";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260604g";
+import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260604g";
+import { copy } from "./i18n/index.js?v=20260604g";
+import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260604g";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -618,7 +618,7 @@ function budgetSetup(p) {
               <td>${inlineNumber("plannedCreditCardSpending")}</td>
               <td class="${p.creditCardOverdraft > 0 ? "danger" : "ok"}">${money(p.creditCardOverdraft)}</td>
               <td class="credit-card-total">${money(p.creditCardTotal)}</td>
-              <td>${budgetCreditCardReview()}</td>
+              <td>${budgetCreditCardReview(p.creditCardOverdraft)}</td>
             </tr>
           </tbody>
         </table>
@@ -707,7 +707,8 @@ function budgetSavingsReview() {
   return reviewPill("watch", "Review");
 }
 
-function budgetCreditCardReview() {
+function budgetCreditCardReview(overdraft = 0) {
+  if (Number(overdraft || 0) > 0) return reviewPill("watch", "Review");
   const timing = budgetReviewTiming();
   if (timing.currentDay <= 15) return budgetNeutralReview();
   const cardBudget = Number(state.plannedCreditCardSpending || 0);
@@ -855,7 +856,7 @@ function transactions() {
 function actualControlNotes() {
   return `<section class="important-notes" aria-label="Important actual data controls">
     <strong>Important: required for accurate final Cash Flow calculation</strong>
-    <p>After mid-month, Review means confirm due dates, entered payments/income, Savings changes, card budget use, or adjust only amounts not used this month.</p>
+    <p>Review means confirm due dates, entered payments/income, Savings changes, card budget use, card overdraft coverage, or adjust only amounts not used this month.</p>
     <h3>Key budget activities</h3>
     <ul>
       <li>Start any day: enter all current bank and card transactions.</li>
