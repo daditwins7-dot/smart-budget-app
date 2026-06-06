@@ -1,7 +1,7 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260606a";
-import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260606a";
-import { copy } from "./i18n/index.js?v=20260606a";
-import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260606a";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260606b";
+import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260606b";
+import { copy } from "./i18n/index.js?v=20260606b";
+import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260606b";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -10,7 +10,7 @@ let page = ["dashboard", "budget", "transactions", "projections", "history", "sm
   : "dashboard";
 const app = document.querySelector("#app");
 const validPages = ["dashboard", "budget", "transactions", "projections", "history", "smartModel", "evaluation", "help", "settings"];
-const TERMS_VERSION = "2026-06-04-trial-access";
+const TERMS_VERSION = "2026-06-06-free-public";
 let helpMessages = initialHelpMessages();
 let showTermsModal = false;
 let authLoading = isSupabaseConfigured;
@@ -100,7 +100,7 @@ function authScreen() {
       <section class="auth-card">
         <p class="eyebrow">Home Smart Financial Systems</p>
         <h1>Smart Budget Access</h1>
-        <p class="muted">Checking protected trial access...</p>
+        <p class="muted">Checking protected free access...</p>
       </section>
     </main>`;
   }
@@ -111,16 +111,16 @@ function authScreen() {
       <div>
         <p class="eyebrow">Home Smart Financial Systems</p>
         <h1>Smart Budget Access</h1>
-        <p class="muted">Protected trial access. Use your email and password to continue.</p>
+        <p class="muted">Protected free access. Use your email and password to continue.</p>
       </div>
       ${authMessage ? `<p class="auth-message">${escapeHtml(authMessage)}</p>` : ""}
       <form class="auth-form" id="auth-form">
         <label>Email<input type="email" name="email" autocomplete="email" required /></label>
         <label>Password<input type="password" name="password" autocomplete="${isSignUp ? "new-password" : "current-password"}" minlength="8" required /></label>
-        <button class="primary" type="submit">${isSignUp ? "Create trial account" : "Sign in"}</button>
+        <button class="primary" type="submit">${isSignUp ? "Create free account" : "Sign in"}</button>
       </form>
       <div class="auth-switch">
-        ${isSignUp ? "Already have access?" : "Need trial access?"}
+        ${isSignUp ? "Already have access?" : "Need free access?"}
         <button class="link-button" type="button" data-auth-mode="${isSignUp ? "sign-in" : "sign-up"}">
           ${isSignUp ? "Sign in" : "Create account"}
         </button>
@@ -138,7 +138,7 @@ function accountBar() {
   return `<section class="account-bar">
     <div>
       <strong>${escapeHtml(authUser.email || "Signed in")}</strong>
-      <span>${access === "trial" ? `Trial access ends: ${expires}` : `Access: ${access}`}</span>
+      <span>${access === "trial" ? `Free access ends: ${expires}` : `Access: ${access}`}</span>
     </div>
     <button class="secondary" type="button" data-sign-out>Sign out</button>
   </section>`;
@@ -208,7 +208,7 @@ async function setAuthSession(session) {
     await supabase.auth.signOut();
   }
   if (authProfile?.access_status === "trial" && authProfile.trial_expires_at && new Date(authProfile.trial_expires_at) < new Date()) {
-    authMessage = "Trial access expired. Contact Home Smart Financial Systems to extend or activate access.";
+    authMessage = "Free access expired. Contact Home Smart Financial Systems to extend or activate access.";
     await supabase.auth.signOut();
   }
 }
@@ -344,7 +344,7 @@ function termsAcceptanceOverlay() {
       </div>
       <footer class="terms-actions">
         <p>${mustAccept ? "You must accept these Terms and Conditions before using Smart Budget." : `Accepted version: ${state.termsAcceptedVersion || "Not recorded"}`}</p>
-        <small>Trial acceptance is linked to the signed-in email account.</small>
+        <small>Terms acceptance is linked to the signed-in email account.</small>
         <button class="primary" type="button" data-accept-terms>${mustAccept ? "I accept and continue" : "Accept current terms"}</button>
       </footer>
     </article>
@@ -353,8 +353,8 @@ function termsAcceptanceOverlay() {
 
 function termsAndConditionsMarkup() {
   return `
-    <h3>1. Trial Access and Donations</h3>
-    <p>SMART BUDGET may be offered as a free trial, demo, donation-supported tool, or paid product at the discretion of HOME SMART FINANCIAL SYSTEMS. Trial access is temporary, personal, non-transferable, and may be changed, limited, suspended, or ended by HOME SMART FINANCIAL SYSTEMS at any time.</p>
+    <h3>1. Free Public Access and Donations</h3>
+    <p>SMART BUDGET may be offered as free public access, demo access, donation-supported access, or a paid product at the discretion of HOME SMART FINANCIAL SYSTEMS. Free public access is personal, non-transferable, and may be changed, limited, suspended, or ended by HOME SMART FINANCIAL SYSTEMS at any time.</p>
 
     <h3>2. Payments and Validity</h3>
     <p>Payments for licenses, when applicable, will be made exclusively online by credit card, PayPal, or another payment method authorized by HOME SMART FINANCIAL SYSTEMS. This agreement begins when the customer or authorized user downloads, accesses, installs, or uses any HOME SMART FINANCIAL SYSTEMS software product, including Smart Budget, Affordable Mortgage, and Amortization Financial Tool. The agreement remains active as long as the customer complies with these terms, unless otherwise provided by HOME SMART FINANCIAL SYSTEMS.</p>
@@ -376,8 +376,8 @@ function termsAndConditionsMarkup() {
     <p>SMART BUDGET is designed to request minimal personal information. For account access, only an email address is intended to be required. HOME SMART FINANCIAL SYSTEMS does not require the user's real name, address, phone number, bank login, bank account number, or credit card number inside SMART BUDGET.</p>
     <p>Budget values, transactions, balances, history, and chat questions entered by the user are used to operate and improve SMART BUDGET. Chat questions may be reviewed to improve Smart Help responses. HOME SMART FINANCIAL SYSTEMS does not sell user personal information.</p>
 
-    <h3>8. Trial Expiration and Access Control</h3>
-    <p>Trial or demo access may expire on a specific date or be disabled if the user violates these terms. When access expires, the system may block use until access is renewed, extended, or otherwise authorized by HOME SMART FINANCIAL SYSTEMS.</p>
+    <h3>8. Access Control</h3>
+    <p>Free public access or demo access may expire on a specific date or be disabled if the user violates these terms. When access expires, the system may block use until access is renewed, extended, or otherwise authorized by HOME SMART FINANCIAL SYSTEMS.</p>
 
     <h3>9. Limitation of Liability</h3>
     <p>HOME SMART FINANCIAL SYSTEMS shall not be liable for calculation errors, inaccurate assumptions, user input errors, formula differences, software or hardware failures, browser storage issues, loss of data, network failures, interruption of service, or financial losses arising from the use of the software. Since the functions, formulas, assumptions, and projections used may differ from those of other similar programs, any decision made based on the results presented is the sole responsibility of the user.</p>

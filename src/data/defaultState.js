@@ -3,7 +3,7 @@ export const defaultState = {
   dataNotice: "",
   termsAcceptedVersion: "",
   termsAcceptedAt: "",
-  accessMode: "trial",
+  accessMode: "free_public",
   accessEmail: "",
   trialExpiresAt: "",
   historySnapshots: [],
