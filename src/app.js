@@ -1,7 +1,7 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260604g";
-import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260604g";
-import { copy } from "./i18n/index.js?v=20260604g";
-import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260604g";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260605a";
+import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260605a";
+import { copy } from "./i18n/index.js?v=20260605a";
+import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260605a";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");

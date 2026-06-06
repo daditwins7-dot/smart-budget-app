@@ -43,9 +43,9 @@ export function calculateProjection(state, today = new Date()) {
     desiredFinalCashFlow;
   const creditCardOverdraft = Math.max(0, controlledExpenses - availableBeforeCreditCards);
   const creditCardTotal = plannedCreditCardSpending + creditCardOverdraft;
-  const budgetAvailableForExpenses = availableBeforeCreditCards + creditCardTotal;
-  const miscellaneousRaw = budgetAvailableForExpenses - controlledExpenses;
-  const miscellaneous = miscellaneousRaw;
+  const miscellaneous = Math.max(0, availableBeforeCreditCards - controlledExpenses) + creditCardTotal;
+  const miscellaneousRaw = miscellaneous;
+  const budgetAvailableForExpenses = controlledExpenses + miscellaneous;
 
   const actualIncome = actualTotal(state, "income");
   const actualSavings = actualTotal(state, "saving");
