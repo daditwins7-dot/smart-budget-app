@@ -1,7 +1,7 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260605a";
-import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260605a";
-import { copy } from "./i18n/index.js?v=20260605a";
-import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260605a";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260606a";
+import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260606a";
+import { copy } from "./i18n/index.js?v=20260606a";
+import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260606a";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -425,6 +425,9 @@ function dataQualityIssues(p) {
   }
   if (Number(p.miscellaneousActualRaw || 0) < 0) {
     issues.push("Actual Miscellaneous is negative. This usually means transactions or balances are missing; correct Cash Flow, Savings, income, card purchases, or payments before continuing.");
+  }
+  if (p.miscellaneousActualNeedsReview) {
+    issues.push("Actual Miscellaneous is zero while current activity exists. Review Cash Flow, Savings, income, card purchases, and payments before trusting projections.");
   }
   if (savingsPlanMismatchForCurrentDate()) {
     issues.push("Savings plan mismatch. The savings deposit date passed, but current Savings does not match Savings Initial plus Budgeted Savings. If the planned savings amount changed, update Budgeted Savings in Budget Setup before relying on projections.");
@@ -1533,6 +1536,13 @@ function actionSuggestions(p, context) {
       text: `Actual miscellaneous is ${money(p.miscellaneousActualRaw)}. Review current Cash Flow, Savings, income deposits, card purchases, and payments before using the projection.`,
     });
   }
+  if (p.miscellaneousActualNeedsReview) {
+    suggestions.push({
+      level: "problem",
+      title: "Review actual data",
+      text: "Actual miscellaneous is $0 while current activity exists. Review current balances and transactions before using the projection.",
+    });
+  }
 
   if (p.expectedEndCashFlow < 0) {
     suggestions.push({
@@ -1838,7 +1848,12 @@ function smartHelpTopics(p) {
     {
       keywords: ["miscellaneous", "miscelaneo", "miscelaneos", "misc", "negative", "negativo"],
       answer:
-        Number(p.miscellaneousActualRaw || 0) < 0
+        p.miscellaneousActualNeedsReview
+          ? bilingual(
+              "Actual Miscellaneous is $0 while current activity exists. Review Cash Flow, Savings, income deposits, card purchases, and payments before trusting the projection.",
+              "Miscelaneos Actual es $0 aunque ya existe actividad actual. Revisa Flujo de Efectivo, Ahorros, depositos de ingresos, compras con tarjeta y pagos antes de confiar en la proyeccion.",
+            )
+          : Number(p.miscellaneousActualRaw || 0) < 0
           ? bilingual(
               `Actual Miscellaneous is ${money(p.miscellaneousActualRaw)}. That usually means missing actual data: update Cash Flow, Savings, income deposits, credit card purchases, or credit card payments before using the projection.`,
               `Miscelaneos Actual es ${money(p.miscellaneousActualRaw)}. Normalmente significa que faltan datos actuales: actualiza Flujo de Efectivo, Ahorros, depositos de ingresos, compras con tarjeta o pagos de tarjeta antes de usar la proyeccion.`,
@@ -1984,6 +1999,14 @@ function smartHelpStartGuideAnswer() {
 
 function smartHelpFocusAnswer(p) {
   const priorities = [];
+  if (p.miscellaneousActualNeedsReview) {
+    priorities.push(
+      bilingual(
+        "review actual balances and transactions because Actual Miscellaneous is zero while activity exists",
+        "revisa balances y transacciones actuales porque Miscelaneos Actual esta en cero aunque ya existe actividad",
+      ),
+    );
+  }
   if (Number(p.miscellaneousActualRaw || 0) < 0) {
     priorities.push(
       bilingual(
@@ -2038,6 +2061,16 @@ function smartHelpFocusAnswer(p) {
 
 function smartHelpSignals(p) {
   const signals = [];
+  if (p.miscellaneousActualNeedsReview) {
+    signals.push({
+      level: "problem",
+      title: bilingual("Review actual data", "Revisar datos actuales"),
+      text: bilingual(
+        "Actual Miscellaneous is zero while activity exists; review balances and transactions before decisions.",
+        "Miscelaneos Actual esta en cero aunque ya existe actividad; revisa balances y transacciones antes de tomar decisiones.",
+      ),
+    });
+  }
   if (Number(p.miscellaneousActualRaw || 0) < 0) {
     signals.push({
       level: "problem",

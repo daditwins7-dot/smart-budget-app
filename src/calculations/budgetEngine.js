@@ -97,6 +97,11 @@ export function calculateProjection(state, today = new Date()) {
   const miscellaneousActual = Math.max(0, miscellaneousActualRaw);
   const totalActualExpenses = totalControlledActualExpenses + miscellaneousActual;
   const actualAvailableForExpenses = totalActualExpenses;
+  const hasActualEntries = state.transactions.length > 0 || actualIncome > 0 || totalControlledActualExpenses > 0 || actualCardSpending > 0 || actualCardPayments > 0;
+  const miscellaneousActualNeedsReview =
+    hasActualEntries &&
+    miscellaneousActual === 0 &&
+    (miscellaneous > 0 || actualIncome > 0 || totalControlledActualExpenses > 0 || actualCardSpending > 0);
   const projectedControlledExpenses =
     projectedCommittedDebts + projectedHouseholdExpenses + projectedExtraordinaryExpenses;
   const projectedMiscellaneousBase =
@@ -167,6 +172,7 @@ export function calculateProjection(state, today = new Date()) {
     miscellaneous,
     miscellaneousActualRaw,
     miscellaneousActual,
+    miscellaneousActualNeedsReview,
     miscellaneousProjected,
     expectedEndCashFlow,
     projectedSavings,
@@ -182,7 +188,7 @@ export function calculateProjection(state, today = new Date()) {
     projectedBalanceDifference: projectedAvailableForExpenses - totalProjectedExpenses,
     debtToIncome,
     healthScore,
-    alerts: buildAlerts(state, miscellaneousRaw, miscellaneousActualRaw, miscellaneousProjected, projectedSavings, today),
+    alerts: buildAlerts(state, miscellaneousRaw, miscellaneousActualRaw, miscellaneousActualNeedsReview, miscellaneousProjected, projectedSavings, today),
   };
 }
 
@@ -234,7 +240,7 @@ export function dashboardModel(state, today = new Date()) {
     budget: projection.miscellaneous,
     projected: projection.miscellaneousProjected,
     evaluation:
-      projection.miscellaneousRaw < 0 || projection.miscellaneousProjected < 0
+      projection.miscellaneousRaw < 0 || projection.miscellaneousActualNeedsReview || projection.miscellaneousProjected < 0
         ? status("problem")
         : lowerIsBetter(projection.miscellaneousProjected, projection.miscellaneous),
     },
@@ -331,7 +337,7 @@ export function projectionAnalysisModel(state, today = new Date()) {
       remaining: Math.max(0, projection.miscellaneous),
       paid: projection.miscellaneous ? projection.miscellaneousActual / projection.miscellaneous : 0,
       evaluation:
-        projection.miscellaneousActualRaw < 0 || projection.miscellaneousProjected < 0
+        projection.miscellaneousActualRaw < 0 || projection.miscellaneousActualNeedsReview || projection.miscellaneousProjected < 0
           ? status("problem")
           : lowerIsBetter(projection.miscellaneousProjected, projection.miscellaneous),
     },
@@ -587,11 +593,14 @@ function paidForConcept(state, conceptId) {
     .reduce((total, tx) => total + numeric(tx.amount), 0);
 }
 
-function buildAlerts(state, miscellaneousRaw, miscellaneousActualRaw, miscellaneousProjected, projectedSavings, today) {
+function buildAlerts(state, miscellaneousRaw, miscellaneousActualRaw, miscellaneousActualNeedsReview, miscellaneousProjected, projectedSavings, today) {
   const alerts = [];
   if (miscellaneousRaw < 0) alerts.push("Budget deficit: miscellaneous is negative before adjustment.");
   if (miscellaneousActualRaw < 0) {
     alerts.push("Actual miscellaneous is negative. Review missing transactions or update Cash Flow and Savings balances before making decisions.");
+  }
+  if (miscellaneousActualNeedsReview) {
+    alerts.push("Actual Miscellaneous is zero while current activity exists. Review balances and transactions before relying on projected results.");
   }
   if (state.crisisMode && miscellaneousRaw < 0) {
     alerts.push("Crisis mode: keep the deficit visible until a revised budget is confirmed.");
