@@ -1,7 +1,7 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260606b";
-import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260606b";
-import { copy } from "./i18n/index.js?v=20260606b";
-import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260606b";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260606c";
+import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260606c";
+import { copy } from "./i18n/index.js?v=20260606c";
+import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260606c";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -858,6 +858,10 @@ function transactions() {
 
 function actualControlNotes() {
   return `<section class="important-notes" aria-label="Important actual data controls">
+    <div class="budget-advantage">
+      <strong>Focus only on the key items you want to control</strong>
+      <p>Smart Budget calculates smaller miscellaneous spending from your balances and activity, reducing manual updates while still reflecting the full monthly impact.</p>
+    </div>
     <strong>Important: required for accurate final Cash Flow calculation</strong>
     <p>Review means confirm due dates, entered payments/income, Savings changes, card budget use, card overdraft coverage, or adjust only amounts not used this month.</p>
     <h3>Key budget activities</h3>

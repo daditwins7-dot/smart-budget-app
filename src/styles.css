@@ -1937,6 +1937,28 @@ th {
   padding: 12px 14px;
 }
 
+.budget-advantage {
+  background: #ecfeff;
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
+  color: #0f766e;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+}
+
+.budget-advantage strong {
+  color: #0f766e;
+  font-size: 17px;
+  margin-bottom: 4px;
+}
+
+.budget-advantage p {
+  color: #134e4a;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
 .important-notes strong {
   display: block;
   font-size: 16px;
