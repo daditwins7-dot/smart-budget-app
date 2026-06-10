@@ -1,7 +1,7 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260606c";
-import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260606c";
-import { copy } from "./i18n/index.js?v=20260606c";
-import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260606c";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260610a";
+import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260610a";
+import { copy } from "./i18n/index.js?v=20260610a";
+import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260610a";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -21,6 +21,7 @@ let authMode = "sign-in";
 let authMessage = "";
 let remoteStateLoaded = !isSupabaseConfigured;
 let remoteSaveTimer = null;
+let transactionFormType = "expense";
 const comparativeReferences = {
   household: [
     ["4", "Food and Regular Home Purchases"],
@@ -786,6 +787,7 @@ function transactions() {
   const lastUpdated = state.lastActualUpdate || "";
   const updateCurrent = lastUpdated === today;
   const visibleTransactions = filteredTransactions();
+  const selectedType = transactionFormType === "income" ? "income" : "expense";
   const filteredIncomeTotal = visibleTransactions.filter((tx) => tx.type === "income").reduce((total, tx) => total + Number(tx.amount || 0), 0);
   const filteredExpenseTotal = visibleTransactions.filter((tx) => tx.type === "expense").reduce((total, tx) => total + Number(tx.amount || 0), 0);
   return `
@@ -814,10 +816,10 @@ function transactions() {
       <form id="tx-form" class="transaction-form">
         <input name="date" type="date" value="${today}" />
         <select name="type" id="tx-type">
-          <option value="expense">Expense</option>
-          <option value="income">Income</option>
+          <option value="expense" ${selectedType === "expense" ? "selected" : ""}>Expense</option>
+          <option value="income" ${selectedType === "income" ? "selected" : ""}>Income</option>
         </select>
-        <select name="conceptId" id="tx-concept">${transactionConceptOptions("expense")}</select>
+        <select name="conceptId" id="tx-concept">${transactionConceptOptions(selectedType)}</select>
         <input name="amount" type="number" step="0.01" placeholder="Amount" required />
         <select name="paymentMethod">
           <option value="cash">Cash</option>
@@ -2366,11 +2368,20 @@ function bindEvents() {
     });
   });
   document.querySelector("#tx-type")?.addEventListener("change", (event) => {
-    document.querySelector("#tx-concept").innerHTML = transactionConceptOptions(event.target.value);
+    transactionFormType = event.target.value === "income" ? "income" : "expense";
+    document.querySelector("#tx-concept").innerHTML = transactionConceptOptions(transactionFormType);
   });
   document.querySelector("#tx-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.target).entries());
+    data.type = data.type === "income" ? "income" : "expense";
+    if (data.type === "income" && !["net-income", "other-deposits"].includes(data.conceptId)) {
+      data.conceptId = "net-income";
+    }
+    if (data.type === "expense" && !state.expenses.some((line) => line.id === data.conceptId)) {
+      data.conceptId = state.expenses[0]?.id || "";
+    }
+    transactionFormType = data.type;
     state.dataNotice = "";
     state.transactions.unshift({ id: crypto.randomUUID(), ...data, amount: Number(data.amount) });
     state.lastActualUpdate = localDateValue();
