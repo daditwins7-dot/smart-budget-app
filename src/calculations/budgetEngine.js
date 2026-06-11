@@ -566,7 +566,7 @@ function projectedGroupTotal(state, group, timing) {
 
 function projectedLineAmount(budget, actual) {
   if (actual > budget) return actual;
-  if (actual > budget * 0.85) return actual;
+  if (actual >= budget) return actual;
   return budget;
 }
 
