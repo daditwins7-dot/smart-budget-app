@@ -1,7 +1,7 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260610a";
-import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260610a";
-import { copy } from "./i18n/index.js?v=20260610a";
-import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260610a";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260610b";
+import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260610b";
+import { copy } from "./i18n/index.js?v=20260610b";
+import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260610b";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -1820,8 +1820,8 @@ function answerHelpQuestion(question, p) {
     .sort((a, b) => b.score - a.score);
   if (scored[0]?.score > 0) return scored[0].answer;
   return helpLanguage() === "es"
-    ? "No encontre una coincidencia exacta. Intenta preguntar sobre flujo de efectivo, ahorros, tarjetas, miscelaneos, desbalance, transacciones, proyeccion, pagos vencidos, Ref o nuevo mes."
-    : "I did not find an exact match. Try asking about cash flow, savings, credit cards, miscellaneous, balance mismatch, transactions, projection, overdue payments, Ref, or new month.";
+    ? "No encontre una coincidencia exacta. Intenta preguntar sobre flujo de efectivo, ahorros, tarjetas, miscelaneos, desbalance, transacciones, proyeccion, historial, pagos vencidos, Ref o nuevo mes."
+    : "I did not find an exact match. Try asking about cash flow, savings, credit cards, miscellaneous, balance mismatch, transactions, projection, history, overdue payments, Ref, or new month.";
 }
 
 function helpKeywordScore(normalizedQuestion, keyword) {
@@ -1943,6 +1943,13 @@ function smartHelpTopics(p) {
       ),
     },
     {
+      keywords: ["history", "historial", "past months", "previous months", "month history", "historical", "historico", "meses anteriores", "promedio", "average", "where history", "donde historial", "donde encuentro historial"],
+      answer: bilingual(
+        "History stores month-to-date and completed month results. It compares Budget, Projection, saved monthly values, and the 12-month average by concept, so you can review spending behavior over time.",
+        "History guarda resultados del mes a la fecha y meses completos. Compara Budget, Projection, valores mensuales guardados y promedio de 12 meses por concepto, para revisar el comportamiento de gastos con el tiempo.",
+      ),
+    },
+    {
       keywords: ["overdue", "late", "vencido", "vencidos", "future", "futuro", "payments", "pagos"],
       answer: bilingual(
         "Payment Timing separates overdue committed payments from future committed payments. Use it to decide what must be paid first before relying on remaining cash flow.",
@@ -1964,13 +1971,40 @@ function smartHelpTopics(p) {
       ),
     },
     {
+      keywords: ["where", "find", "section", "tab", "page", "donde", "encuentro", "pestana", "seccion", "pagina", "financial part", "parte financiera"],
+      answer: smartHelpNavigationAnswer(),
+    },
+    {
       keywords: ["help", "ayuda", "how", "como", "explain", "explica", "meaning", "significa"],
       answer: bilingual(
-        "Ask about one budget topic at a time, for example: cash flow, savings, credit cards, miscellaneous, balance mismatch, projection, transactions, overdue payments, Ref, or new month.",
-        "Pregunta sobre un tema del presupuesto a la vez, por ejemplo: flujo de efectivo, ahorros, tarjetas, miscelaneos, desbalance, proyeccion, transacciones, pagos vencidos, Ref o nuevo mes.",
+        "Ask about one budget topic at a time, for example: cash flow, savings, credit cards, miscellaneous, balance mismatch, projection, history, transactions, overdue payments, Ref, or new month.",
+        "Pregunta sobre un tema del presupuesto a la vez, por ejemplo: flujo de efectivo, ahorros, tarjetas, miscelaneos, desbalance, proyeccion, historial, transacciones, pagos vencidos, Ref o nuevo mes.",
       ),
     },
   ];
+}
+
+function smartHelpNavigationAnswer() {
+  return bilingual(
+    [
+      "Use these Smart Budget Web sections:",
+      "Dashboard: summary, alerts, and correction suggestions.",
+      "Budget Setup: income, expenses, savings plan, due dates, and credit card budget.",
+      "Update Transactions: current balances, income deposits, payments, card purchases, and filters.",
+      "Projection Analysis: available income, expenses, payment timing, cash flow, and month-end projection.",
+      "History: saved monthly results and 12-month average by concept.",
+      "Smart Model and Financial Evaluation: budget distribution, health signals, debt pressure, and credit capacity indicators.",
+    ].join("\n"),
+    [
+      "Usa estas secciones de Smart Budget Web:",
+      "Dashboard: resumen, alertas y sugerencias de correccion.",
+      "Budget Setup: ingresos, gastos, plan de ahorros, vencimientos y presupuesto de tarjetas.",
+      "Update Transactions: balances actuales, depositos, pagos, compras con tarjeta y filtros.",
+      "Projection Analysis: ingresos disponibles, gastos, fechas de pago, flujo y proyeccion de fin de mes.",
+      "History: resultados mensuales guardados y promedio de 12 meses por concepto.",
+      "Smart Model y Financial Evaluation: distribucion del presupuesto, salud presupuestaria, presion de deuda e indicadores de capacidad crediticia.",
+    ].join("\n"),
+  );
 }
 
 function smartHelpReferenceAnswer() {
