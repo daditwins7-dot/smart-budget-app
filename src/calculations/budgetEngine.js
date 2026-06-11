@@ -360,8 +360,10 @@ function availableIncomeRows(state, projection) {
     .filter((tx) => tx.type === "income" && tx.conceptId === "other-deposits")
     .reduce((total, tx) => total + numeric(tx.amount), 0);
   const totalSavings = numeric(state.initialSavings) + numeric(state.budgetedSavings);
+  const projectedCreditCardCoverage = Math.max(projection.creditCardTotal, projection.creditCardActual);
   return [
     incomeProjectionRow("Available Income", projection.budgetAvailableForExpenses, projection.projectedAvailableForExpenses, projection.actualAvailableForExpenses),
+    incomeProjectionRow("Credit Card Coverage", projection.creditCardTotal, projectedCreditCardCoverage, projection.creditCardActual),
     incomeProjectionRow("Cash Flow Initial", numeric(state.initialCashFlow), numeric(state.initialCashFlow), numeric(state.initialCashFlow)),
     incomeProjectionRow("Salary Net Income", numeric(state.regularIncome), Math.max(numeric(state.regularIncome), netIncomeActual), netIncomeActual),
     incomeProjectionRow("Other Income", numeric(state.irregularIncome), Math.max(numeric(state.irregularIncome), otherIncomeActual), otherIncomeActual),
