@@ -1933,8 +1933,8 @@ th {
   border: 1px solid #f5d287;
   border-radius: 8px;
   color: #7c2d12;
-  margin: 10px 0 12px;
-  padding: 9px 12px;
+  margin: 14px 0;
+  padding: 12px 14px;
 }
 
 .budget-advantage {
@@ -1942,38 +1942,27 @@ th {
   border: 1px solid #99f6e4;
   border-radius: 8px;
   color: #0f766e;
-  margin-bottom: 8px;
-  padding: 8px 10px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
 }
 
 .budget-advantage strong {
   color: #0f766e;
-  font-size: 14px;
-  margin-bottom: 3px;
+  font-size: 17px;
+  margin-bottom: 4px;
 }
 
 .budget-advantage p {
   color: #134e4a;
-  font-size: 11px;
-  line-height: 1.25;
+  font-size: 13px;
+  line-height: 1.4;
   margin: 0;
 }
 
 .important-notes strong {
   display: block;
-  font-size: 13px;
-  margin-bottom: 5px;
-}
-
-.important-notes > p {
-  font-size: 11px;
-  line-height: 1.25;
-  margin: 0 0 5px;
-}
-
-.compact-budget-keys {
-  color: #92400e;
-  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 8px;
 }
 
 .important-notes ul {
