@@ -862,16 +862,19 @@ function actualControlNotes() {
   return `<section class="important-notes" aria-label="Important actual data controls">
     <div class="budget-advantage">
       <strong>Focus only on the key items you want to control</strong>
-      <p>Smart Budget calculates smaller miscellaneous spending from balances and activity, reducing manual updates.</p>
+      <p>Smart Budget calculates smaller miscellaneous spending from your balances and activity, reducing manual updates while still reflecting the full monthly impact.</p>
     </div>
     <strong>Important: required for accurate final Cash Flow calculation</strong>
-    <p>Review due dates, payments, income, Savings changes, card use, and amounts not used this month.</p>
+    <p>Review means confirm due dates, entered payments/income, Savings changes, card budget use, card overdraft coverage, or adjust only amounts not used this month.</p>
     <h3>Key budget activities</h3>
     <ul>
-      <li>Start any day after entering all current bank and card activity.</li>
-      <li>Update Cash Flow, Savings, and Budgeted Savings when they change.</li>
-      <li>Select Cash or Credit card correctly; use Comment to identify cards.</li>
-      <li>Record unbudgeted card purchases under the closest expense group; do not enter Miscellaneous.</li>
+      <li>Start any day: enter all current bank and card transactions.</li>
+      <li>Update Cash Flow and Savings with real balances.</li>
+      <li>If planned savings changed, update Budgeted Savings.</li>
+      <li>Select Cash or Credit card correctly.</li>
+      <li>Record unbudgeted card purchases under the closest expense group.</li>
+      <li>Cards are tracked as totals; use Comment for each card.</li>
+      <li>Do not enter Miscellaneous; the system calculates it.</li>
     </ul>
   </section>`;
 }
