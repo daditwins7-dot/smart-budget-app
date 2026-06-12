@@ -54,7 +54,7 @@ export function calculateProjection(state, today = new Date()) {
     .filter((tx) => tx.type === "expense" && tx.paymentMethod === "cash")
     .reduce((total, tx) => total + numeric(tx.amount), 0);
   const actualCardSpending = state.transactions
-    .filter((tx) => tx.type === "expense" && tx.paymentMethod === "creditCard" && tx.conceptId !== "cards")
+    .filter((tx) => tx.type === "expense" && tx.paymentMethod === "creditCard")
     .reduce((total, tx) => total + numeric(tx.amount), 0);
 
   const projectedIncome = Math.max(regularIncome + irregularIncome, actualIncome);
@@ -313,7 +313,7 @@ export function projectionAnalysisModel(state, today = new Date()) {
   const savingsTarget = numeric(state.initialSavings) + numeric(state.budgetedSavings);
   const cardPayments = paidForConcept(state, "cards");
   const cardExpenses = state.transactions
-    .filter((tx) => tx.type === "expense" && tx.paymentMethod === "creditCard" && tx.conceptId !== "cards")
+    .filter((tx) => tx.type === "expense" && tx.paymentMethod === "creditCard")
     .reduce((total, tx) => total + numeric(tx.amount), 0);
   const cardDifference = cardPayments - cardExpenses;
   const paymentTiming = paymentTimingSummary(state, today);

@@ -1,4 +1,4 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260612e";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260612f";
 import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260611a";
 import { copy } from "./i18n/index.js?v=20260611a";
 import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260611a";
@@ -718,7 +718,7 @@ function budgetCreditCardReview(overdraft = 0) {
   const cardBudget = Number(state.plannedCreditCardSpending || 0);
   if (cardBudget <= 0) return budgetNeutralReview();
   const actualCardSpending = state.transactions
-    .filter((tx) => tx.type === "expense" && tx.paymentMethod === "creditCard" && tx.conceptId !== "cards")
+    .filter((tx) => tx.type === "expense" && tx.paymentMethod === "creditCard")
     .reduce((total, tx) => total + Number(tx.amount || 0), 0);
   return actualCardSpending < cardBudget ? reviewPill("watch", "Review") : reviewPill("ok", "OK");
 }
