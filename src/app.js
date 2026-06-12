@@ -398,21 +398,14 @@ function dataQualityNotice(model) {
   if (!issues.length && !state.dataNotice) return "";
   return `<section class="data-quality-notice">
     <div>
-      <strong>Review balances</strong>
-      ${state.dataNotice ? `<p>${shortDataNotice(state.dataNotice)}</p>` : ""}
+      <strong>Review balances after changes</strong>
+      ${state.dataNotice ? `<p>${state.dataNotice}</p>` : ""}
       ${issues.map((issue) => `<p>${issue}</p>`).join("")}
     </div>
     <div class="notice-actions">
       <button class="secondary" type="button" data-reconcile-data>Synchronize and recalculate</button>
     </div>
   </section>`;
-}
-
-function shortDataNotice(message) {
-  const text = String(message || "");
-  if (text.includes("Saved data synchronized")) return "Data synchronized. Recheck balances and transactions if numbers still differ.";
-  if (text.includes("history saved")) return text;
-  return "Review balances and transactions before relying on projections.";
 }
 
 function dataQualityIssues(p) {
@@ -423,25 +416,25 @@ function dataQualityIssues(p) {
   const expenseTransactions = state.transactions.filter((tx) => tx.type === "expense").length;
 
   if (hasBalances && !hasTransactions) {
-    issues.push("Enter current income, expenses, balances, and card activity before using projections.");
+    issues.push("The budget can be updated at any time. Review income, expenses, Cash Flow, Savings, and card activity to avoid inconsistent projections.");
   }
   if (hasTransactions && (!state.lastActualUpdate || state.lastActualUpdate !== localDateValue())) {
-    issues.push("Transactions are from another date. Confirm current balances in Update Transactions.");
+    issues.push("Transactions were saved on a different date. Confirm balances in Update Transactions so projected days and cash flow use the latest actual date.");
   }
   if (incomeTransactions === 0 && expenseTransactions > 0) {
-    issues.push("Income deposits are missing; Available Income may look low.");
+    issues.push("Expenses are recorded without income transactions. Available income may appear too low until income deposits are entered.");
   }
   if (Number(p.miscellaneousActualRaw || 0) < 0) {
-    issues.push("Actual Miscellaneous is negative. Review balances, income, card activity, and payments.");
+    issues.push("Actual Miscellaneous is negative. This usually means transactions or balances are missing; correct Cash Flow, Savings, income, card purchases, or payments before continuing.");
   }
   if (p.miscellaneousActualNeedsReview) {
-    issues.push("Actual Miscellaneous is zero with activity. Review balances and transactions.");
+    issues.push("Actual Miscellaneous is zero while current activity exists. Review Cash Flow, Savings, income, card purchases, and payments before trusting projections.");
   }
   if (savingsPlanMismatchForCurrentDate()) {
-    issues.push("Savings plan mismatch. Update current Savings or Budgeted Savings before using projections.");
+    issues.push("Savings plan mismatch. The savings deposit date passed, but current Savings does not match Savings Initial plus Budgeted Savings. If the planned savings amount changed, update Budgeted Savings in Budget Setup before relying on projections.");
   }
   if (Math.abs(Number(p.actualBalanceDifference || 0)) > 0.01 || Math.abs(Number(p.projectedBalanceDifference || 0)) > 0.01) {
-    issues.push("Balance check is not zero. Synchronize first, then review balances and transactions.");
+    issues.push("Balance check is not zero. Use Synchronize and recalculate first; if numbers remain wrong, reset actual month data and re-enter balances and transactions.");
   }
   return issues;
 }
