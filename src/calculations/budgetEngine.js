@@ -22,7 +22,7 @@ export function numeric(value) {
 }
 
 export function calculateProjection(state, today = new Date()) {
-  const timing = monthTiming(state.month, effectiveProjectionDate(state, today));
+  const timing = monthTiming(state.month, today);
   const regularIncome = numeric(state.regularIncome);
   const irregularIncome = numeric(state.irregularIncome);
   const committedDebts = sum(state.expenses, "debts");
@@ -275,7 +275,7 @@ export function dashboardModel(state, today = new Date()) {
 }
 
 export function projectionRows(state, today = new Date()) {
-  const timing = monthTiming(state.month, effectiveProjectionDate(state, today));
+  const timing = monthTiming(state.month, today);
   const groups = [
     { label: "Committed Debts", group: "debts" },
     { label: "Household Expenses", group: "household" },
@@ -437,7 +437,7 @@ function sumReference(state, ref, mode) {
 }
 
 function paymentTimingSummary(state, today) {
-  const timing = monthTiming(state.month, effectiveProjectionDate(state, today));
+  const timing = monthTiming(state.month, today);
   const nextDays = clamp(Math.round(numeric(state.projectionNextDays)), 0, timing.daysInMonth);
   const futureDay = Math.min(timing.daysInMonth, timing.currentDay + nextDays);
   const rows = state.expenses.map((line) => {
@@ -470,11 +470,6 @@ function monthTiming(month, today) {
   const sameMonth = year === today.getFullYear() && monthIndex === today.getMonth();
   const currentDay = sameMonth ? Math.min(today.getDate(), daysInMonth) : today > reference ? daysInMonth : 1;
   return { currentDay, daysInMonth, remainingDays: Math.max(0, daysInMonth - currentDay), year, monthIndex };
-}
-
-function effectiveProjectionDate(state, fallback) {
-  const lastUpdate = new Date(`${state.lastActualUpdate || ""}T12:00:00`);
-  return Number.isNaN(lastUpdate.getTime()) ? fallback : lastUpdate;
 }
 
 function formatMonthDay(year, monthIndex, day) {
