@@ -113,17 +113,20 @@ export function calculateProjection(state, today = new Date()) {
     totalSavingsBudget +
     actualCardSpending;
   const hasActualMonthlyActivity = Math.abs(projectedMiscellaneousBase) > 0.01;
-  const projectedMiscellaneousRunRate = hasActualMonthlyActivity
-    ? timing.remainingDays === 0
+  const miscellaneousDailyBudget = safeDivide(miscellaneous, timing.daysInMonth);
+  const miscellaneousRemainingBudget =
+    timing.remainingDays === 0
       ? miscellaneousActual
-      : safeDivide(miscellaneous, timing.daysInMonth) * timing.remainingDays || miscellaneous
-    : miscellaneous;
-  const projectedMiscellaneousFuture =
-    hasActualMonthlyActivity && miscellaneousActual + projectedMiscellaneousRunRate - totalSavingsBudget + currentSavings < 0
+      : miscellaneousDailyBudget * timing.remainingDays || miscellaneous;
+  const miscellaneousProjectionCheck =
+    miscellaneousActual + miscellaneousRemainingBudget - totalSavingsBudget + currentSavings;
+  const miscellaneousFutureProjection =
+    hasActualMonthlyActivity && miscellaneousProjectionCheck < 0
       ? 0
-      : projectedMiscellaneousRunRate;
-  const miscellaneousProjected =
-    projectedMiscellaneousFuture + (hasActualMonthlyActivity ? miscellaneousActual + creditCardTotal : 0);
+      : miscellaneousRemainingBudget;
+  const miscellaneousProjected = hasActualMonthlyActivity
+    ? miscellaneousFutureProjection + miscellaneousActual + creditCardTotal
+    : miscellaneous;
   const expectedEndCashFlow =
     initialCashFlow +
     projectedIncome -
