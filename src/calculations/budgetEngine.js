@@ -367,7 +367,7 @@ function availableIncomeRows(state, projection) {
   const projectedCreditCardCoverage = Math.max(projection.creditCardTotal, projection.creditCardActual);
   return [
     incomeProjectionRow("Available Income", projection.budgetAvailableForExpenses, projection.projectedAvailableForExpenses, projection.actualAvailableForExpenses),
-    incomeProjectionRow("Credit Card Coverage", projection.creditCardTotal, projectedCreditCardCoverage, projection.creditCardActual),
+    incomeProjectionRow("Credit Card Coverage", projection.creditCardTotal, projectedCreditCardCoverage, projection.creditCardActual, creditCardCoverageStatus),
     incomeProjectionRow("Cash Flow Initial", numeric(state.initialCashFlow), numeric(state.initialCashFlow), numeric(state.initialCashFlow)),
     incomeProjectionRow("Salary Net Income", numeric(state.regularIncome), Math.max(numeric(state.regularIncome), netIncomeActual), netIncomeActual),
     incomeProjectionRow("Other Income", numeric(state.irregularIncome), Math.max(numeric(state.irregularIncome), otherIncomeActual), otherIncomeActual),
@@ -376,7 +376,7 @@ function availableIncomeRows(state, projection) {
   ];
 }
 
-function incomeProjectionRow(label, budget, projected, actual = projected) {
+function incomeProjectionRow(label, budget, projected, actual = projected, evaluate = higherIsBetter) {
   return {
     label,
     budget,
@@ -384,8 +384,13 @@ function incomeProjectionRow(label, budget, projected, actual = projected) {
     projected,
     remaining: Math.max(0, budget - actual),
     paid: budget ? actual / budget : 0,
-    evaluation: higherIsBetter(projected, budget),
+    evaluation: evaluate(projected, budget),
   };
+}
+
+function creditCardCoverageStatus(value, target) {
+  if (target <= 0 && value > 0) return status("problem");
+  return lowerIsBetter(value, target);
 }
 
 export function smartModel(state) {
