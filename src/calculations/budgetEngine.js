@@ -295,14 +295,15 @@ export function projectionRows(state, today = new Date()) {
         : state.transactions
             .filter((tx) => ids.includes(tx.conceptId))
             .reduce((total, tx) => total + numeric(tx.amount), 0);
+    const projected = lines.reduce((total, line) => total + projectedLineAmount(line.budget, paidForConcept(state, line.id), line.dueDay, timing), 0);
     return {
       label,
       budget,
       actual,
-      projected: lines.reduce((total, line) => total + projectedLineAmount(line.budget, paidForConcept(state, line.id), line.dueDay, timing), 0),
+      projected,
       remaining: Math.max(0, budget - actual),
       paid: budget ? actual / budget : 0,
-      evaluation: lowerIsBetter(actual, budget),
+      evaluation: lowerIsBetter(projected, budget),
       details: lines.map((line) => projectionDetail(state, line, false, timing)),
     };
   });
