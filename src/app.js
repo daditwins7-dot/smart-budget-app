@@ -1,4 +1,4 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260613b";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260613c";
 import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260611a";
 import { copy } from "./i18n/index.js?v=20260611a";
 import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260611a";
@@ -370,21 +370,26 @@ function termsAndConditionsMarkup() {
     <h3>5. Ownership</h3>
     <p>The purchase or use of a license does not grant ownership of the software. All products, formulas, designs, interfaces, documentation, and related intellectual property remain the exclusive property of HOME SMART FINANCIAL SYSTEMS, except for any user-entered data.</p>
 
-    <h3>6. Delivery of the Product</h3>
+    <h3>6. Proprietary System Features and Methodology</h3>
+    <p>SMART BUDGET includes proprietary budgeting structures, calculation logic, data relationships, projection methods, balance-control methods, credit card treatment, savings and cash-flow analysis, miscellaneous expense calculation, smart model comparison, financial evaluation indicators, historical tracking, and user-guidance workflows developed by HOME SMART FINANCIAL SYSTEMS.</p>
+    <p>These features, methods, layouts, formulas, workflows, visual designs, software code, system organization, and related documentation are proprietary intellectual property of HOME SMART FINANCIAL SYSTEMS. Users may not copy, reproduce, reverse engineer, imitate, modify, distribute, resell, publish, or create derivative systems based on SMART BUDGET without prior written authorization.</p>
+    <p>Access to SMART BUDGET is granted only for authorized personal use and evaluation. Use of the system does not grant ownership, reproduction rights, or rights to duplicate its structure, calculations, methodology, or commercial concept.</p>
+
+    <h3>7. Delivery of the Product</h3>
     <p>The software may be delivered through a digital download link, web access link, email, or another electronic delivery method provided by HOME SMART FINANCIAL SYSTEMS. The customer is responsible for providing accurate contact information when payment, download, or access is required.</p>
 
-    <h3>7. Privacy and User Data</h3>
+    <h3>8. Privacy and User Data</h3>
     <p>SMART BUDGET is designed to request minimal personal information. For account access, only an email address is intended to be required. HOME SMART FINANCIAL SYSTEMS does not require the user's real name, address, phone number, bank login, bank account number, or credit card number inside SMART BUDGET.</p>
     <p>Budget values, transactions, balances, history, and chat questions entered by the user are used to operate and improve SMART BUDGET. Chat questions may be reviewed to improve Smart Help responses. HOME SMART FINANCIAL SYSTEMS does not sell user personal information.</p>
 
-    <h3>8. Access Control</h3>
+    <h3>9. Access Control</h3>
     <p>Free public access or demo access may expire on a specific date or be disabled if the user violates these terms. When access expires, the system may block use until access is renewed, extended, or otherwise authorized by HOME SMART FINANCIAL SYSTEMS.</p>
 
-    <h3>9. Limitation of Liability</h3>
+    <h3>10. Limitation of Liability</h3>
     <p>HOME SMART FINANCIAL SYSTEMS shall not be liable for calculation errors, inaccurate assumptions, user input errors, formula differences, software or hardware failures, browser storage issues, loss of data, network failures, interruption of service, or financial losses arising from the use of the software. Since the functions, formulas, assumptions, and projections used may differ from those of other similar programs, any decision made based on the results presented is the sole responsibility of the user.</p>
     <p>SMART BUDGET is a budgeting and projection tool based only on the values entered by the user. It does not provide financial, legal, tax, credit, accounting, or investment advice. Users should verify all information independently before making financial decisions.</p>
 
-    <h3>10. System Authorship and Responsibility</h3>
+    <h3>11. System Authorship and Responsibility</h3>
     <p>This system has been developed by Roman Martinez, who acts as author, designer, and technical manager of the content and operation of the products offered by HOME SMART FINANCIAL SYSTEMS. Questions, suggestions, or requests related to the system may be addressed directly by email to: <a href="mailto:rmartinez900@comcast.net">rmartinez900@comcast.net</a>.</p>
 
     <h3>Acceptance</h3>
