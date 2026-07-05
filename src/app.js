@@ -225,6 +225,7 @@ async function loadRemoteBudgetState() {
 
   const storedState = data?.state && Object.keys(data.state).length ? data.state : null;
   state = prepareAccountState(storedState ? reconcileState(data.state) : structuredClone(defaultState));
+  await applyRecordedTermsAcceptance();
   remoteStateLoaded = true;
   saveLocalState(state);
   if (!storedState) {
@@ -255,12 +256,36 @@ async function loadAuthProfile() {
 
 async function recordTermsAcceptance() {
   if (!authUser) return;
-  await supabase.from("terms_acceptances").insert({
+  const { error } = await supabase.from("terms_acceptances").insert({
     user_id: authUser.id,
     terms_version: TERMS_VERSION,
     user_email: authUser.email || "",
     acceptance_source: "smart_budget_app",
   });
+  if (error) {
+    console.warn("Smart Budget terms acceptance log failed:", error.message);
+  }
+}
+
+async function applyRecordedTermsAcceptance() {
+  if (!authUser) return;
+  const { data, error } = await supabase
+    .from("terms_acceptances")
+    .select("terms_version")
+    .eq("user_id", authUser.id)
+    .eq("terms_version", TERMS_VERSION)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("Smart Budget terms acceptance lookup failed:", error.message);
+    return;
+  }
+
+  if (data?.terms_version === TERMS_VERSION) {
+    state.termsAcceptedVersion = TERMS_VERSION;
+    state.termsAcceptedAt = state.termsAcceptedAt || new Date().toISOString();
+  }
 }
 
 function bindAuthEvents() {
@@ -2458,7 +2483,8 @@ function bindEvents() {
     state.termsAcceptedAt = new Date().toISOString();
     showTermsModal = false;
     await recordTermsAcceptance();
-    saveState(state);
+    saveLocalState(state);
+    await saveRemoteBudgetState(state);
     render();
   });
   document.querySelector("[data-save-history-mtd]")?.addEventListener("click", () => {
