@@ -1,7 +1,7 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260705a";
-import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260705a";
-import { copy } from "./i18n/index.js?v=20260705a";
-import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260705a";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260705b";
+import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260705b";
+import { copy } from "./i18n/index.js?v=20260705b";
+import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260705b";
 
 let state = loadState();
 const initialPage = new URLSearchParams(window.location.search).get("page");
@@ -256,6 +256,7 @@ async function loadAuthProfile() {
 
 async function recordTermsAcceptance() {
   if (!authUser) return;
+  saveLocalTermsAcceptance();
   const { error } = await supabase.from("terms_acceptances").insert({
     user_id: authUser.id,
     terms_version: TERMS_VERSION,
@@ -269,6 +270,12 @@ async function recordTermsAcceptance() {
 
 async function applyRecordedTermsAcceptance() {
   if (!authUser) return;
+  if (loadLocalTermsAcceptance()) {
+    state.termsAcceptedVersion = TERMS_VERSION;
+    state.termsAcceptedAt = state.termsAcceptedAt || new Date().toISOString();
+    return;
+  }
+
   const { data, error } = await supabase
     .from("terms_acceptances")
     .select("terms_version")
@@ -285,6 +292,31 @@ async function applyRecordedTermsAcceptance() {
   if (data?.terms_version === TERMS_VERSION) {
     state.termsAcceptedVersion = TERMS_VERSION;
     state.termsAcceptedAt = state.termsAcceptedAt || new Date().toISOString();
+    saveLocalTermsAcceptance();
+  }
+}
+
+function termsAcceptanceStorageKey() {
+  return authUser?.id ? `smart-budget-terms:${authUser.id}:${TERMS_VERSION}` : "";
+}
+
+function loadLocalTermsAcceptance() {
+  const key = termsAcceptanceStorageKey();
+  if (!key) return false;
+  try {
+    return localStorage.getItem(key) === "accepted";
+  } catch {
+    return false;
+  }
+}
+
+function saveLocalTermsAcceptance() {
+  const key = termsAcceptanceStorageKey();
+  if (!key) return;
+  try {
+    localStorage.setItem(key, "accepted");
+  } catch {
+    // Local browser storage can be blocked; remote recording still runs.
   }
 }
 
