@@ -1,4 +1,4 @@
-import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260705b";
+import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260809a";
 import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260705b";
 import { copy } from "./i18n/index.js?v=20260705b";
 import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260705b";

@@ -443,7 +443,7 @@ function sumReference(state, ref, mode) {
 }
 
 function paymentTimingSummary(state, today) {
-  const timing = monthTiming(state.month, today);
+  const timing = currentMonthTiming(today);
   const nextDays = clamp(Math.round(numeric(state.projectionNextDays)), 0, timing.daysInMonth);
   const futureDay = Math.min(timing.daysInMonth, timing.currentDay + nextDays);
   const rows = state.expenses.map((line) => {
@@ -465,6 +465,14 @@ function paymentTimingSummary(state, today) {
     futureCommittedAmount,
     futureDate: formatMonthDay(timing.year, timing.monthIndex, futureDay),
   };
+}
+
+function currentMonthTiming(today) {
+  const year = today.getFullYear();
+  const monthIndex = today.getMonth();
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const currentDay = Math.min(today.getDate(), daysInMonth);
+  return { currentDay, daysInMonth, year, monthIndex };
 }
 
 function monthTiming(month, today) {
