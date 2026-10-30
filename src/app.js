@@ -1,9 +1,51 @@
 import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260809a";
 import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260705b";
-import { copy } from "./i18n/index.js?v=20260705b";
+import { copy } from "./i18n/index.js?v=20261030a";
+import { fixedText, fixedMarkup } from "./i18n/fixedText.js?v=20261030a";
+import { termsEs } from "./i18n/termsEs.js?v=20261030a";
 import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260705b";
 
 let state = loadState();
+let selectedLanguage = readLanguagePreference();
+
+function readLanguagePreference() {
+  try {
+    const saved = localStorage.getItem("smart-budget-language");
+    if (["en", "es"].includes(saved)) return saved;
+  } catch { /* Language selection also works when storage is unavailable. */ }
+  return state.language === "es" ? "es" : "en";
+}
+
+function tr(value) {
+  return fixedText(value, selectedLanguage);
+}
+
+function html(strings, ...values) {
+  return fixedMarkup(strings, values, selectedLanguage);
+}
+
+function systemText(value) {
+  return fixedMarkup([value], [], selectedLanguage);
+}
+
+function languageSelector() {
+  return html`<label class="language-setting">Language<select data-language aria-label="Language">
+    <option value="en" ${selectedLanguage === "en" ? "selected" : ""}>English</option>
+    <option value="es" ${selectedLanguage === "es" ? "selected" : ""}>Español</option>
+  </select></label>`;
+}
+
+function bindLanguageEvents() {
+  document.querySelectorAll("[data-language]").forEach((select) => {
+    select.addEventListener("change", () => {
+      selectedLanguage = select.value === "es" ? "es" : "en";
+      state.language = selectedLanguage;
+      try { localStorage.setItem("smart-budget-language", selectedLanguage); } catch { /* Optional preference storage. */ }
+      if (authUser || !isSupabaseConfigured) saveState(state);
+      render();
+    });
+  });
+}
 const initialPage = new URLSearchParams(window.location.search).get("page");
 let page = ["dashboard", "budget", "transactions", "projections", "history", "smartModel", "evaluation", "help", "settings"].includes(initialPage)
   ? initialPage
@@ -41,22 +83,25 @@ function initialHelpMessages() {
   return [
     {
       role: "assistant",
+      kind: "initial",
       text: helpText("initialMessage"),
     },
   ];
 }
 
 function render() {
+  document.documentElement.lang = selectedLanguage;
   if (isSupabaseConfigured && (authLoading || !authUser)) {
     app.innerHTML = authScreen();
     bindAuthEvents();
+    bindLanguageEvents();
     return;
   }
-  const t = copy.en;
+  const t = copy[selectedLanguage] || copy.en;
   const currentPageTitle = t[page] || copy.en[page] || "Smart Model";
   const dashboardData = dashboardModel(state, appToday());
   const projection = dashboardData.projection;
-  app.innerHTML = `
+  app.innerHTML = html`
     <aside class="shell-nav">
       <div class="brand"><span>SMART</span><strong>BUDGET</strong></div>
       ${navButton("dashboard", t.dashboard)}
@@ -68,10 +113,11 @@ function render() {
       ${navButton("evaluation", t.evaluation)}
       ${navButton("help", t.help || "Smart Help Chat")}
       ${navButton("settings", t.settings)}
+      ${languageSelector()}
     </aside>
     <main class="workspace ${page === "dashboard" ? "dashboard-workspace" : ""}">
       ${accountBar()}
-      ${page !== "dashboard" && page !== "budget" ? `<header class="topbar">
+      ${page !== "dashboard" && page !== "budget" ? html`<header class="topbar">
         <div>
           <p class="eyebrow">Monthly predictive planning</p>
           <h1>${currentPageTitle}</h1>
@@ -79,7 +125,7 @@ function render() {
         <div class="month-chip">${state.month}</div>
       </header>` : ""}
       ${dataQualityNotice(dashboardData)}
-      ${page !== "dashboard" && page !== "budget" && projection.alerts.length ? `<section class="alerts">${projection.alerts.map((a) => `<p>${a}</p>`).join("")}</section>` : ""}
+      ${page !== "dashboard" && page !== "budget" && projection.alerts.length ? html`<section class="alerts">${projection.alerts.map((a) => html`<p>${tr(a)}</p>`).join("")}</section>` : ""}
       ${page === "dashboard" ? dashboard(dashboardData) : ""}
       ${page === "budget" ? budgetSetup(projection) : ""}
       ${page === "transactions" ? transactions() : ""}
@@ -93,12 +139,14 @@ function render() {
     ${termsAcceptanceOverlay()}
   `;
   bindEvents();
+  bindLanguageEvents();
 }
 
 function authScreen() {
   if (authLoading) {
-    return `<main class="auth-shell">
+    return html`<main class="auth-shell">
       <section class="auth-card">
+        ${languageSelector()}
         <p class="eyebrow">Home Smart Financial Systems</p>
         <h1>Smart Budget Access</h1>
         <p class="muted">Checking protected free access...</p>
@@ -107,23 +155,24 @@ function authScreen() {
   }
 
   const isSignUp = authMode === "sign-up";
-  return `<main class="auth-shell">
+  return html`<main class="auth-shell">
     <section class="auth-card">
+        ${languageSelector()}
       <div>
         <p class="eyebrow">Home Smart Financial Systems</p>
         <h1>Smart Budget Access</h1>
         <p class="muted">Protected free access. Use your email and password to continue.</p>
       </div>
-      ${authMessage ? `<p class="auth-message">${escapeHtml(authMessage)}</p>` : ""}
+      ${authMessage ? html`<p class="auth-message">${escapeHtml(tr(authMessage))}</p>` : ""}
       <form class="auth-form" id="auth-form">
         <label>Email<input type="email" name="email" autocomplete="email" required /></label>
         <label>Password<input type="password" name="password" autocomplete="${isSignUp ? "new-password" : "current-password"}" minlength="8" required /></label>
-        <button class="primary" type="submit">${isSignUp ? "Create free account" : "Sign in"}</button>
+        <button class="primary" type="submit">${tr(isSignUp ? "Create free account" : "Sign in")}</button>
       </form>
       <div class="auth-switch">
-        ${isSignUp ? "Already have access?" : "Need free access?"}
+        ${tr(isSignUp ? "Already have access?" : "Need free access?")}
         <button class="link-button" type="button" data-auth-mode="${isSignUp ? "sign-in" : "sign-up"}">
-          ${isSignUp ? "Sign in" : "Create account"}
+          ${tr(isSignUp ? "Sign in" : "Create account")}
         </button>
       </div>
       <button class="link-button" type="button" data-reset-password>Reset password by email</button>
@@ -135,11 +184,11 @@ function authScreen() {
 function accountBar() {
   if (!authUser) return "";
   const access = authProfile?.access_status || "trial";
-  const expires = authProfile?.trial_expires_at ? new Date(authProfile.trial_expires_at).toLocaleDateString("en-US") : "Not set";
-  return `<section class="account-bar">
+  const expires = authProfile?.trial_expires_at ? new Date(authProfile.trial_expires_at).toLocaleDateString("en-US") : tr("Not set");
+  return html`<section class="account-bar">
     <div>
       <strong>${escapeHtml(authUser.email || "Signed in")}</strong>
-      <span>${access === "trial" ? `Free access ends: ${expires}` : `Access: ${access}`}</span>
+      <span>${access === "trial" ? html`Free access ends: ${expires}` : html`Access: ${tr(access)}`}</span>
     </div>
     <button class="secondary" type="button" data-sign-out>Sign out</button>
   </section>`;
@@ -358,7 +407,7 @@ function bindAuthEvents() {
     render();
   });
   document.querySelector("[data-reset-password]")?.addEventListener("click", async () => {
-    const email = window.prompt("Enter your account email to receive a password reset link:");
+    const email = window.prompt(tr("Enter your account email to receive a password reset link:"));
     if (!email) return;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.href.split("#")[0],
@@ -373,11 +422,11 @@ function appToday() {
 }
 
 function navButton(id, label) {
-  return `<button class="nav-button ${page === id ? "active" : ""}" data-page="${id}">${label}</button>`;
+  return html`<button class="nav-button ${page === id ? "active" : ""}" data-page="${id}">${label}</button>`;
 }
 
 function ui(key) {
-  return copy.en[key] || key;
+  return copy[selectedLanguage]?.[key] || copy.en[key] || key;
 }
 
 function termsAccepted() {
@@ -387,7 +436,7 @@ function termsAccepted() {
 function termsAcceptanceOverlay() {
   const mustAccept = !termsAccepted();
   if (!mustAccept && !showTermsModal) return "";
-  return `<section class="terms-overlay" role="dialog" aria-modal="true" aria-labelledby="terms-title">
+  return html`<section class="terms-overlay" role="dialog" aria-modal="true" aria-labelledby="terms-title">
     <article class="terms-modal">
       <header class="terms-modal-head">
         <div>
@@ -395,22 +444,23 @@ function termsAcceptanceOverlay() {
           <h2 id="terms-title">Terms and Conditions of Use</h2>
           <p class="muted">SMART BUDGET - Version ${TERMS_VERSION}</p>
         </div>
-        ${!mustAccept ? `<button class="icon terms-close" type="button" data-close-terms title="Close">x</button>` : ""}
+        ${!mustAccept ? html`<button class="icon terms-close" type="button" data-close-terms title="Close">x</button>` : ""}
       </header>
       <div class="terms-content">
         ${termsAndConditionsMarkup()}
       </div>
       <footer class="terms-actions">
-        <p>${mustAccept ? "You must accept these Terms and Conditions before using Smart Budget." : `Accepted version: ${state.termsAcceptedVersion || "Not recorded"}`}</p>
+        <p>${mustAccept ? tr("You must accept these Terms and Conditions before using Smart Budget.") : html`Accepted version: ${state.termsAcceptedVersion || tr("Not recorded")}`}</p>
         <small>Terms acceptance is linked to the signed-in email account.</small>
-        <button class="primary" type="button" data-accept-terms>${mustAccept ? "I accept and continue" : "Accept current terms"}</button>
+        <button class="primary" type="button" data-accept-terms>${tr(mustAccept ? "I accept and continue" : "Accept current terms")}</button>
       </footer>
     </article>
   </section>`;
 }
 
 function termsAndConditionsMarkup() {
-  return `
+  if (selectedLanguage === "es") return termsEs;
+  return html`
     <h3>1. Free Public Access and Donations</h3>
     <p>SMART BUDGET may be offered as free public access, demo access, donation-supported access, or a paid product at the discretion of HOME SMART FINANCIAL SYSTEMS. Free public access is personal, non-transferable, and may be changed, limited, suspended, or ended by HOME SMART FINANCIAL SYSTEMS at any time.</p>
 
@@ -458,11 +508,11 @@ function termsAndConditionsMarkup() {
 function dataQualityNotice(model) {
   const issues = dataQualityIssues(model.projection);
   if (!issues.length && !state.dataNotice) return "";
-  return `<section class="data-quality-notice">
+  return html`<section class="data-quality-notice">
     <div>
       <strong>Review balances after changes</strong>
-      ${state.dataNotice ? `<p>${state.dataNotice}</p>` : ""}
-      ${issues.map((issue) => `<p>${issue}</p>`).join("")}
+      ${state.dataNotice ? html`<p>${systemText(state.dataNotice)}</p>` : ""}
+      ${issues.map((issue) => html`<p>${tr(issue)}</p>`).join("")}
     </div>
     <div class="notice-actions">
       <button class="secondary" type="button" data-reconcile-data>Synchronize and recalculate</button>
@@ -509,7 +559,7 @@ function savingsPlanMismatchForCurrentDate() {
 
 function dashboard(model) {
   const p = model.projection;
-  return `
+  return html`
     <section class="dashboard-board">
       <header class="dashboard-header">
         <div>
@@ -546,7 +596,7 @@ function dashboard(model) {
           ${evaluationResult(model.financialStatus)}
         </div>
       </section>
-      ${p.alerts.length ? `<section class="dashboard-alerts">${p.alerts.map((alert) => `<p>${alert}</p>`).join("")}</section>` : ""}
+      ${p.alerts.length ? html`<section class="dashboard-alerts">${p.alerts.map((alert) => html`<p>${tr(alert)}</p>`).join("")}</section>` : ""}
       ${balanceCorrectionPanel(p, "dashboard")}
       ${actionSuggestionPanel(p, "dashboard")}
       <footer class="signal-guide">
@@ -560,7 +610,7 @@ function dashboard(model) {
 }
 
 function dashboardMonthResetPanel() {
-  return `<section class="dashboard-month-reset">
+  return html`<section class="dashboard-month-reset">
     <div>
       <strong>Start current month</strong>
       <p>This button deletes only current actual values and transactions, keeps the budget setup, and sets the budget month to the current calendar month.</p>
@@ -570,8 +620,8 @@ function dashboardMonthResetPanel() {
 }
 
 function dashboardRow(row) {
-  return `<tr class="status-${row.evaluation.key}">
-    <td class="concept-name">${row.label}</td>
+  return html`<tr class="status-${row.evaluation.key}">
+    <td class="concept-name">${tr(row.label)}</td>
     <td>${rowValues(row.budget)}</td>
     <td>${rowValues(row.projected)}</td>
     <td>${evaluationResult(row.evaluation)}</td>
@@ -579,8 +629,8 @@ function dashboardRow(row) {
 }
 
 function expenseStructureRow(row) {
-  return `<tr class="detail-row status-${row.evaluation.key}">
-    <td><span class="detail-name">${row.label}</span></td>
+  return html`<tr class="detail-row status-${row.evaluation.key}">
+    <td><span class="detail-name">${tr(row.label)}</span></td>
     <td>${money(row.budget)}</td>
     <td>${money(row.projected)}</td>
     <td>${evaluationResult(row.evaluation)}</td>
@@ -588,8 +638,8 @@ function expenseStructureRow(row) {
 }
 
 function creditCardStructureRow(row) {
-  return `<tr class="detail-row credit-card-structure status-${row.evaluation.key}">
-    <td><span class="detail-name">${row.label}</span></td>
+  return html`<tr class="detail-row credit-card-structure status-${row.evaluation.key}">
+    <td><span class="detail-name">${tr(row.label)}</span></td>
     <td>${rowValues([{ label: ui("budgetLabel"), value: row.budget }])}</td>
     <td>${rowValues([
       { label: ui("overdraft"), value: row.overdraft },
@@ -600,20 +650,20 @@ function creditCardStructureRow(row) {
 }
 
 function rowValues(values) {
-  return `<div class="dashboard-values">${values.map((item) => `<span><small>${item.label}</small><strong>${money(item.value)}</strong></span>`).join("")}</div>`;
+  return html`<div class="dashboard-values">${values.map((item) => html`<span><small>${tr(item.label)}</small><strong>${money(item.value)}</strong></span>`).join("")}</div>`;
 }
 
 function evaluationResult(evaluation) {
   const label = evaluation.key === "good" ? ui("onTrack") : evaluation.key === "watch" ? ui("watch") : evaluation.key === "problem" ? ui("problem") : evaluation.label;
-  return `<span class="evaluation ${evaluation.key}">${signalDot(evaluation.key)}${label}</span>`;
+  return html`<span class="evaluation ${evaluation.key}">${signalDot(evaluation.key)}${label}</span>`;
 }
 
 function signalDot(status) {
-  return `<i class="signal-dot ${status}" aria-hidden="true"></i>`;
+  return html`<i class="signal-dot ${status}" aria-hidden="true"></i>`;
 }
 
 function budgetSetup(p) {
-  return `
+  return html`
     <section class="budget-sheet">
       <header class="budget-title">
         <div>
@@ -695,10 +745,10 @@ function budgetSetup(p) {
 }
 
 function budgetExpenseSection(title, group, note) {
-  return `
+  return html`
     <section class="budget-section expense-setup">
       <div class="budget-section-head">
-        <h2>${title}</h2>
+        <h2>${tr(title)}</h2>
         <button class="secondary add-concept" data-add-group="${group}" type="button">${group === "debts" ? ui("addOtherDebt") : ui("addConcept")}</button>
       </div>
       <div class="table-wrap">${budgetExpenseTable(group)}</div>
@@ -711,18 +761,18 @@ function budgetExpenseTable(group) {
   const rows = state.expenses
     .map((line, index) => ({ line, index }))
     .filter(({ line }) => line.group === group);
-  return `
+  return html`
     <table class="budget-expenses ${group === "debts" ? "fixed-refs" : "selectable-refs"}">
       <thead><tr><th>${ui("concept")}</th><th>${ui("ref")}</th><th>${ui("amount")}</th><th>${ui("dueDay")}</th><th>Review</th><th></th></tr></thead>
       <tbody>${rows
         .map(
-          ({ line, index }) => `<tr>
-            <td><input data-line="${index}" data-prop="concept" value="${line.concept}" /></td>
+          ({ line, index }) => html`<tr>
+            <td><input data-line="${index}" data-prop="concept" value="${escapeHtml(line.concept)}" /></td>
             <td>${referenceControl(line, index, group)}</td>
             <td><input type="number" data-line="${index}" data-prop="amount" value="${line.amount}" /></td>
             <td><input type="number" min="1" max="31" data-line="${index}" data-prop="dueDay" value="${line.dueDay}" /></td>
             <td>${budgetLineReview(line)}</td>
-            <td>${removableExpenseLine(line, group) ? `<button class="icon danger-text" data-remove-line="${index}" title="${ui("removeConcept")}">x</button>` : ""}</td>
+            <td>${removableExpenseLine(line, group) ? html`<button class="icon danger-text" data-remove-line="${index}" title="${ui("removeConcept")}">x</button>` : ""}</td>
           </tr>`
         )
         .join("")}</tbody>
@@ -795,7 +845,7 @@ function budgetNeutralReview() {
 }
 
 function reviewPill(status, label) {
-  return `<span class="review-pill ${status}">${label}</span>`;
+  return html`<span class="review-pill ${status}">${tr(label)}</span>`;
 }
 
 function budgetReviewTiming() {
@@ -822,12 +872,12 @@ function removableExpenseLine(line, group) {
 
 function referenceControl(line, index, group) {
   if (group === "debts") {
-    const description = line.reference === "1" ? "Housing" : line.reference === "2" ? "Credit Cards" : "Other Debts";
-    return `<span class="fixed-reference" title="${description}" aria-label="${line.reference} - ${description}"><strong>${line.reference}</strong></span>`;
+    const description = tr(line.reference === "1" ? "Housing" : line.reference === "2" ? "Credit Cards" : "Other Debts");
+    return html`<span class="fixed-reference" title="${description}" aria-label="${line.reference} - ${description}"><strong>${line.reference}</strong></span>`;
   }
-  return `<select class="reference-select" data-line="${index}" data-prop="reference" aria-label="Reference for ${line.concept}">
+  return html`<select class="reference-select" data-line="${index}" data-prop="reference" aria-label="Reference for ${line.concept}">
     ${comparativeReferences[group]
-      .map(([value, label]) => `<option value="${value}" data-description="${label}" ${line.reference === value ? "selected" : ""}>${value}</option>`)
+      .map(([value, label]) => html`<option value="${value}" data-description="${tr(label)}" ${line.reference === value ? "selected" : ""}>${value}</option>`)
       .join("")}
   </select>`;
 }
@@ -840,8 +890,8 @@ function toggleReferenceDescriptions(select, expanded) {
 
 function inlineNumber(field, type = "amount") {
   const attributes = type === "day" ? `min="1" max="31" step="1"` : `step="0.01"`;
-  const suffix = type === "percent" ? `<span class="field-suffix">%</span>` : "";
-  return `<span class="inline-field ${type}"><input type="number" ${attributes} data-field="${field}" value="${state[field]}" />${suffix}</span>`;
+  const suffix = type === "percent" ? html`<span class="field-suffix">%</span>` : "";
+  return html`<span class="inline-field ${type}"><input type="number" ${attributes} data-field="${field}" value="${state[field]}" />${suffix}</span>`;
 }
 
 function transactions() {
@@ -852,7 +902,7 @@ function transactions() {
   const selectedType = transactionFormType === "income" ? "income" : "expense";
   const filteredIncomeTotal = visibleTransactions.filter((tx) => tx.type === "income").reduce((total, tx) => total + Number(tx.amount || 0), 0);
   const filteredExpenseTotal = visibleTransactions.filter((tx) => tx.type === "expense").reduce((total, tx) => total + Number(tx.amount || 0), 0);
-  return `
+  return html`
     <section class="panel transaction-panel">
       <div class="transaction-heading">
         <h2>Record actual movement</h2>
@@ -872,7 +922,7 @@ function transactions() {
         </label>
         <label class="last-update ${updateCurrent ? "current" : "stale"}">Last Update Date
           <input type="date" value="${lastUpdated}" readonly aria-label="Last Update Date" />
-          <small>${updateCurrent ? "Balances updated today" : "Update balances for today"}</small>
+          <small>${tr(updateCurrent ? "Balances updated today" : "Update balances for today")}</small>
         </label>
       </section>
       <form id="tx-form" class="transaction-form">
@@ -894,18 +944,18 @@ function transactions() {
         <label>From <input type="date" data-transaction-filter="dateFrom" value="${transactionFilterValue("dateFrom")}" /></label>
         <label>To <input type="date" data-transaction-filter="dateTo" value="${transactionFilterValue("dateTo")}" /></label>
         <label>Type <select data-transaction-filter="type">
-          ${transactionFilterOption("all", "All", "type")}
-          ${transactionFilterOption("expense", "Expense", "type")}
-          ${transactionFilterOption("income", "Income", "type")}
+          ${transactionFilterOption("all", tr("All"), "type")}
+          ${transactionFilterOption("expense", tr("Expense"), "type")}
+          ${transactionFilterOption("income", tr("Income"), "type")}
         </select></label>
         <label>Concept <select data-transaction-filter="conceptId">
-          ${transactionFilterOption("all", "All concepts", "conceptId")}
+          ${transactionFilterOption("all", tr("All concepts"), "conceptId")}
           ${transactionConceptFilterOptions()}
         </select></label>
         <label>Payment <select data-transaction-filter="paymentMethod">
-          ${transactionFilterOption("all", "All methods", "paymentMethod")}
-          ${transactionFilterOption("cash", "Cash", "paymentMethod")}
-          ${transactionFilterOption("creditCard", "Credit card", "paymentMethod")}
+          ${transactionFilterOption("all", tr("All methods"), "paymentMethod")}
+          ${transactionFilterOption("cash", tr("Cash"), "paymentMethod")}
+          ${transactionFilterOption("creditCard", tr("Credit card"), "paymentMethod")}
         </select></label>
         <button class="secondary" type="button" id="clear-tx-filters">Clear filters</button>
       </section>
@@ -921,7 +971,7 @@ function transactions() {
 }
 
 function actualControlNotes() {
-  return `<section class="important-notes" aria-label="Important actual data controls">
+  return html`<section class="important-notes" aria-label="Important actual data controls">
     <div class="budget-advantage">
       <strong>Focus only on the key items you want to control</strong>
       <p>Smart Budget calculates smaller miscellaneous spending from your balances and activity, reducing manual updates while still reflecting the full monthly impact.</p>
@@ -951,17 +1001,17 @@ function transactionConceptOptions(type) {
   const options =
     type === "income"
       ? [
-          ["net-income", "Net Income"],
-          ["other-deposits", "Other Deposits"],
+          ["net-income", tr("Net Income")],
+          ["other-deposits", tr("Other Deposits")],
         ]
       : state.expenses.map((line) => [line.id, line.concept]);
-  return options.map(([id, label]) => `<option value="${id}">${label}</option>`).join("");
+  return options.map(([id, label]) => html`<option value="${id}">${escapeHtml(label)}</option>`).join("");
 }
 
 function transactionConceptFilterOptions() {
   const options = [
-    ["net-income", "Net Income"],
-    ["other-deposits", "Other Deposits"],
+    ["net-income", tr("Net Income")],
+    ["other-deposits", tr("Other Deposits")],
     ...state.expenses.map((line) => [line.id, line.concept]),
   ];
   return options.map(([id, label]) => transactionFilterOption(id, label, "conceptId")).join("");
@@ -972,7 +1022,7 @@ function transactionFilterValue(field) {
 }
 
 function transactionFilterOption(value, label, field) {
-  return `<option value="${value}" ${transactionFilterValue(field) === value ? "selected" : ""}>${label}</option>`;
+  return html`<option value="${value}" ${transactionFilterValue(field) === value ? "selected" : ""}>${escapeHtml(label)}</option>`;
 }
 
 function filteredTransactions() {
@@ -993,12 +1043,12 @@ function showCurrentActualUpdate() {
   indicator.classList.remove("stale");
   indicator.classList.add("current");
   indicator.querySelector("input").value = state.lastActualUpdate;
-  indicator.querySelector("small").textContent = "Balances updated today";
+  indicator.querySelector("small").textContent = tr("Balances updated today");
 }
 
 function projections() {
   const model = projectionAnalysisModel(state, appToday());
-  return `
+  return html`
     <section class="panel projection-panel">
       <div class="projection-top-grid">
         <div>
@@ -1051,13 +1101,13 @@ function projections() {
 }
 
 function projectionAvailableIncomeRow(row) {
-  return `<div class="projection-grid projection-available-row status-${row.evaluation.key}">
-    <strong>${row.label}</strong><span>${money(row.budget)}</span><span>${money(row.actual)}</span><span>${money(row.projected)}</span><span>${money(row.remaining)}</span><span>${pct(row.paid)}</span><span>${evaluationResult(row.evaluation)}</span>
+  return html`<div class="projection-grid projection-available-row status-${row.evaluation.key}">
+    <strong>${tr(row.label)}</strong><span>${money(row.budget)}</span><span>${money(row.actual)}</span><span>${money(row.projected)}</span><span>${money(row.remaining)}</span><span>${pct(row.paid)}</span><span>${evaluationResult(row.evaluation)}</span>
   </div>`;
 }
 
 function projectionPaymentTiming(timing) {
-  return `<aside class="payment-timing-card">
+  return html`<aside class="payment-timing-card">
     <h2>Payment Timing</h2>
     <div class="payment-timing-row">
       <span>Overdue Payments</span>
@@ -1076,7 +1126,7 @@ function balanceCorrectionPanel(p, context) {
   const differences = balanceDifferences(p);
   const outOfBalance = differences.filter((item) => item.outOfBalance);
   if (!outOfBalance.length) return "";
-  return `<section class="panel balance-correction-panel balance-correction-${context}">
+  return html`<section class="panel balance-correction-panel balance-correction-${context}">
     <div class="balance-correction-head">
       <div>
         <h2>Balance mismatch detected</h2>
@@ -1090,7 +1140,7 @@ function balanceCorrectionPanel(p, context) {
       ${differences.map(balanceDifferenceCard).join("")}
     </div>
     <h3>Correction steps</h3>
-    <ol>${balanceCorrectionSteps(outOfBalance).map((step) => `<li>${step}</li>`).join("")}</ol>
+    <ol>${balanceCorrectionSteps(outOfBalance).map((step) => html`<li>${tr(step)}</li>`).join("")}</ol>
   </section>`;
 }
 
@@ -1107,8 +1157,8 @@ function totalBalanceDifference(p) {
 }
 
 function balanceDifferenceCard(item) {
-  return `<article class="${item.outOfBalance ? "danger" : "ok"}">
-    <span>${item.label}</span>
+  return html`<article class="${item.outOfBalance ? "danger" : "ok"}">
+    <span>${tr(item.label)}</span>
     <strong>${money(item.difference)}</strong>
   </article>`;
 }
@@ -1130,9 +1180,9 @@ function balanceCorrectionSteps(items) {
 }
 
 function projectionExpandableRow(row) {
-  return `<details class="projection-group status-${row.evaluation.key}">
+  return html`<details class="projection-group status-${row.evaluation.key}">
     <summary class="projection-grid">
-      <strong>${row.label}</strong><span>${money(row.budget)}</span><span>${money(row.actual)}</span><span>${money(row.projected)}</span><span>${money(row.remaining)}</span><span>${pct(row.paid)}</span><span>${evaluationResult(row.evaluation)}</span>
+      <strong>${tr(row.label)}</strong><span>${money(row.budget)}</span><span>${money(row.actual)}</span><span>${money(row.projected)}</span><span>${money(row.remaining)}</span><span>${pct(row.paid)}</span><span>${evaluationResult(row.evaluation)}</span>
     </summary>
       <div class="projection-detail-wrap">
         <table class="projection-detail-table">
@@ -1144,18 +1194,18 @@ function projectionExpandableRow(row) {
 }
 
 function projectionStandardRow(row) {
-  return `<div class="projection-grid projection-standard-row status-${row.evaluation.key}">
-    <strong>${row.label}</strong><span>${money(row.budget)}</span><span>${money(row.actual)}</span><span>${money(row.projected)}</span><span>${money(row.remaining)}</span><span>${pct(row.paid)}</span><span>${evaluationResult(row.evaluation)}</span>
+  return html`<div class="projection-grid projection-standard-row status-${row.evaluation.key}">
+    <strong>${tr(row.label)}</strong><span>${money(row.budget)}</span><span>${money(row.actual)}</span><span>${money(row.projected)}</span><span>${money(row.remaining)}</span><span>${pct(row.paid)}</span><span>${evaluationResult(row.evaluation)}</span>
   </div>`;
 }
 
 function projectionDetailRow(row) {
-  const dueDate = row.dueDate ? `<span class="due-date due-${row.dueStatus}">${row.dueDate}</span>` : "";
-  return `<tr class="status-${row.evaluation.key}"><td>${row.label}</td><td>${money(row.budget)}</td><td>${money(row.actual)}</td><td>${money(row.projected)}</td><td>${money(row.remaining)}</td><td>${pct(row.paid)}</td><td>${dueDate}</td><td>${evaluationResult(row.evaluation)}</td></tr>`;
+  const dueDate = row.dueDate ? html`<span class="due-date due-${row.dueStatus}">${row.dueDate}</span>` : "";
+  return html`<tr class="status-${row.evaluation.key}"><td>${escapeHtml(row.label)}</td><td>${money(row.budget)}</td><td>${money(row.actual)}</td><td>${money(row.projected)}</td><td>${money(row.remaining)}</td><td>${pct(row.paid)}</td><td>${dueDate}</td><td>${evaluationResult(row.evaluation)}</td></tr>`;
 }
 
 function projectionSpecialRow(row) {
-  return `<tr class="status-${row.evaluation.key}"><td><strong>${row.label}</strong></td><td>${money(row.payments)}</td><td>${money(row.expenses)}</td><td class="${row.difference < 0 ? "danger" : "ok"}">${money(row.difference)}</td><td>${evaluationResult(row.evaluation)}</td></tr>`;
+  return html`<tr class="status-${row.evaluation.key}"><td><strong>${tr(row.label)}</strong></td><td>${money(row.payments)}</td><td>${money(row.expenses)}</td><td class="${row.difference < 0 ? "danger" : "ok"}">${money(row.difference)}</td><td>${evaluationResult(row.evaluation)}</td></tr>`;
 }
 
 function historyPage() {
@@ -1166,7 +1216,7 @@ function historyPage() {
   const monthToDateSnapshot = snapshots.find((snapshot) => snapshot.month === state.month && historySnapshotKind(snapshot) === "mtd");
   const monthToDateLabel = displayMonthUpdateDate(monthToDateSnapshot?.generatedDate || monthToDateSnapshot?.savedAt);
   const rows = historyConceptRows();
-  return `
+  return html`
     <section class="panel history-panel">
       <div class="history-head">
         <div>
@@ -1190,7 +1240,7 @@ function historyPage() {
           <thead>
             <tr class="history-date-row">
               <th></th>
-              <th class="history-update-cell" colspan="2">${monthToDateLabel || "MTH not updated"}</th>
+              <th class="history-update-cell" colspan="2">${monthToDateLabel || tr("MTH not updated")}</th>
               <th class="history-month-group" colspan="${completedSnapshots.length + 1}">Month History</th>
             </tr>
             <tr>
@@ -1198,26 +1248,26 @@ function historyPage() {
               <th>Budget</th>
               <th>Projection</th>
               <th class="history-average-cell">AVERAGE</th>
-              ${completedSnapshots.map((snapshot) => `<th class="history-month-cell">${historySnapshotHeader(snapshot)}</th>`).join("")}
+              ${completedSnapshots.map((snapshot) => html`<th class="history-month-cell">${historySnapshotHeader(snapshot)}</th>`).join("")}
             </tr>
           </thead>
           <tbody>${rows.map((row) => historyConceptRow(row, completedSnapshots)).join("")}</tbody>
           ${historyDeleteTableRow(completedSnapshots)}
         </table>
       </div>
-      ${completedSnapshots.length ? "" : `<p class="muted history-empty">No completed months saved for ${currentYear} yet. Month-to-date stays in the update date above.</p>`}
+      ${completedSnapshots.length ? "" : html`<p class="muted history-empty">No completed months saved for ${currentYear} yet. Month-to-date stays in the update date above.</p>`}
     </section>
   `;
 }
 
 function historyDeleteTableRow(snapshots) {
   if (!snapshots.length) return "";
-  return `<tfoot>
+  return html`<tfoot>
     <tr class="history-delete-table-row">
       <td><strong>Delete Month</strong></td>
       <td></td><td></td>
       <td class="history-average-cell"></td>
-      ${snapshots.map((snapshot) => `<td class="history-month-cell"><button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete ${historySnapshotTitle(snapshot)}">X</button></td>`).join("")}
+      ${snapshots.map((snapshot) => html`<td class="history-month-cell"><button class="icon danger-text" type="button" data-remove-history-snapshot="${snapshot.id}" title="Delete ${historySnapshotTitle(snapshot)}">X</button></td>`).join("")}
     </tr>
   </tfoot>`;
 }
@@ -1246,7 +1296,7 @@ function historySummaryCards(snapshots) {
 }
 
 function historyMetric(label, value, detail) {
-  return `<article class="history-metric"><span>${label}</span><strong>${value}</strong><small>${detail}</small></article>`;
+  return html`<article class="history-metric"><span>${tr(label)}</span><strong>${value}</strong><small>${tr(detail)}</small></article>`;
 }
 
 function createHistorySnapshot(kind = "mtd") {
@@ -1367,12 +1417,12 @@ function historyConceptRows() {
 function historyConceptRow(row, snapshots) {
   const values = snapshots.map((snapshot) => historySnapshotConceptValue(snapshot, row.key));
   const average = values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0;
-  return `<tr>
-    <td><strong>${row.label}</strong></td>
+  return html`<tr>
+    <td><strong>${tr(row.label)}</strong></td>
     <td>${money(row.budget)}</td>
     <td>${money(row.projected)}</td>
     <td class="history-average-cell">${money(average)}</td>
-    ${values.map((value) => `<td class="history-month-cell">${money(value)}</td>`).join("")}
+    ${values.map((value) => html`<td class="history-month-cell">${money(value)}</td>`).join("")}
   </tr>`;
 }
 
@@ -1443,7 +1493,7 @@ function smartModelPage() {
   const rows = smartModel(state);
   const pieMode = smartPieMode();
   const pie = smartPieData(rows, pieMode.key);
-  return `
+  return html`
     <section class="panel smart-model-panel">
       <header class="smart-model-header">
         <div>
@@ -1464,7 +1514,7 @@ function smartModelPage() {
     <section class="panel smart-chart-panel">
       <header class="smart-chart-header">
         <div>
-          <h2>Income Distribution ${pieMode.label}</h2>
+          <h2>Income Distribution ${tr(pieMode.label)}</h2>
           <p class="muted">Type 1 for Balanced Model, 2 for Current Budget, or 3 for Projection.</p>
         </div>
         <label class="smart-pie-selector">Chart
@@ -1473,7 +1523,7 @@ function smartModelPage() {
       </header>
       <div class="smart-pie-wrap">
         <div class="smart-pie" style="background:${smartPieGradient(pie)}"></div>
-        <div class="smart-pie-legend">${pie.map((row, index) => `<span><i style="background:${smartColor(index)}"></i>${row.ref}, ${pct(row.value)}</span>`).join("")}</div>
+        <div class="smart-pie-legend">${pie.map((row, index) => html`<span><i style="background:${smartColor(index)}"></i>${row.ref}, ${pct(row.value)}</span>`).join("")}</div>
       </div>
     </section>
     <section class="panel smart-chart-panel">
@@ -1489,9 +1539,9 @@ function smartModelPage() {
 }
 
 function smartModelRow(row) {
-  return `<tr>
-    <td>${row.group}</td>
-    <td>${row.concept}</td>
+  return html`<tr>
+    <td>${tr(row.group)}</td>
+    <td>${tr(row.concept)}</td>
     <td>${row.ref}</td>
     <td>${pct(row.balanced)}</td>
     <td class="${smartVarianceClass(row.currentVariance)}">${pct(row.current)}</td>
@@ -1534,7 +1584,7 @@ function smartPieGradient(rows) {
 
 function smartBarGroup(row) {
   const max = 0.35;
-  return `<div class="smart-bar-group">
+  return html`<div class="smart-bar-group">
     <span>${row.ref}</span>
     ${smartBar(row.balanced, max, "balanced")}
     ${smartBar(row.current, max, "current")}
@@ -1543,7 +1593,7 @@ function smartBarGroup(row) {
 }
 
 function smartBar(value, max, key) {
-  return `<i class="${key}" title="${pct(value)}" style="height:${Math.min(100, (value / max) * 100)}%"></i>`;
+  return html`<i class="${key}" title="${pct(value)}" style="height:${Math.min(100, (value / max) * 100)}%"></i>`;
 }
 
 function smartColor(index) {
@@ -1553,7 +1603,7 @@ function smartColor(index) {
 
 function evaluation(p) {
   const difficultyScore = Math.min(100, Math.max(0, 100 - p.healthScore));
-  return `
+  return html`
     <section class="metric-grid">
       ${metric("Financial health", Math.round(p.healthScore) + "/100", p.healthScore >= 80 ? "Strong" : p.healthScore >= 60 ? "Watch" : "Risk")}
       ${metric("Debt capacity", pct(p.debtToIncome), p.debtToIncome <= 0.35 ? "Within reference" : "Above reference")}
@@ -1584,10 +1634,10 @@ function evaluation(p) {
 function actionSuggestionPanel(p, context) {
   const suggestions = actionSuggestions(p, context);
   const title = context === "dashboard" ? "Results Comments and Suggested Corrections" : "Suggested Corrections";
-  return `<section class="panel action-suggestions action-suggestions-${context}">
-    <h2>${title}</h2>
+  return html`<section class="panel action-suggestions action-suggestions-${context}">
+    <h2>${tr(title)}</h2>
     <p class="muted">Review these suggested corrections during the month to adjust values and finish with positive cash flow.</p>
-    <ul>${suggestions.map((item) => `<li class="suggestion-${item.level}"><strong>${item.title}</strong><span>${item.text}</span></li>`).join("")}</ul>
+    <ul>${suggestions.map((item) => html`<li class="suggestion-${item.level}"><strong>${tr(item.title)}</strong><span>${systemText(item.text)}</span></li>`).join("")}</ul>
   </section>`;
 }
 
@@ -1731,9 +1781,9 @@ function financialGroupRows(p) {
 }
 
 function financialGroupRow(row) {
-  return `<article class="financial-group-range status-${row.evaluation.key}">
-    <header><strong>${row.label}</strong>${evaluationResult(row.evaluation)}</header>
-    <div class="financial-range financial-range-small" aria-label="${row.label} Smart Model comparison">
+  return html`<article class="financial-group-range status-${row.evaluation.key}">
+    <header><strong>${tr(row.label)}</strong>${evaluationResult(row.evaluation)}</header>
+    <div class="financial-range financial-range-small" aria-label="${tr(row.label)} Smart Model comparison">
       <span class="range-good">Low</span>
       <span class="range-watch">Medium</span>
       <span class="range-risk">High</span>
@@ -1750,7 +1800,7 @@ function financialRangeEvaluation(score) {
 
 function smartHelpPage(p) {
   const quickQuestions = helpQuickQuestions();
-  return `
+  return html`
     <section class="panel help-panel">
       <div class="help-intro">
         <div>
@@ -1778,26 +1828,31 @@ function smartHelpPage(p) {
         <button class="secondary" type="button" data-clear-help-chat>${helpText("clear")}</button>
       </div>
       <div class="help-quick">
-        ${quickQuestions.map((question) => `<button class="secondary" type="button" data-help-question="${escapeHtml(question)}">${question}</button>`).join("")}
+        ${quickQuestions.map((question) => html`<button class="secondary" type="button" data-help-question="${escapeHtml(question)}">${question}</button>`).join("")}
       </div>
       <p class="help-disclaimer">${helpText("disclaimer")}</p>
     </section>
     <section class="panel help-current">
       <h2>${helpText("signalsTitle")}</h2>
-      <ul>${smartHelpSignals(p).map((signal) => `<li class="suggestion-${signal.level}"><strong>${signal.title}</strong><span>${signal.text}</span></li>`).join("")}</ul>
+      <ul>${smartHelpSignals(p).map((signal) => html`<li class="suggestion-${signal.level}"><strong>${signal.title}</strong><span>${signal.text}</span></li>`).join("")}</ul>
     </section>
   `;
 }
 
 function helpMessageBubble(message) {
-  return `<article class="help-message help-${message.role}">
+  const text = message.role === "user" ? message.text
+    : message.kind === "initial" ? helpText("initialMessage")
+    : message.kind === "guide" ? smartHelpStartGuideAnswer()
+    : message.question ? answerHelpQuestion(message.question, message.projection)
+    : message.text;
+  return html`<article class="help-message help-${message.role}">
     <span>${message.role === "user" ? helpText("you") : "Smart Help Chat"}</span>
-    <p>${escapeHtml(message.text)}</p>
+    <p>${escapeHtml(text)}</p>
   </article>`;
 }
 
 function helpLanguage() {
-  return "en";
+  return selectedLanguage;
 }
 
 function helpText(key) {
@@ -1821,20 +1876,20 @@ function helpText(key) {
     },
     es: {
       initialMessage:
-        "Preguntame sobre este presupuesto mensual: flujo de efectivo, ahorros, tarjetas, miscelaneos, desbalance, transacciones, proyecciones, numeros Ref, prioridades o nuevo mes.",
+        "Pregúntame sobre este presupuesto mensual: flujo de efectivo, ahorros, tarjetas, misceláneos, desbalance, transacciones, proyecciones, números Ref, prioridades o nuevo mes.",
       eyebrow: "Chat de apoyo del presupuesto",
       intro: "Haz preguntas cortas sobre este presupuesto mensual. Las respuestas se basan solo en los valores ingresados en este sistema.",
-      scope: "Solo guia de presupuesto",
-      placeholder: "Pregunta sobre flujo, ahorros, tarjetas, miscelaneos o desbalance",
+      scope: "Solo guía de presupuesto",
+      placeholder: "Pregunta sobre flujo, ahorros, tarjetas, misceláneos o desbalance",
       ask: "Preguntar",
       clear: "Borrar chat",
-      startGuideTitle: "Usuario nuevo?",
-      startGuideText: "Usa una guia corta para aprender los primeros pasos.",
-      startGuideButton: "Iniciar guia",
+      startGuideTitle: "¿Usuario nuevo?",
+      startGuideText: "Usa una guía corta para aprender los primeros pasos.",
+      startGuideButton: "Iniciar guía",
       disclaimer:
-        "Smart Help Chat explica este presupuesto y sus proyecciones. No reemplaza asesoria financiera, fiscal, legal, crediticia ni de inversion.",
-      signalsTitle: "Senales actuales del presupuesto",
-      you: "Tu",
+        "El chat de ayuda explica este presupuesto y sus proyecciones. No reemplaza asesoría financiera, fiscal, legal, crediticia ni de inversión.",
+      signalsTitle: "Señales actuales del presupuesto",
+      you: "Tú",
     },
   };
   return labels[helpLanguage()][key] || labels.en[key] || "";
@@ -1854,15 +1909,15 @@ function helpQuickQuestions() {
       "How do I start a new month?",
     ],
     es: [
-      "Por que Miscelaneos Actual esta negativo?",
-      "Por que Ahorros Proyectado no muestra el deposito?",
-      "Que significa desbalance?",
-      "Que reviso si el flujo de efectivo es negativo?",
-      "Como afectan las compras con tarjeta al presupuesto?",
-      "En que debo enfocarme?",
-      "Que significa Ref?",
-      "Muestrame los primeros pasos",
-      "Como inicio un nuevo mes?",
+      "¿Por qué Misceláneos Actual está negativo?",
+      "¿Por qué Ahorros Proyectado no muestra el depósito?",
+      "¿Qué significa desbalance?",
+      "¿Qué reviso si el flujo de efectivo es negativo?",
+      "¿Cómo afectan las compras con tarjeta al presupuesto?",
+      "¿En qué debo enfocarme?",
+      "¿Qué significa Ref?",
+      "Muéstrame los primeros pasos",
+      "¿Cómo inicio un nuevo mes?",
     ],
   };
   return questions[helpLanguage()];
@@ -2227,7 +2282,7 @@ function smartHelpSignals(p) {
 }
 
 function bilingual(en, es) {
-  return helpLanguage() === "es" ? es : en;
+  return helpLanguage() === "es" ? systemText(es) : en;
 }
 
 function normalizeText(value) {
@@ -2247,12 +2302,9 @@ function escapeHtml(value) {
 }
 
 function settings() {
-  return `
+  return html`
     <section class="form-grid">
-      <label class="language-setting">Language<select data-field="language">
-        <option value="en" ${state.language === "en" ? "selected" : ""}>English</option>
-        <option value="es" ${state.language === "es" ? "selected" : ""}>Español</option>
-      </select></label>
+      ${languageSelector()}
     </section>
     <section class="panel">
       <h2>Reference model</h2>
@@ -2261,27 +2313,27 @@ function settings() {
     </section>
     <section class="panel">
       <h2>Terms and Conditions</h2>
-      <p class="muted">Current terms version: ${TERMS_VERSION}. ${termsAccepted() ? `Accepted on ${new Date(state.termsAcceptedAt || Date.now()).toLocaleString("en-US")}.` : "Acceptance is required before using Smart Budget."}</p>
+      <p class="muted">Current terms version: ${TERMS_VERSION}. ${termsAccepted() ? html`Accepted on ${new Date(state.termsAcceptedAt || Date.now()).toLocaleString("en-US")}.` : tr("Acceptance is required before using Smart Budget.")}</p>
       <button class="secondary" type="button" data-view-terms>View Terms and Conditions</button>
     </section>
   `;
 }
 
 function numberField(field, label) {
-  return `<label>${label}<input type="number" step="0.01" data-field="${field}" value="${state[field]}" /></label>`;
+  return html`<label>${label}<input type="number" step="0.01" data-field="${field}" value="${state[field]}" /></label>`;
 }
 
 function expenseTable() {
-  return `
+  return html`
     <table>
       <thead><tr><th>Concept</th><th>Group</th><th>Amount</th><th>Due day</th><th>Reference</th><th></th></tr></thead>
       <tbody>
         ${state.expenses
           .map(
-            (line, index) => `<tr>
-              <td><input data-line="${index}" data-prop="concept" value="${line.concept}" /></td>
+            (line, index) => html`<tr>
+              <td><input data-line="${index}" data-prop="concept" value="${escapeHtml(line.concept)}" /></td>
               <td><select data-line="${index}" data-prop="group">
-                ${["debts", "household", "extraordinary"].map((group) => `<option value="${group}" ${line.group === group ? "selected" : ""}>${group}</option>`).join("")}
+                ${["debts", "household", "extraordinary"].map((group) => html`<option value="${group}" ${line.group === group ? "selected" : ""}>${group}</option>`).join("")}
               </select></td>
               <td><input type="number" data-line="${index}" data-prop="amount" value="${line.amount}" /></td>
               <td><input type="number" min="1" max="31" data-line="${index}" data-prop="dueDay" value="${line.dueDay}" /></td>
@@ -2296,12 +2348,12 @@ function expenseTable() {
 }
 
 function metric(label, value, detail) {
-  return `<article class="metric"><span>${label}</span><strong>${value}</strong><small>${detail}</small></article>`;
+  return html`<article class="metric"><span>${tr(label)}</span><strong>${value}</strong><small>${tr(detail)}</small></article>`;
 }
 
 function bars(items) {
-  return `<div class="bars">${items
-    .map(([label, value, total]) => `<div><span>${label}</span><b>${money(value)}</b><i><em style="width:${Math.min(100, total ? (value / total) * 100 : 0)}%"></em></i></div>`)
+  return html`<div class="bars">${items
+    .map(([label, value, total]) => html`<div><span>${label}</span><b>${money(value)}</b><i><em style="width:${Math.min(100, total ? (value / total) * 100 : 0)}%"></em></i></div>`)
     .join("")}</div>`;
 }
 
@@ -2311,20 +2363,21 @@ function transactionConceptName(tx) {
     "other-deposits": "Other Deposits",
     "savings-account": "Saving",
   };
-  return fixedConcepts[tx.conceptId] || state.expenses.find((line) => line.id === tx.conceptId)?.concept || "Movement";
+  return fixedConcepts[tx.conceptId] ? tr(fixedConcepts[tx.conceptId])
+    : state.expenses.find((line) => line.id === tx.conceptId)?.concept || tr("Movement");
 }
 
 function transactionRows(transactions) {
-  if (!transactions.length) return `<tr><td colspan="7" class="muted">No actual movements match the current filters.</td></tr>`;
+  if (!transactions.length) return html`<tr><td colspan="7" class="muted">No actual movements match the current filters.</td></tr>`;
   return transactions
     .map(
-      (tx) => `<tr>
+      (tx) => html`<tr>
         <td>${tx.date || ""}</td>
-        <td>${tx.type || ""}</td>
-        <td>${transactionConceptName(tx)}</td>
+        <td>${tx.type === "income" ? tr("Income") : tx.type === "expense" ? tr("Expense") : escapeHtml(tx.type || "")}</td>
+        <td>${escapeHtml(transactionConceptName(tx))}</td>
         <td>${money(tx.amount)}</td>
-        <td>${tx.paymentMethod || ""}</td>
-        <td>${tx.comment || ""}</td>
+        <td>${tx.paymentMethod === "cash" ? tr("Cash") : tx.paymentMethod === "creditCard" ? tr("Credit card") : escapeHtml(tx.paymentMethod || "")}</td>
+        <td>${escapeHtml(tx.comment || "")}</td>
         <td><button class="icon danger-text" type="button" data-remove-transaction="${tx.id}" title="Delete transaction">x</button></td>
       </tr>`,
     )
@@ -2403,7 +2456,7 @@ function bindEvents() {
   document.querySelectorAll("[data-clear-actual-month]").forEach((button) => {
     button.addEventListener("click", () => {
       const confirmed = window.confirm(
-        "This will delete only current actual values and transactions, keep the budget setup, and set the budget month to the current calendar month. Continue?",
+        tr("This will delete only current actual values and transactions, keep the budget setup, and set the budget month to the current calendar month. Continue?"),
       );
       if (!confirmed) return;
       state = clearActualMonthState(state);
@@ -2494,7 +2547,7 @@ function bindEvents() {
   document.querySelector("[data-start-guide]")?.addEventListener("click", () => {
     helpMessages = [
       ...helpMessages,
-      { role: "assistant", text: smartHelpStartGuideAnswer() },
+      { role: "assistant", kind: "guide", text: smartHelpStartGuideAnswer() },
     ].slice(-10);
     render();
   });
@@ -2578,7 +2631,7 @@ function submitHelpQuestion(value) {
   helpMessages = [
     ...helpMessages,
     { role: "user", text: question },
-    { role: "assistant", text: answerHelpQuestion(question, projection) },
+    { role: "assistant", question, projection, text: answerHelpQuestion(question, projection) },
   ].slice(-10);
   render();
 }
