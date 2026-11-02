@@ -4,6 +4,8 @@ import { copy } from "./i18n/index.js?v=20261030a";
 import { fixedText, fixedMarkup } from "./i18n/fixedText.js?v=20261030a";
 import { termsEs } from "./i18n/termsEs.js?v=20261030a";
 import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260705b";
+import { readCommercialToken, clearCommercialToken, normalizeAccessStatus, accessDeadline } from "./services/accessControl.js?v=20261101a";
+import { ETSY_PURCHASE_URL } from "./config/access.js?v=20261101a";
 
 let state = loadState();
 let selectedLanguage = readLanguagePreference();
@@ -56,13 +58,19 @@ const TERMS_VERSION = "2026-06-06-free-public";
 let helpMessages = initialHelpMessages();
 let showTermsModal = false;
 let authLoading = isSupabaseConfigured;
-let authSession = null;
 let authUser = null;
-let authProfile = null;
 let authMode = "sign-in";
 let authMessage = "";
 let remoteStateLoaded = !isSupabaseConfigured;
 let remoteSaveTimer = null;
+let authAccess = null;
+let accessExpiresAt = 0;
+let accessTimer = null;
+let authEpoch = 0;
+let accessRefreshPending = null;
+let remoteSaveChain = Promise.resolve();
+let commercialBusy = false;
+let pendingCommercialToken = readCommercialToken(window.location, localStorage, window.history);
 let transactionFormType = "expense";
 const comparativeReferences = {
   household: [
@@ -91,9 +99,22 @@ function initialHelpMessages() {
 
 function render() {
   document.documentElement.lang = selectedLanguage;
+  if (!isSupabaseConfigured) {
+    app.innerHTML = html`<main class="auth-shell"><section class="auth-card">${languageSelector()}
+      <h1>Smart Budget Access</h1><p>Access service is not configured. Please contact support.</p>
+    </section></main>`;
+    bindLanguageEvents();
+    return;
+  }
   if (isSupabaseConfigured && (authLoading || !authUser)) {
     app.innerHTML = authScreen();
     bindAuthEvents();
+    bindLanguageEvents();
+    return;
+  }
+  if (isSupabaseConfigured && (!canUseBudget() || !remoteStateLoaded || pendingCommercialToken)) {
+    app.innerHTML = accessScreen();
+    bindAccessEvents();
     bindLanguageEvents();
     return;
   }
@@ -161,13 +182,14 @@ function authScreen() {
       <div>
         <p class="eyebrow">Home Smart Financial Systems</p>
         <h1>Smart Budget Access</h1>
-        <p class="muted">Protected free access. Use your email and password to continue.</p>
+        <p class="muted">Use your email and password to access your own budget.</p>
+        ${pendingCommercialToken ? html`<p class="auth-note">Commercial activation link received. Create an account or sign in to your existing account, then verify your email.</p>` : ""}
       </div>
       ${authMessage ? html`<p class="auth-message">${escapeHtml(tr(authMessage))}</p>` : ""}
       <form class="auth-form" id="auth-form">
         <label>Email<input type="email" name="email" autocomplete="email" required /></label>
         <label>Password<input type="password" name="password" autocomplete="${isSignUp ? "new-password" : "current-password"}" minlength="8" required /></label>
-        <button class="primary" type="submit">${tr(isSignUp ? "Create free account" : "Sign in")}</button>
+        <button class="primary" type="submit">${tr(isSignUp ? "Create account" : "Sign in")}</button>
       </form>
       <div class="auth-switch">
         ${tr(isSignUp ? "Already have access?" : "Need free access?")}
@@ -176,46 +198,133 @@ function authScreen() {
         </button>
       </div>
       <button class="link-button" type="button" data-reset-password>Reset password by email</button>
-      <p class="auth-note">Email confirmation may be required before the first sign in. Only email is used for access.</p>
+      <p class="auth-note">Confirm your email before your first sign in. New accounts start with DEMO access after verification.</p>
     </section>
   </main>`;
 }
 
+function accessScreen() {
+  const reason = authAccess?.reason || "access_unavailable";
+  const explanation = reason === "expired"
+    ? authAccess?.access_type === "DEMO" ? "Your DEMO has expired. Your account and saved budget have been kept."
+      : "Your COMMERCIAL access has expired. Your account and saved budget have been kept."
+    : reason === "blocked" ? "This account is not active. Contact Home Smart Financial Systems to restore access."
+    : reason === "email_unverified" ? "Verify your email before activating or accessing your budget."
+    : reason === "profile_missing" ? "Your access profile needs review. Your budget has not been changed."
+    : "Your access must be verified before opening your saved budget.";
+  const purchaseUrl = /^https:\/\/([a-z0-9-]+\.)?etsy\.com\//i.test(ETSY_PURCHASE_URL) ? ETSY_PURCHASE_URL : "";
+  return html`<main class="auth-shell"><section class="auth-card access-card">
+    ${languageSelector()}
+    <p class="eyebrow">SMART BUDGET</p>
+    <h1>${tr(pendingCommercialToken ? "Activate COMMERCIAL access" : reason === "expired" ? "Access expired" : "Smart Budget Access")}</h1>
+    <p><strong>${escapeHtml(authUser?.email || "")}</strong></p>
+    <p>${tr(pendingCommercialToken ? "Activate this account using your commercial link. Your existing budget will be kept." : explanation)}</p>
+    ${authMessage ? html`<p class="auth-message" role="status">${escapeHtml(tr(authMessage))}</p>` : ""}
+    ${pendingCommercialToken ? html`<button class="primary" type="button" data-activate-commercial ${commercialBusy ? "disabled" : ""}>${tr(commercialBusy ? "Activating..." : "Activate COMMERCIAL access")}</button>
+      <button class="secondary" type="button" data-dismiss-commercial ${commercialBusy ? "disabled" : ""}>${tr(canUseBudget() ? "Continue with current access" : "Discard activation link")}</button>` : ""}
+    ${purchaseUrl ? html`<a class="primary access-purchase" href="${escapeHtml(purchaseUrl)}" target="_blank" rel="noopener noreferrer">Buy Smart Budget on Etsy</a>` : ""}
+    <button class="secondary" type="button" data-retry-access ${commercialBusy ? "disabled" : ""}>Check access again</button>
+    <button class="link-button" type="button" data-sign-out>Sign out</button>
+  </section></main>`;
+}
+
+function bindAccessEvents() {
+  document.querySelector("[data-sign-out]")?.addEventListener("click", signOutAccount);
+  document.querySelector("[data-retry-access]")?.addEventListener("click", () => {
+    authMessage = "";
+    render();
+    void refreshAccess();
+  });
+  document.querySelector("[data-dismiss-commercial]")?.addEventListener("click", () => {
+    clearCommercialToken(localStorage);
+    pendingCommercialToken = "";
+    authMessage = "";
+    void refreshAccess();
+  });
+  document.querySelector("[data-activate-commercial]")?.addEventListener("click", async () => {
+    if (commercialBusy || !pendingCommercialToken || !authUser) return;
+    const epoch = authEpoch;
+    commercialBusy = true;
+    authMessage = "";
+    render();
+    try {
+      const { data, error } = await supabase.rpc("sb_activate_commercial", { p_token: pendingCommercialToken });
+      if (epoch !== authEpoch) return;
+      if (error) throw error;
+      if (data?.activated !== true) {
+        authMessage = data?.reason === "email_unverified" ? "Verify your email before activating or accessing your budget."
+          : data?.reason === "blocked" ? "This account is not active. Contact Home Smart Financial Systems to restore access."
+          : "This commercial link is invalid or disabled. Your existing access has not been changed.";
+      } else {
+        clearCommercialToken(localStorage);
+        pendingCommercialToken = "";
+        await refreshAccess();
+      }
+    } catch {
+      if (epoch === authEpoch) authMessage = "Activation could not be verified. Check your connection and try again.";
+    } finally {
+      if (epoch === authEpoch) { commercialBusy = false; render(); }
+    }
+  });
+}
+
+async function signOutAccount() {
+  authMessage = "Signed out.";
+  await setAuthSession(null);
+  try { await supabase.auth.signOut(); } catch {
+    authMessage = "Sign out could not be confirmed. Check your connection.";
+    render();
+  }
+}
+
 function accountBar() {
   if (!authUser) return "";
-  const access = authProfile?.access_status || "trial";
-  const expires = authProfile?.trial_expires_at ? new Date(authProfile.trial_expires_at).toLocaleDateString("en-US") : tr("Not set");
+  const expires = authAccess?.expires_at ? new Date(authAccess.expires_at).toLocaleString(selectedLanguage === "es" ? "es" : "en-US") : "";
   return html`<section class="account-bar">
     <div>
       <strong>${escapeHtml(authUser.email || "Signed in")}</strong>
-      <span>${access === "trial" ? html`Free access ends: ${expires}` : html`Access: ${tr(access)}`}</span>
+      <span>${authAccess?.access_type === "DEMO" ? html`DEMO access ends: ${expires}`
+        : expires ? html`COMMERCIAL access ends: ${expires}` : tr("COMMERCIAL - Lifetime access")}</span>
     </div>
     <button class="secondary" type="button" data-sign-out>Sign out</button>
   </section>`;
 }
 
 function saveState(nextState) {
+  if (isSupabaseConfigured && (!canUseBudget() || !remoteStateLoaded)) return;
   saveLocalState(nextState);
   queueRemoteStateSave(nextState);
 }
 
 function queueRemoteStateSave(nextState) {
-  if (!isSupabaseConfigured || !authUser || !remoteStateLoaded) return;
+  if (!isSupabaseConfigured || !canUseBudget() || !remoteStateLoaded) return;
+  const epoch = authEpoch;
   window.clearTimeout(remoteSaveTimer);
   remoteSaveTimer = window.setTimeout(() => {
-    saveRemoteBudgetState(nextState);
+    if (epoch === authEpoch) void saveRemoteBudgetState(structuredClone(nextState), epoch);
   }, 450);
 }
 
-async function saveRemoteBudgetState(nextState) {
-  if (!authUser) return;
-  const { error } = await supabase.from("budget_states").upsert({
-    user_id: authUser.id,
-    state: { ...nextState, accessEmail: authUser.email || nextState.accessEmail || "" },
+async function saveRemoteBudgetState(nextState, epoch = authEpoch) {
+  const user = authUser;
+  const snapshot = structuredClone(nextState);
+  const operation = remoteSaveChain.then(async () => {
+    if (!user || epoch !== authEpoch || !canUseBudget() || !remoteStateLoaded) return;
+    try {
+      const { error } = await supabase.from("budget_states").upsert({
+        user_id: user.id,
+        state: { ...snapshot, accessEmail: user.email || snapshot.accessEmail || "" },
+      });
+      if (error) throw error;
+    } catch {
+      if (epoch !== authEpoch) return;
+      authMessage = "Changes could not be saved. Check your connection and retry access.";
+      blockBudget();
+      render();
+    }
   });
-  if (error) {
-    console.warn("Smart Budget remote save failed:", error.message);
-  }
+  remoteSaveChain = operation.catch(() => {});
+  return operation;
 }
 
 async function initAuth() {
@@ -225,82 +334,150 @@ async function initAuth() {
     return;
   }
 
-  const { data, error } = await supabase.auth.getSession();
-  if (error) {
-    authMessage = error.message;
-  }
-  await setAuthSession(data?.session || null);
-  authLoading = false;
-  render();
-
-  supabase.auth.onAuthStateChange(async (_event, session) => {
-    await setAuthSession(session);
+  // Do not await Supabase calls inside its auth callback (it holds an internal lock).
+  supabase.auth.onAuthStateChange((_event, session) => {
+    if (_event === "INITIAL_SESSION") return;
+    window.setTimeout(() => {
+      if (authUser?.id === session?.user?.id && authUser) void refreshAccess();
+      else void setAuthSession(session);
+    }, 0);
+  });
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    await setAuthSession(data?.session || null);
+  } catch {
+    authLoading = false;
+    authMessage = "Access could not be verified. Check your connection and try again.";
     render();
+  }
+  window.addEventListener("focus", () => { if (authUser) void refreshAccess(); });
+  window.addEventListener("online", () => { if (authUser) void refreshAccess(); });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && authUser) void refreshAccess();
   });
 }
 
 async function setAuthSession(session) {
-  authSession = session;
+  const epoch = ++authEpoch;
+  blockBudget();
   authUser = session?.user || null;
-  remoteStateLoaded = false;
+  authAccess = null;
+  commercialBusy = false;
+  helpMessages = initialHelpMessages();
+  state = structuredClone(defaultState);
   if (!authUser) {
-    authProfile = null;
-    state = structuredClone(defaultState);
-    remoteStateLoaded = false;
+    authLoading = false;
+    render();
     return;
   }
-  authProfile = authUser ? await loadAuthProfile() : null;
-  if (authUser?.email) {
-    await loadRemoteBudgetState();
-  }
-  if (authProfile?.access_status && !["trial", "active"].includes(authProfile.access_status)) {
-    authMessage = "This account is not active. Contact Home Smart Financial Systems to restore access.";
-    await supabase.auth.signOut();
-  }
-  if (authProfile?.access_status === "trial" && authProfile.trial_expires_at && new Date(authProfile.trial_expires_at) < new Date()) {
-    authMessage = "Free access expired. Contact Home Smart Financial Systems to extend or activate access.";
-    await supabase.auth.signOut();
+  authLoading = true;
+  render();
+  try {
+    await checkServerAccess(epoch);
+    if (epoch !== authEpoch) return;
+    if (canUseBudget() && !pendingCommercialToken) {
+      await loadRemoteBudgetState(epoch);
+    }
+  } catch {
+    if (epoch !== authEpoch) return;
+    blockBudget();
+    authMessage = "Access could not be verified. Check your connection and try again.";
+  } finally {
+    if (epoch === authEpoch) {
+      authLoading = false;
+      render();
+    }
   }
 }
 
-async function loadRemoteBudgetState() {
-  const { data, error } = await supabase.from("budget_states").select("state").eq("user_id", authUser.id).maybeSingle();
-  if (error) {
-    authMessage = `Budget data access needs review: ${error.message}`;
-    state = prepareAccountState(structuredClone(defaultState));
-    remoteStateLoaded = true;
-    return;
-  }
+function canUseBudget() {
+  return Boolean(authUser && authAccess?.allowed && performance.now() < accessExpiresAt);
+}
 
+function blockBudget() {
+  window.clearTimeout(remoteSaveTimer);
+  window.clearTimeout(accessTimer);
+  accessExpiresAt = 0;
+  remoteStateLoaded = false;
+}
+
+async function checkServerAccess(epoch) {
+  const started = performance.now();
+  const { data, error } = await supabase.rpc("sb_access_status");
+  if (epoch !== authEpoch) return;
+  if (error) throw error;
+  authAccess = normalizeAccessStatus(data);
+  accessExpiresAt = accessDeadline(authAccess, performance.now(), performance.now() - started);
+  window.clearTimeout(accessTimer);
+  if (authAccess.allowed) {
+    accessTimer = window.setTimeout(() => {
+      if (!canUseBudget()) { blockBudget(); render(); }
+      void refreshAccess();
+    }, Math.max(50, Math.min(60000, accessExpiresAt - performance.now())));
+  }
+}
+
+async function refreshAccess() {
+  if (!authUser) return;
+  if (accessRefreshPending?.epoch === authEpoch) return accessRefreshPending.promise;
+  const epoch = authEpoch;
+  const promise = (async () => {
+    let renderNeeded = false;
+    const previousType = authAccess?.access_type;
+    const previousExpiry = authAccess?.expires_at;
+    try {
+      await checkServerAccess(epoch);
+      if (epoch !== authEpoch) return;
+      if (!canUseBudget()) { blockBudget(); renderNeeded = true; }
+      else if (!remoteStateLoaded && !pendingCommercialToken) {
+        await loadRemoteBudgetState(epoch);
+        renderNeeded = true;
+      } else if (pendingCommercialToken) renderNeeded = true;
+      else if (previousType !== authAccess.access_type || previousExpiry !== authAccess.expires_at) {
+        const bar = document.querySelector(".account-bar");
+        if (bar) {
+          bar.outerHTML = accountBar();
+          document.querySelector("[data-sign-out]")?.addEventListener("click", signOutAccount);
+        }
+      }
+    } catch {
+      if (epoch !== authEpoch) return;
+      blockBudget();
+      authMessage = "Access could not be verified. Check your connection and try again.";
+      renderNeeded = true;
+    } finally {
+      // Background authorization must not erase an unfinished transaction/chat form.
+      if (renderNeeded && epoch === authEpoch && !authLoading) render();
+      if (accessRefreshPending?.epoch === epoch) accessRefreshPending = null;
+    }
+  })();
+  accessRefreshPending = { epoch, promise };
+  return promise;
+}
+
+async function loadRemoteBudgetState(epoch = authEpoch) {
+  if (!canUseBudget() || epoch !== authEpoch) return;
+  const userId = authUser.id;
+  const { data, error } = await supabase.from("budget_states").select("state").eq("user_id", userId).maybeSingle();
+  if (epoch !== authEpoch || !canUseBudget()) return;
+  if (error) throw error;
+  // A denied/failed read must NEVER be replaced by a new default budget.
   const storedState = data?.state && Object.keys(data.state).length ? data.state : null;
   state = prepareAccountState(storedState ? reconcileState(data.state) : structuredClone(defaultState));
-  await applyRecordedTermsAcceptance();
+  await applyRecordedTermsAcceptance(epoch);
+  if (epoch !== authEpoch || !canUseBudget()) return;
   remoteStateLoaded = true;
+  authMessage = "";
   saveLocalState(state);
-  if (!storedState) {
-    await saveRemoteBudgetState(state);
-  }
 }
 
 function prepareAccountState(accountState) {
   return {
     ...reconcileState(accountState),
     accessEmail: authUser?.email || "",
-    trialExpiresAt: authProfile?.trial_expires_at || accountState.trialExpiresAt || "",
+    trialExpiresAt: accountState.trialExpiresAt || "",
   };
-}
-
-async function loadAuthProfile() {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("email, role, access_status, trial_expires_at, terms_required_version")
-    .eq("user_id", authUser.id)
-    .maybeSingle();
-  if (error) {
-    authMessage = `Profile access needs review: ${error.message}`;
-    return null;
-  }
-  return data;
 }
 
 async function recordTermsAcceptance() {
@@ -317,7 +494,7 @@ async function recordTermsAcceptance() {
   }
 }
 
-async function applyRecordedTermsAcceptance() {
+async function applyRecordedTermsAcceptance(epoch = authEpoch) {
   if (!authUser) return;
   if (loadLocalTermsAcceptance()) {
     state.termsAcceptedVersion = TERMS_VERSION;
@@ -332,6 +509,8 @@ async function applyRecordedTermsAcceptance() {
     .eq("terms_version", TERMS_VERSION)
     .limit(1)
     .maybeSingle();
+
+  if (epoch !== authEpoch || !canUseBudget()) return;
 
   if (error) {
     console.warn("Smart Budget terms acceptance lookup failed:", error.message);
@@ -2385,14 +2564,7 @@ function transactionRows(transactions) {
 }
 
 function bindEvents() {
-  document.querySelector("[data-sign-out]")?.addEventListener("click", async () => {
-    await supabase.auth.signOut();
-    authSession = null;
-    authUser = null;
-    authProfile = null;
-    authMessage = "Signed out.";
-    render();
-  });
+  document.querySelector("[data-sign-out]")?.addEventListener("click", signOutAccount);
   document.querySelectorAll("[data-page]").forEach((button) => {
     button.addEventListener("click", () => {
       setPage(button.dataset.page);
@@ -2564,10 +2736,12 @@ function bindEvents() {
     render();
   });
   document.querySelector("[data-accept-terms]")?.addEventListener("click", async () => {
+    const epoch = authEpoch;
     state.termsAcceptedVersion = TERMS_VERSION;
     state.termsAcceptedAt = new Date().toISOString();
     showTermsModal = false;
     await recordTermsAcceptance();
+    if (epoch !== authEpoch || !canUseBudget()) return;
     saveLocalState(state);
     await saveRemoteBudgetState(state);
     render();
