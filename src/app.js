@@ -1,11 +1,11 @@
 import { dashboardModel, money, pct, projectionAnalysisModel, smartModel } from "./calculations/budgetEngine.js?v=20260809a";
 import { clearActualMonthState, defaultState, loadState, reconcileState, resetState, saveState as saveLocalState } from "./data/defaultState.js?v=20260705b";
 import { copy } from "./i18n/index.js?v=20261030a";
-import { fixedText, fixedMarkup } from "./i18n/fixedText.js?v=20261030a";
+import { fixedText, fixedMarkup } from "./i18n/fixedText.js?v=20261101b";
 import { termsEs } from "./i18n/termsEs.js?v=20261030a";
 import { isSupabaseConfigured, supabase } from "./services/supabaseClient.js?v=20260705b";
-import { readCommercialToken, clearCommercialToken, normalizeAccessStatus, accessDeadline } from "./services/accessControl.js?v=20261101a";
-import { ETSY_PURCHASE_URL } from "./config/access.js?v=20261101a";
+import { normalizeAccessStatus, accessDeadline } from "./services/accessControl.js?v=20261101b";
+import { ETSY_PURCHASE_URL } from "./config/access.js?v=20261101b";
 
 let state = loadState();
 let selectedLanguage = readLanguagePreference();
@@ -67,10 +67,9 @@ let authAccess = null;
 let accessExpiresAt = 0;
 let accessTimer = null;
 let authEpoch = 0;
+let authEventVersion = 0;
 let accessRefreshPending = null;
 let remoteSaveChain = Promise.resolve();
-let commercialBusy = false;
-let pendingCommercialToken = readCommercialToken(window.location, localStorage, window.history);
 let transactionFormType = "expense";
 const comparativeReferences = {
   household: [
@@ -112,7 +111,7 @@ function render() {
     bindLanguageEvents();
     return;
   }
-  if (isSupabaseConfigured && (!canUseBudget() || !remoteStateLoaded || pendingCommercialToken)) {
+  if (isSupabaseConfigured && (!canUseBudget() || !remoteStateLoaded)) {
     app.innerHTML = accessScreen();
     bindAccessEvents();
     bindLanguageEvents();
@@ -170,7 +169,7 @@ function authScreen() {
         ${languageSelector()}
         <p class="eyebrow">Home Smart Financial Systems</p>
         <h1>Smart Budget Access</h1>
-        <p class="muted">Checking protected free access...</p>
+        <p class="muted">Checking account access...</p>
       </section>
     </main>`;
   }
@@ -183,7 +182,6 @@ function authScreen() {
         <p class="eyebrow">Home Smart Financial Systems</p>
         <h1>Smart Budget Access</h1>
         <p class="muted">Use your email and password to access your own budget.</p>
-        ${pendingCommercialToken ? html`<p class="auth-note">Commercial activation link received. Create an account or sign in to your existing account, then verify your email.</p>` : ""}
       </div>
       ${authMessage ? html`<p class="auth-message">${escapeHtml(tr(authMessage))}</p>` : ""}
       <form class="auth-form" id="auth-form">
@@ -206,24 +204,23 @@ function authScreen() {
 function accessScreen() {
   const reason = authAccess?.reason || "access_unavailable";
   const explanation = reason === "expired"
-    ? authAccess?.access_type === "DEMO" ? "Your DEMO has expired. Your account and saved budget have been kept."
-      : "Your COMMERCIAL access has expired. Your account and saved budget have been kept."
+    ? "Your DEMO has expired. Your account and saved budget have been kept."
     : reason === "blocked" ? "This account is not active. Contact Home Smart Financial Systems to restore access."
-    : reason === "email_unverified" ? "Verify your email before activating or accessing your budget."
+    : reason === "email_unverified" ? "Verify your email before accessing your budget."
     : reason === "profile_missing" ? "Your access profile needs review. Your budget has not been changed."
     : "Your access must be verified before opening your saved budget.";
-  const purchaseUrl = /^https:\/\/([a-z0-9-]+\.)?etsy\.com\//i.test(ETSY_PURCHASE_URL) ? ETSY_PURCHASE_URL : "";
+  const expiredDemo = reason === "expired" && authAccess?.access_type === "DEMO";
+  const purchaseUrl = expiredDemo && /^https:\/\/([a-z0-9-]+\.)?etsy\.com\//i.test(ETSY_PURCHASE_URL) ? ETSY_PURCHASE_URL : "";
   return html`<main class="auth-shell"><section class="auth-card access-card">
     ${languageSelector()}
     <p class="eyebrow">SMART BUDGET</p>
-    <h1>${tr(pendingCommercialToken ? "Activate COMMERCIAL access" : reason === "expired" ? "Access expired" : "Smart Budget Access")}</h1>
+    <h1>${tr(reason === "expired" ? "Access expired" : "Smart Budget Access")}</h1>
     <p><strong>${escapeHtml(authUser?.email || "")}</strong></p>
-    <p>${tr(pendingCommercialToken ? "Activate this account using your commercial link. Your existing budget will be kept." : explanation)}</p>
+    <p>${tr(explanation)}</p>
     ${authMessage ? html`<p class="auth-message" role="status">${escapeHtml(tr(authMessage))}</p>` : ""}
-    ${pendingCommercialToken ? html`<button class="primary" type="button" data-activate-commercial ${commercialBusy ? "disabled" : ""}>${tr(commercialBusy ? "Activating..." : "Activate COMMERCIAL access")}</button>
-      <button class="secondary" type="button" data-dismiss-commercial ${commercialBusy ? "disabled" : ""}>${tr(canUseBudget() ? "Continue with current access" : "Discard activation link")}</button>` : ""}
+    ${expiredDemo ? html`<p class="auth-note">Purchased on Etsy? Follow your PDF instructions and send your Smart Budget account email and proof of purchase for manual activation.</p>` : ""}
     ${purchaseUrl ? html`<a class="primary access-purchase" href="${escapeHtml(purchaseUrl)}" target="_blank" rel="noopener noreferrer">Buy Smart Budget on Etsy</a>` : ""}
-    <button class="secondary" type="button" data-retry-access ${commercialBusy ? "disabled" : ""}>Check access again</button>
+    <button class="secondary" type="button" data-retry-access>Check access again</button>
     <button class="link-button" type="button" data-sign-out>Sign out</button>
   </section></main>`;
 }
@@ -235,44 +232,17 @@ function bindAccessEvents() {
     render();
     void refreshAccess();
   });
-  document.querySelector("[data-dismiss-commercial]")?.addEventListener("click", () => {
-    clearCommercialToken(localStorage);
-    pendingCommercialToken = "";
-    authMessage = "";
-    void refreshAccess();
-  });
-  document.querySelector("[data-activate-commercial]")?.addEventListener("click", async () => {
-    if (commercialBusy || !pendingCommercialToken || !authUser) return;
-    const epoch = authEpoch;
-    commercialBusy = true;
-    authMessage = "";
-    render();
-    try {
-      const { data, error } = await supabase.rpc("sb_activate_commercial", { p_token: pendingCommercialToken });
-      if (epoch !== authEpoch) return;
-      if (error) throw error;
-      if (data?.activated !== true) {
-        authMessage = data?.reason === "email_unverified" ? "Verify your email before activating or accessing your budget."
-          : data?.reason === "blocked" ? "This account is not active. Contact Home Smart Financial Systems to restore access."
-          : "This commercial link is invalid or disabled. Your existing access has not been changed.";
-      } else {
-        clearCommercialToken(localStorage);
-        pendingCommercialToken = "";
-        await refreshAccess();
-      }
-    } catch {
-      if (epoch === authEpoch) authMessage = "Activation could not be verified. Check your connection and try again.";
-    } finally {
-      if (epoch === authEpoch) { commercialBusy = false; render(); }
-    }
-  });
 }
 
 async function signOutAccount() {
   authMessage = "Signed out.";
   await setAuthSession(null);
+  authLoading = true;
+  render();
   try { await supabase.auth.signOut(); } catch {
     authMessage = "Sign out could not be confirmed. Check your connection.";
+  } finally {
+    if (!authUser) authLoading = false;
     render();
   }
 }
@@ -284,7 +254,7 @@ function accountBar() {
     <div>
       <strong>${escapeHtml(authUser.email || "Signed in")}</strong>
       <span>${authAccess?.access_type === "DEMO" ? html`DEMO access ends: ${expires}`
-        : expires ? html`COMMERCIAL access ends: ${expires}` : tr("COMMERCIAL - Lifetime access")}</span>
+        : tr("COMMERCIAL - Lifetime access")}</span>
     </div>
     <button class="secondary" type="button" data-sign-out>Sign out</button>
   </section>`;
@@ -336,14 +306,18 @@ async function initAuth() {
 
   // Do not await Supabase calls inside its auth callback (it holds an internal lock).
   supabase.auth.onAuthStateChange((_event, session) => {
-    if (_event === "INITIAL_SESSION") return;
+    if (_event === "INITIAL_SESSION" || (!session?.user && !authUser)) return;
+    const version = ++authEventVersion;
     window.setTimeout(() => {
+      if (version !== authEventVersion) return;
       if (authUser?.id === session?.user?.id && authUser) void refreshAccess();
       else void setAuthSession(session);
     }, 0);
   });
   try {
+    const version = authEventVersion;
     const { data, error } = await supabase.auth.getSession();
+    if (version !== authEventVersion) return;
     if (error) throw error;
     await setAuthSession(data?.session || null);
   } catch {
@@ -359,11 +333,11 @@ async function initAuth() {
 }
 
 async function setAuthSession(session) {
+  ++authEventVersion;
   const epoch = ++authEpoch;
   blockBudget();
   authUser = session?.user || null;
   authAccess = null;
-  commercialBusy = false;
   helpMessages = initialHelpMessages();
   state = structuredClone(defaultState);
   if (!authUser) {
@@ -376,7 +350,7 @@ async function setAuthSession(session) {
   try {
     await checkServerAccess(epoch);
     if (epoch !== authEpoch) return;
-    if (canUseBudget() && !pendingCommercialToken) {
+    if (canUseBudget()) {
       await loadRemoteBudgetState(epoch);
     }
   } catch {
@@ -430,11 +404,10 @@ async function refreshAccess() {
       await checkServerAccess(epoch);
       if (epoch !== authEpoch) return;
       if (!canUseBudget()) { blockBudget(); renderNeeded = true; }
-      else if (!remoteStateLoaded && !pendingCommercialToken) {
+      else if (!remoteStateLoaded) {
         await loadRemoteBudgetState(epoch);
         renderNeeded = true;
-      } else if (pendingCommercialToken) renderNeeded = true;
-      else if (previousType !== authAccess.access_type || previousExpiry !== authAccess.expires_at) {
+      } else if (previousType !== authAccess.access_type || previousExpiry !== authAccess.expires_at) {
         const bar = document.querySelector(".account-bar");
         if (bar) {
           bar.outerHTML = accountBar();

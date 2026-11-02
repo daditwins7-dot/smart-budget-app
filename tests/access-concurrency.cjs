@@ -5,28 +5,30 @@ if (container !== 'smart_budget_access_test_20261101' || !/^sb_access_test_\d+_\
 const args = sql => ['exec', container, 'psql', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', database, '-c', sql];
 const run = sql => execFileSync('docker', args(sql), { encoding: 'utf8' }).trim();
 const asyncRun = sql => new Promise((resolve, reject) => execFile('docker', args(sql), { encoding: 'utf8' }, (error, out) => error ? reject(error) : resolve(out.trim())));
-const uid = '00000000-0000-0000-0000-000000000010';
-const redeem = `set role authenticated; set "request.jwt.claim.sub"='${uid}'; select sb_activate_commercial(repeat('b',64));`;
+const uid = '00000000-0000-0000-0000-000000000020';
 (async () => {
   run(`insert into auth.users(id,email,email_confirmed_at) values('${uid}','concurrent@example.test',now());
-    insert into sb_private.commercial_links(label,token_hash,commercial_term) values('concurrency',extensions.digest(repeat('b',64),'sha256'),'LIFETIME');`);
-  const [first, second] = await Promise.all([asyncRun(redeem), asyncRun(redeem)]);
-  assert.ok(JSON.parse(first).activated && JSON.parse(second).activated);
-  assert.equal(run(`select count(*) from sb_private.commercial_activations where user_id='${uid}'`), '1');
-  const fresh = '00000000-0000-0000-0000-000000000011';
-  run(`insert into auth.users(id,email,email_confirmed_at) values('${fresh}','revocation-race@example.test',now());`);
-  const disable = asyncRun(`begin; update sb_private.commercial_links set enabled=false where label='concurrency';
+    update budget_states set state='{"preserved":true}' where user_id='${uid}';`);
+  const grant = `select sb_admin_grant_lifetime('concurrent@example.test','${uid}');`;
+  const results = (await Promise.all([asyncRun(grant), asyncRun(grant)])).map(value => JSON.parse(value));
+  assert.equal(results.filter(result => result.changed).length, 1);
+  assert.ok(results.every(result => result.access_type === 'COMMERCIAL' && result.access_expires_at === null));
+  assert.equal(run(`select count(*) from sb_private.access_events where user_id='${uid}' and event='manual_commercial_granted'`), '1');
+  assert.equal(run(`select state->>'preserved' from budget_states where user_id='${uid}'`), 'true');
+
+  const fresh = '00000000-0000-0000-0000-000000000021';
+  run(`insert into auth.users(id,email,email_confirmed_at) values('${fresh}','before-change@example.test',now());`);
+  const changeEmail = asyncRun(`begin; update auth.users set email='after-change@example.test' where id='${fresh}';
     select pg_advisory_xact_lock(41101); select pg_sleep(2); commit;`);
   let locked = false;
   for (let i = 0; i < 20 && !locked; i++) {
     locked = run(`select exists(select 1 from pg_locks where locktype='advisory' and objid=41101 and granted)`) === 't';
     if (!locked) await new Promise(resolve => setTimeout(resolve, 30));
   }
-  assert.ok(locked, 'Disable operation acquired its lock');
-  const blocked = await asyncRun(`set role authenticated; set "request.jwt.claim.sub"='${fresh}'; select sb_activate_commercial(repeat('b',64));`);
-  await disable;
-  assert.equal(JSON.parse(blocked).reason, 'link_disabled');
+  assert.ok(locked, 'Identity update has acquired its lock');
+  await assert.rejects(asyncRun(`select sb_admin_grant_lifetime('before-change@example.test','${fresh}');`), /Account changed; review it again/);
+  await changeEmail;
   assert.equal(run(`select access_type from profiles where user_id='${fresh}'`), 'DEMO');
-  assert.equal(run(`select access_expires_at is null from profiles where user_id='${uid}'`), 't');
-  console.log('PASS: concurrent redemption grants once; link revocation serializes with new activations.');
+  assert.equal(run(`select count(*) from sb_private.access_events where user_id='${fresh}' and event='manual_commercial_granted'`), '0');
+  console.log('PASS: concurrent manual grants are idempotent; identity changes prevent stale-email activation.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

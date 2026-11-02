@@ -13,7 +13,7 @@ const mock = window.__accessMock = {
   session: options.signedOut ? null : { user }, status: options.status || permanent,
   statusError: Boolean(options.statusError), budgetError: Boolean(options.budgetError),
   statusDelay: options.statusDelay || 0, budgetDelay: options.budgetDelay || 0,
-  activationReason: options.activationReason || "activated", saveError: false,
+  saveError: false,
   events: [], writes: [], callback: null,
   emit(id) {
     this.session = id ? { user: { id, email: `${id}@example.test` } } : null;
@@ -38,11 +38,6 @@ export const supabase = {
     if (name === "sb_access_status") {
       await delay(mock.statusDelay);
       return mock.statusError ? { error: { message: "offline" } } : { data: structuredClone(mock.status) };
-    }
-    if (name === "sb_activate_commercial") {
-      if (mock.activationReason !== "activated") return { data: { activated: false, reason: mock.activationReason } };
-      mock.status = permanent;
-      return { data: { activated: true, reason: "activated" } };
     }
     throw new Error("Unexpected RPC");
   },

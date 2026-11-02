@@ -13,7 +13,7 @@ create function auth.uid() returns uuid language sql stable as $$
 $$;
 grant usage on schema public,auth to anon,authenticated,service_role;
 grant execute on function auth.uid() to public;
-create table auth.users(id uuid primary key default gen_random_uuid(), email text,
+create table auth.users(id uuid primary key default gen_random_uuid(), email text, raw_user_meta_data jsonb not null default '{}',
   email_confirmed_at timestamptz, created_at timestamptz not null default now());
 create table public.profiles(
   user_id uuid primary key references auth.users(id) on delete cascade,

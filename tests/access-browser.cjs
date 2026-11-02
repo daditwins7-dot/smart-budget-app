@@ -8,7 +8,6 @@ const root = path.resolve(__dirname, '..');
 const output = path.resolve(root, '../../backups/access-check');
 fs.mkdirSync(output, { recursive: true });
 const fixture = fs.readFileSync(path.join(__dirname, 'access-browser-fixture.js'), 'utf8');
-const token = 'a'.repeat(64); // Fake local test key; not a production activation secret.
 const server = http.createServer((req, res) => {
   const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
   const file = path.resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname));
@@ -79,43 +78,58 @@ const server = http.createServer((req, res) => {
       }
       await p.close();
     }
-    const activation = await makePage({ status: expired }, `#commercial=${token}`);
-    await activation.waitForSelector('[data-activate-commercial]');
-    assert.ok(!activation.url().includes(token), 'Secret removed from visible URL');
+    const activation = await makePage({ status: expired });
+    await activation.waitForSelector('[data-retry-access]');
     assert.equal(await activation.locator('.dashboard-board').count(), 0);
+    assert.equal(await activation.locator('[data-activate-commercial]').count(), 0, 'No customer self-activation action');
     await activation.locator('[data-language]').selectOption('es');
     await activation.setViewportSize({ width: 390, height: 844 });
-    await activation.screenshot({ path: path.join(output, 'activate-es.png'), fullPage: true });
-    await activation.locator('[data-activate-commercial]').click();
+    assert.match(await activation.locator('.access-card').innerText(), /comprobante de compra/);
+    await activation.screenshot({ path: path.join(output, 'manual-activation-es.png'), fullPage: true });
+    // Simulates an external administrator after Etsy verification, not an app activation API.
+    await activation.evaluate(() => { __accessMock.status = { allowed: true, reason: 'ok', access_type: 'COMMERCIAL', expires_at: null, remaining_seconds: null }; });
+    await activation.locator('[data-retry-access]').click();
     await activation.waitForSelector('.dashboard-board');
-    assert.equal(await activation.evaluate(() => localStorage.getItem('smart-budget-pending-commercial')), null);
     assert.match(await activation.locator('.account-bar').innerText(), /por vida/);
     await activation.locator('[data-page="budget"]').click();
     assert.equal(await activation.locator('[data-line="0"][data-prop="concept"]').inputValue(), 'Income first <literal>');
     await activation.locator('[data-sign-out]').click();
     await activation.waitForSelector('#auth-form');
     assert.equal(await activation.locator('.workspace').count(), 0);
+    await activation.locator('[name="email"]').fill('first@example.test');
+    await activation.locator('[name="password"]').fill('test-password-only');
+    await activation.locator('#auth-form').evaluate(form => form.requestSubmit());
+    await activation.waitForSelector('.workspace');
+    assert.equal(await activation.locator('[data-line="0"][data-prop="concept"]').inputValue(), 'Income first <literal>');
+    assert.match(await activation.locator('.account-bar').innerText(), /por vida/);
     await activation.close();
-    const disabled = await makePage({ status: expired, activationReason: 'link_disabled' }, `#commercial=${token}`);
-    await disabled.waitForSelector('[data-activate-commercial]');
-    await disabled.locator('[data-activate-commercial]').click();
-    await disabled.waitForFunction(() => document.body.innerText.includes('invalid or disabled'));
-    assert.equal(await disabled.locator('.workspace').count(), 0);
-    assert.equal(await disabled.evaluate(() => __accessMock.writes.length), 0);
-    await disabled.close();
-    const registration = await makePage({ signedOut: true }, `#commercial=${token}`);
+    const demo = { allowed: true, reason: 'ok', access_type: 'DEMO', expires_at: '2030-01-01T00:00:00Z', remaining_seconds: 2592000 };
+    const registration = await makePage({ signedOut: true, status: demo }, '?access_type=COMMERCIAL');
     await registration.waitForSelector('#auth-form');
     await registration.locator('[data-auth-mode]').click();
     await registration.locator('[name="email"]').fill('buyer@example.test');
     await registration.locator('[name="password"]').fill('test-password-only');
     await registration.locator('#auth-form').evaluate(form => form.requestSubmit());
     await registration.waitForFunction(() => __accessMock.events.some(e => e.signup));
-    const signup = await registration.evaluate(() => __accessMock.events.find(e => e.signup));
-    assert.ok(!signup.signup.emailRedirectTo.includes(token), 'Confirmation URL does not leak commercial token');
     await registration.evaluate(() => __accessMock.emit('first'));
-    await registration.waitForSelector('[data-activate-commercial]');
-    assert.equal(await registration.evaluate(() => __accessMock.events.filter(e => typeof e === 'string' && e.startsWith('budget:')).length), 0);
+    await registration.waitForSelector('.dashboard-board');
+    assert.match(await registration.locator('.account-bar').innerText(), /DEMO access ends/);
+    const rpcs = await registration.evaluate(() => __accessMock.events.filter(e => typeof e === 'string' && e.startsWith('sb_')));
+    assert.ok(rpcs.every(name => name === 'sb_access_status'), 'Registration never asks for commercial privileges');
     await registration.close();
+    const activeDemo = await makePage({ status: demo });
+    await activeDemo.waitForSelector('.dashboard-board');
+    await activeDemo.locator('[data-page="transactions"]').click();
+    await activeDemo.locator('[name="comment"]').fill('Draft before manual grant');
+    const readsBefore = await activeDemo.evaluate(() => __accessMock.events.filter(e => typeof e === 'string' && e.startsWith('budget:')).length);
+    await activeDemo.evaluate(() => {
+      __accessMock.status = { allowed: true, reason: 'ok', access_type: 'COMMERCIAL', expires_at: null, remaining_seconds: null };
+      window.dispatchEvent(new Event('focus'));
+    });
+    await activeDemo.waitForFunction(() => document.querySelector('.account-bar').innerText.includes('Lifetime'));
+    assert.equal(await activeDemo.locator('[name="comment"]').inputValue(), 'Draft before manual grant');
+    assert.equal(await activeDemo.evaluate(() => __accessMock.events.filter(e => typeof e === 'string' && e.startsWith('budget:')).length), readsBefore);
+    await activeDemo.close();
     const sessionRace = await makePage({ budgetDelay: 250 });
     await sessionRace.waitForFunction(() => __accessMock.events.includes('budget:first'));
     await sessionRace.evaluate(() => __accessMock.emit('second'));
@@ -143,6 +157,6 @@ const server = http.createServer((req, res) => {
     assert.equal(await expiry.evaluate(() => __accessMock.writes.length), 0, 'Expiry cancels queued writes');
     await expiry.close();
     assert.deepEqual(errors, []);
-    console.log('PASS: bilingual views, server-before-budget ordering, conversion, expired/missing/offline/error gates, token handling, account races and queued-save cancellation.');
+    console.log('PASS: bilingual views, normal DEMO registration, external manual conversion, saved budget recovery, server-first access, failure gates and account races.');
   } finally { if (browser) await browser.close(); await new Promise(resolve => server.close(resolve)); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

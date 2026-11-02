@@ -21,9 +21,6 @@ begin
       <> expected_inventory then
     raise exception 'Account identities/statuses/roles differ from the approved inventory; stop and review';
   end if;
-  if not exists (select 1 from pg_extension where extname='pgcrypto') then
-    raise exception 'Expected pgcrypto extension is missing';
-  end if;
 end $$;
 
 create schema sb_private;
@@ -33,28 +30,9 @@ revoke all on schema sb_private from public, anon, authenticated, service_role;
 create table sb_private.legacy_profiles as select clock_timestamp() as captured_at, p.* from public.profiles p;
 create table sb_private.access_settings (
   singleton boolean primary key default true check (singleton),
-  demo_days integer not null default 30 check (demo_days between 1 and 365),
-  commercial_term text not null default 'LIFETIME' check (commercial_term in ('LIFETIME','1_YEAR'))
+  demo_days integer not null default 30 check (demo_days between 1 and 365)
 );
 insert into sb_private.access_settings default values;
-create table sb_private.commercial_links (
-  id uuid primary key default gen_random_uuid(),
-  label text not null,
-  token_hash bytea not null unique,
-  enabled boolean not null default true,
-  commercial_term text not null check (commercial_term in ('LIFETIME','1_YEAR')),
-  created_at timestamptz not null default clock_timestamp(),
-  created_by uuid references auth.users(id),
-  disabled_at timestamptz
-);
-create table sb_private.commercial_activations (
-  user_id uuid not null references auth.users(id),
-  link_id uuid not null references sb_private.commercial_links(id),
-  activated_at timestamptz not null default clock_timestamp(),
-  commercial_term text not null,
-  granted_expires_at timestamptz,
-  primary key (user_id, link_id)
-);
 create table sb_private.access_events (
   id bigint generated always as identity primary key,
   occurred_at timestamptz not null default clock_timestamp(),
@@ -65,8 +43,6 @@ create table sb_private.access_events (
 );
 alter table sb_private.legacy_profiles enable row level security;
 alter table sb_private.access_settings enable row level security;
-alter table sb_private.commercial_links enable row level security;
-alter table sb_private.commercial_activations enable row level security;
 alter table sb_private.access_events enable row level security;
 revoke all on all tables in schema sb_private from public, anon, authenticated, service_role;
 revoke all on all sequences in schema sb_private from public, anon, authenticated, service_role;
@@ -75,7 +51,8 @@ alter table public.profiles
   add column access_type text not null default 'DEMO' check (access_type in ('DEMO','COMMERCIAL')),
   add column access_started_at timestamptz,
   add column access_expires_at timestamptz,
-  add column access_source text not null default 'normal' check (access_source in ('legacy','normal','commercial_link','admin'));
+  add column access_source text not null default 'normal' check (access_source in ('legacy','normal','admin')),
+  add constraint commercial_lifetime_only check (access_type <> 'COMMERCIAL' or access_expires_at is null);
 
 -- Only the five approved active accounts become permanent. Preserve role and IDs.
 update public.profiles
@@ -156,98 +133,71 @@ begin
       else greatest(0,extract(epoch from p.access_expires_at-stamp)) end);
 end $$;
 
-create function public.sb_create_commercial_link(p_label text) returns jsonb
-language plpgsql security definer set search_path='' as $$
-declare secret text; term text; link_id uuid;
+-- Commercial access is granted only after the owner verifies the purchase externally.
+create function public.sb_admin_lookup_access(p_email text) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare address text; matches integer; account record;
 begin
   if not sb_private.is_operator() then raise exception 'Administrator required' using errcode='42501'; end if;
-  if length(trim(p_label)) not between 1 and 120 then raise exception 'Invalid label'; end if;
-  select commercial_term into term from sb_private.access_settings where singleton;
-  secret:=encode(extensions.gen_random_bytes(32),'hex');
-  insert into sb_private.commercial_links(label,token_hash,commercial_term,created_by)
-  values(trim(p_label),extensions.digest(secret,'sha256'),term,auth.uid()) returning id into link_id;
-  insert into sb_private.access_events(actor_id,event,details)
-  values(auth.uid(),'link_created',jsonb_build_object('link_id',link_id,'term',term));
-  -- Returned once to the operator. Never stored or logged as plaintext.
-  return jsonb_build_object('link_id',link_id,'token',secret,'commercial_term',term);
+  address:=lower(btrim(p_email));
+  if address is null or length(address) not between 3 and 320 then raise exception 'Invalid email' using errcode='22023'; end if;
+  select count(*) into matches from auth.users where lower(btrim(email))=address;
+  if matches=0 then raise exception 'Account not found' using errcode='P0002'; end if;
+  if matches<>1 then raise exception 'Multiple accounts match this email; review required' using errcode='21000'; end if;
+  select u.id as account_id,u.email as account_email,u.email_confirmed_at,p.* into account
+  from auth.users u left join public.profiles p on p.user_id=u.id where lower(btrim(u.email))=address;
+  if account.user_id is null then raise exception 'Account profile missing; review required' using errcode='P0002'; end if;
+  return jsonb_build_object('user_id',account.user_id,'email',account.account_email,'profile_email',account.email,
+    'email_verified',account.email_confirmed_at is not null,
+    'email_matches_profile',lower(btrim(account.email))=address,
+    'access_type',account.access_type,'access_status',account.access_status,'role',account.role,
+    'access_expires_at',account.access_expires_at,'access_source',account.access_source,
+    'budget_row_exists',exists(select 1 from public.budget_states where user_id=account.user_id));
 end $$;
 
-create function public.sb_set_commercial_link_enabled(p_link_id uuid,p_enabled boolean) returns void
+create function public.sb_admin_grant_lifetime(p_email text,p_expected_user_id uuid) returns jsonb
 language plpgsql security definer set search_path='' as $$
+declare reviewed jsonb; p public.profiles; verified boolean; address text; stamp timestamptz;
 begin
-  if not sb_private.is_operator() then raise exception 'Administrator required' using errcode='42501'; end if;
-  if p_enabled is null then raise exception 'Enabled must be true or false'; end if;
-  update sb_private.commercial_links set enabled=p_enabled,
-    disabled_at=case when p_enabled then null else clock_timestamp() end where id=p_link_id;
-  if not found then raise exception 'Link not found'; end if;
-  insert into sb_private.access_events(actor_id,event,details)
-  values(auth.uid(),'link_state_changed',jsonb_build_object('link_id',p_link_id,'enabled',p_enabled));
-end $$;
-
-create function public.sb_activate_commercial(p_token text) returns jsonb
-language plpgsql security definer set search_path='' as $$
-declare p public.profiles; link sb_private.commercial_links; stamp timestamptz; expiry timestamptz;
-begin
-  if auth.uid() is null then return jsonb_build_object('activated',false,'reason','sign_in_required'); end if;
-  if not exists(select 1 from auth.users where id=auth.uid() and email_confirmed_at is not null) then
-    return jsonb_build_object('activated',false,'reason','email_unverified');
+  -- Lookup checks authorization and rejects missing/ambiguous accounts before any write.
+  reviewed:=public.sb_admin_lookup_access(p_email);
+  if p_expected_user_id is null or (reviewed->>'user_id')::uuid<>p_expected_user_id then
+    raise exception 'Account does not match reviewed user ID' using errcode='22023';
   end if;
-  if p_token is null or p_token !~ '^[0-9a-f]{64}$' then
-    return jsonb_build_object('activated',false,'reason','invalid_link');
-  end if;
-  select * into p from public.profiles where user_id=auth.uid() for update;
-  if not found then return jsonb_build_object('activated',false,'reason','profile_missing'); end if;
-  if p.access_status='blocked' then return jsonb_build_object('activated',false,'reason','blocked'); end if;
-  -- Serializes redemption with disable/enable so a revoked link cannot grant a new license.
-  select * into link from sb_private.commercial_links
-  where token_hash=extensions.digest(p_token,'sha256') for update;
-  if not found then return jsonb_build_object('activated',false,'reason','invalid_link'); end if;
-  if exists(select 1 from sb_private.commercial_activations where user_id=p.user_id and link_id=link.id) then
-    return jsonb_build_object('activated',true,'reason','already_activated','access',public.sb_access_status());
-  end if;
-  if not link.enabled then return jsonb_build_object('activated',false,'reason','link_disabled'); end if;
-  -- A shared link must not shorten Lifetime or repeatedly renew an annual account.
+  address:=lower(btrim(p_email));
+  -- Recheck and lock both identity and profile so an email change cannot target another account.
+  perform u.id from auth.users u join public.profiles pr on pr.user_id=u.id
+  where u.id=p_expected_user_id and lower(btrim(u.email))=address for update of u,pr;
+  if not found then raise exception 'Account changed; review it again' using errcode='22023'; end if;
+  select * into strict p from public.profiles where user_id=p_expected_user_id;
+  select email_confirmed_at is not null into verified from auth.users where id=p.user_id;
+  if not coalesce(verified,false) then raise exception 'Email verification required' using errcode='22023'; end if;
+  if lower(btrim(p.email))<>address then raise exception 'Profile email mismatch; review required' using errcode='22023'; end if;
+  if p.access_status='blocked' then raise exception 'Blocked account requires a separate review' using errcode='22023'; end if;
   if p.access_type='COMMERCIAL' then
-    return jsonb_build_object('activated',true,'reason','already_commercial','access',public.sb_access_status());
+    if p.access_status<>'active' then raise exception 'Commercial account status requires review' using errcode='22023'; end if;
+    return public.sb_admin_lookup_access(p_email)||jsonb_build_object('changed',false);
   end if;
+  if p.access_type<>'DEMO' then raise exception 'Expected DEMO account' using errcode='22023'; end if;
   stamp:=clock_timestamp();
-  expiry:=case when link.commercial_term='LIFETIME' then null else stamp+interval '1 year' end;
-  update public.profiles set access_type='COMMERCIAL',access_status='active',access_source='commercial_link',
-    access_started_at=stamp,access_expires_at=expiry where user_id=p.user_id;
-  insert into sb_private.commercial_activations(user_id,link_id,commercial_term,granted_expires_at)
-  values(p.user_id,link.id,link.commercial_term,expiry);
+  update public.profiles set access_type='COMMERCIAL',access_status='active',access_source='admin',
+    access_started_at=stamp,access_expires_at=null where user_id=p.user_id;
   insert into sb_private.access_events(actor_id,user_id,event,details)
-  values(p.user_id,p.user_id,'commercial_activated',jsonb_build_object('link_id',link.id,'term',link.commercial_term,'expires_at',expiry));
-  return jsonb_build_object('activated',true,'reason','activated','access',public.sb_access_status());
+  values(auth.uid(),p.user_id,'manual_commercial_granted',jsonb_build_object(
+    'database_actor',session_user,
+    'before',jsonb_build_object('type',p.access_type,'status',p.access_status,'expires_at',p.access_expires_at),
+    'after',jsonb_build_object('type','COMMERCIAL','status','active','expires_at',null)));
+  return public.sb_admin_lookup_access(p_email)||jsonb_build_object('changed',true);
 end $$;
 
-create function public.sb_admin_set_access(p_user_id uuid,p_type text,p_expires_at timestamptz default null) returns void
-language plpgsql security definer set search_path='' as $$
-declare p public.profiles;
-begin
-  if not sb_private.is_operator() then raise exception 'Administrator required' using errcode='42501'; end if;
-  if p_type not in ('DEMO','COMMERCIAL') or p_type is null then raise exception 'Invalid access type'; end if;
-  if p_type='DEMO' and p_expires_at is null then raise exception 'DEMO requires an expiration date'; end if;
-  select * into strict p from public.profiles where user_id=p_user_id for update;
-  if p.access_type='COMMERCIAL' and p.access_expires_at is null and (p_type<>'COMMERCIAL' or p_expires_at is not null) then
-    raise exception 'Existing Lifetime access cannot be reduced';
-  end if;
-  update public.profiles set access_type=p_type,access_status=case when p_type='DEMO' then 'trial' else 'active' end,
-    access_source='admin',access_started_at=coalesce(access_started_at,clock_timestamp()),access_expires_at=p_expires_at
-  where user_id=p_user_id;
-  insert into sb_private.access_events(actor_id,user_id,event,details)
-  values(auth.uid(),p_user_id,'admin_access_changed',jsonb_build_object('before',to_jsonb(p), 'type',p_type,'expires_at',p_expires_at));
-end $$;
-
--- Explicit grants: do not inherit the broad project defaults.
+-- Explicit privileges override broad project defaults. Normal users fail the admin check.
 revoke all on function sb_private.is_operator() from public,anon,authenticated,service_role;
 revoke all on function public.sb_has_access(),public.sb_is_admin(),public.sb_access_status(),
-  public.sb_create_commercial_link(text),public.sb_set_commercial_link_enabled(uuid,boolean),
-  public.sb_activate_commercial(text),public.sb_admin_set_access(uuid,text,timestamptz)
+  public.sb_admin_lookup_access(text),public.sb_admin_grant_lifetime(text,uuid)
 from public,anon,authenticated,service_role;
 grant execute on function public.sb_has_access(),public.sb_is_admin(),public.sb_access_status(),
-  public.sb_create_commercial_link(text),public.sb_set_commercial_link_enabled(uuid,boolean),
-  public.sb_activate_commercial(text),public.sb_admin_set_access(uuid,text,timestamptz) to authenticated;
+  public.sb_admin_lookup_access(text),public.sb_admin_grant_lifetime(text,uuid) to authenticated;
+
 revoke all on function public.handle_new_user(),public.set_updated_at() from public,anon,authenticated;
 revoke all on function public.is_admin() from public,anon;
 grant execute on function public.is_admin() to authenticated;
